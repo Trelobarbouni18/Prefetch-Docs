@@ -1,0 +1,189 @@
+---
+title: "POST /crawl"
+description: "Crawl a whole site and get every page back as clean markdown. Costs 3 credits to submit, plus 3 per page returned."
+openapi: "POST /crawl"
+---
+
+## Overview
+
+`/crawl` walks a site breadth-first from a start URL and renders every page it finds, exactly the way [`GET /scrape`](/api-reference/endpoint/scrape) would render it.
+
+Crawls run for minutes, so this is the one asynchronous endpoint in the API. You submit a crawl, get an id back straight away, then poll [`GET /crawl/{id}`](/api-reference/endpoint/crawl-status) for progress and results.
+
+<Steps>
+  <Step title="Submit">
+    `POST /crawl` returns `202` with a crawl id.
+  </Step>
+  <Step title="Poll">
+    `GET /crawl/{id}` returns progress plus a page of results. Follow `next` until it is null.
+  </Step>
+  <Step title="Stop early (optional)">
+    `DELETE /crawl/{id}` cancels a running crawl. Pages already fetched stay readable.
+  </Step>
+</Steps>
+
+## Example request
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.prefetch.io/crawl" \
+  -H "X-API-Key: $PREFETCH_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://docs.stripe.com",
+    "limit": 50,
+    "max_depth": 2,
+    "include_paths": ["^/docs/"],
+    "exclude_paths": ["^/docs/changelog/"],
+    "scrape_options": { "formats": ["markdown"] }
+  }'
+```
+
+```javascript Node.js
+const res = await fetch("https://api.prefetch.io/crawl", {
+  method: "POST",
+  headers: {
+    "X-API-Key": process.env.PREFETCH_API_KEY,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    url: "https://docs.stripe.com",
+    limit: 50,
+    max_depth: 2,
+    include_paths: ["^/docs/"],
+    scrape_options: { formats: ["markdown"] },
+  }),
+});
+
+const { data } = await res.json();
+console.log(data.id); // crw_9f2c1a7b4e0d4c3a8b1e5f7d2c9a0b3e
+```
+
+```python Python
+import requests, os
+
+r = requests.post(
+    "https://api.prefetch.io/crawl",
+    headers={"X-API-Key": os.environ["PREFETCH_API_KEY"]},
+    json={
+        "url": "https://docs.stripe.com",
+        "limit": 50,
+        "max_depth": 2,
+        "include_paths": ["^/docs/"],
+        "scrape_options": {"formats": ["markdown"]},
+    },
+)
+crawl_id = r.json()["data"]["id"]
+```
+
+</CodeGroup>
+
+## Example response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "crw_9f2c1a7b4e0d4c3a8b1e5f7d2c9a0b3e",
+    "status": "pending",
+    "url": "https://docs.stripe.com",
+    "limit": 50,
+    "max_depth": 2,
+    "created_at": "2026-08-20T09:14:03.221Z",
+    "expires_at": "2026-08-21T09:14:03.221Z"
+  },
+  "meta": {
+    "requestId": "c5f4e3d2-9b8c-4d5e-af3a-2b4c6d8e0f21",
+    "durationMs": 84
+  }
+}
+```
+
+The status is `202 Accepted`, not `200` — the crawl has been queued, not completed.
+
+## Controlling scope
+
+A crawl stays inside the boundary you draw. By default that means the site you pointed it at, two links deep, at most 25 pages.
+
+| Parameter | Default | What it does |
+|---|---|---|
+| `limit` | 25 | Maximum pages fetched. Hard ceiling: 500. |
+| `max_depth` | 2 | How many links deep to follow. Hard ceiling: 5. |
+| `include_paths` | — | Regular expressions. A URL's path must match at least one. |
+| `exclude_paths` | — | Regular expressions. A matching URL is skipped. |
+| `allow_subdomains` | `false` | Follow links onto subdomains. |
+| `allow_external_links` | `false` | Follow links onto other sites. |
+
+Patterns are matched against the **path and query**, not the whole URL — so `^/docs/` means the docs section, and a pattern containing the hostname will never match. Exclusions win over inclusions. An invalid regular expression is rejected at submission with a `400`, not silently ignored halfway through a crawl.
+
+```json
+{
+  "url": "https://docs.stripe.com",
+  "include_paths": ["^/docs/payments/"],
+  "exclude_paths": ["^/docs/payments/legacy/", "\\?locale="]
+}
+```
+
+## Sitemap seeding and depth
+
+With `use_sitemap` on (the default), the crawl seeds itself from the site's sitemap as well as following links.
+
+Sitemap-seeded pages sit at **depth 0** — the site handed them over, you did not follow a link to reach them. That makes one particularly useful combination:
+
+```json
+{ "url": "https://docs.stripe.com", "max_depth": 0, "use_sitemap": true, "limit": 200 }
+```
+
+This crawls exactly what the sitemap lists and follows nothing else.
+
+## Politeness
+
+Crawls obey `robots.txt` by default — both `Disallow` rules and `Crawl-delay`. Set `respect_robots_txt: false` to ignore the rules.
+
+<Note>
+  Turning the rules off never stops `robots.txt` being read. Its `Sitemap:` entries always seed the crawl, because a sitemap tells you where a site's pages are whether or not you are honouring its restrictions. Use `use_sitemap: false` to skip seeding.
+</Note>
+
+`delay_ms` adds a pause between pages, and `concurrency` (1–5, default 2) sets how many are fetched in parallel. A `Crawl-delay` in `robots.txt` wins whenever it asks for more space than `delay_ms`.
+
+## Rendering each page
+
+`scrape_options` takes the same options as [`GET /scrape`](/api-reference/endpoint/scrape), so a crawled page and a scraped page are the same object.
+
+```json
+{
+  "url": "https://docs.stripe.com",
+  "scrape_options": {
+    "formats": ["markdown", "links"],
+    "only_main_content": true,
+    "exclude_selectors": [".sidebar", ".version-banner"]
+  }
+}
+```
+
+<Warning>
+  Formats are charged per page. Requesting `summary` or `json` on a 500-page crawl means 500 LLM calls. Start with a small `limit` to check the output before scaling up.
+</Warning>
+
+## Credits
+
+You are charged **3 credits to submit**, plus **3 credits per page the crawl returns**.
+
+Pages are billed as they complete, on the status endpoint, so:
+
+- You pay for pages actually fetched, never for the `limit` you asked for.
+- Pages that failed (`ok: false`) are not charged.
+- Polling repeatedly never charges twice for the same page.
+- A cancelled crawl is charged only for what it fetched before stopping.
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="GET /crawl/{id}" icon="list-check" href="/api-reference/endpoint/crawl-status">
+    Poll for progress and read the crawled pages.
+  </Card>
+  <Card title="DELETE /crawl/{id}" icon="ban" href="/api-reference/endpoint/crawl-cancel">
+    Stop a running crawl. Free.
+  </Card>
+</CardGroup>

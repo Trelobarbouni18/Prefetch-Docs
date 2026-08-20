@@ -1,6 +1,6 @@
 ---
 title: "API Reference"
-description: "REST API reference for Prefetch. All endpoints accept GET requests and return JSON."
+description: "REST API reference for Prefetch. Every endpoint returns JSON in the same envelope."
 ---
 
 ## Base URL
@@ -56,11 +56,20 @@ On error, `success` is `false` and `data` is replaced by `error`:
 | `GET /brand` | 10 |
 | `GET /company` | 5 |
 | `GET /classify` | 5 |
+| `GET /scrape` | 3 |
+| `GET /map` | 3 |
+| `POST /crawl` | 3, plus 3 per page returned |
+| `GET /crawl/{id}` | Charged per page as pages complete |
+| `DELETE /crawl/{id}` | — |
 | `GET /screenshot` | 2 |
 | `GET /health` | — |
 | `GET /ready` | — |
 
 Credits are deducted only on successful responses. See [Credits](/concepts/credits).
+
+## Asynchronous endpoints
+
+Every endpoint answers in one round trip except `/crawl`. A crawl runs for minutes, so `POST /crawl` returns `202` with a job id and you poll `GET /crawl/{id}` for results. See [POST /crawl](/api-reference/endpoint/crawl).
 
 ## Rate limits
 
@@ -83,6 +92,15 @@ Exceeding either limit returns HTTP 429. See [Rate limits](/concepts/rate-limits
   </Card>
   <Card title="GET /classify" icon="tags" href="/api-reference/endpoint/classify">
     IAB category, descriptions, tickers, and ISINs. **5 credits.**
+  </Card>
+  <Card title="GET /scrape" icon="file-lines" href="/api-reference/endpoint/scrape">
+    Page content as markdown, summary, HTML, links, images, or JSON. **3 credits.**
+  </Card>
+  <Card title="GET /map" icon="sitemap" href="/api-reference/endpoint/map">
+    Every URL a site exposes. **3 credits.**
+  </Card>
+  <Card title="POST /crawl" icon="spider" href="/api-reference/endpoint/crawl">
+    Crawl a whole site. **3 credits + 3 per page.**
   </Card>
   <Card title="GET /screenshot" icon="camera" href="/api-reference/endpoint/screenshot">
     Webpage screenshot URL. **2 credits.**

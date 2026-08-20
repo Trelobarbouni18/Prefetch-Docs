@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Prefetch API",
-    "description": "Extract brand identity, company data, screenshots, and IAB classifications from any URL.",
+    "description": "Extract brand identity, company data, screenshots, IAB classifications, and clean page content from any URL.",
     "version": "1.0.0",
     "contact": {
       "email": "support@prefetch.io"
@@ -65,57 +65,109 @@
         },
         "required": ["success", "error", "meta"]
       },
-      "ColorItem": {
+      "CodeColorItem": {
         "type": "object",
+        "description": "One color scraped from the page's CSS, HTML, or JavaScript.",
         "properties": {
-          "hex": {
+          "color": {
             "type": "string",
-            "description": "Hex color code.",
-            "example": "#18E299"
+            "description": "The raw value as written on the page.",
+            "example": "#635bff"
+          },
+          "group": {
+            "type": "string",
+            "description": "Nearest named color, used as the group key.",
+            "example": "blueviolet"
+          },
+          "distance": {
+            "type": "number",
+            "description": "Distance to that named color. 0 is an exact match.",
+            "example": 0
           },
           "name": {
             "type": "string",
-            "description": "Closest named CSS color.",
-            "example": "mediumspringgreen"
+            "description": "Tint label within the group, ordered nearest-first.",
+            "example": "blueviolet-100"
           }
         },
-        "required": ["hex", "name"]
+        "required": [
+          "color",
+          "group",
+          "distance",
+          "name"
+        ]
+      },
+      "ColorItem": {
+        "type": "object",
+        "properties": {
+          "color": {
+            "type": "string",
+            "description": "The color in `rgb()` form.",
+            "example": "rgb(99, 91, 255)"
+          },
+          "hex": {
+            "type": "string",
+            "description": "The color as a hex triplet.",
+            "example": "#635BFF"
+          },
+          "name": {
+            "type": "string",
+            "description": "Nearest human-readable color name.",
+            "example": "Blue Violet"
+          },
+          "source": {
+            "type": "string",
+            "description": "Where the color came from. Present on `screenshot_colors` entries only.",
+            "example": "screenshot"
+          }
+        },
+        "required": [
+          "color",
+          "hex",
+          "name"
+        ]
       },
       "ColorsBlock": {
         "type": "object",
         "properties": {
           "brand_colors": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/ColorItem" },
-            "description": "Colors extracted from the logo and brand assets."
+            "items": {
+              "$ref": "#/components/schemas/ColorItem"
+            },
+            "description": "The brand palette, built from the logo and brand assets. Always present."
           },
-          "logo_colors": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/ColorItem" },
-            "description": "Colors extracted from the primary logo."
+          "code_colors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/CodeColorItem"
+              }
+            },
+            "description": "Colors scraped from the page's code, keyed by nearest named color. Present only when `css=true`, `html=true`, or `javascript=true`. Sources are merged into one map, not split per source.",
+            "example": {
+              "blueviolet": [
+                {
+                  "color": "#635bff",
+                  "group": "blueviolet",
+                  "distance": 0,
+                  "name": "blueviolet-100"
+                }
+              ]
+            }
           },
           "screenshot_colors": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/ColorItem" },
-            "description": "Dominant colors extracted from the page screenshot. Present only when `screenshotColors` parameter is provided."
-          },
-          "css_colors": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/ColorItem" },
-            "description": "Colors extracted from CSS stylesheets. Present only when `css=true`."
-          },
-          "html_colors": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/ColorItem" },
-            "description": "Colors extracted from HTML attributes. Present only when `html=true`."
-          },
-          "javascript_colors": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/ColorItem" },
-            "description": "Colors extracted from JavaScript source. Present only when `javascript=true`."
+            "items": {
+              "$ref": "#/components/schemas/ColorItem"
+            },
+            "description": "Dominant colors sampled from the screenshot. Present only when `screenshotColors=N` is passed."
           }
         },
-        "required": ["brand_colors"]
+        "required": [
+          "brand_colors"
+        ]
       },
       "BrandFonts": {
         "type": "object",
@@ -187,6 +239,31 @@
         },
         "required": ["primary", "secondary", "favicon_url", "icon_url", "apple_touch_icon"]
       },
+      "BrandAssetItem": {
+        "type": "object",
+        "description": "An image harvested from the site or its social profiles, such as a Twitter banner.",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "alt": {
+            "type": "string",
+            "nullable": true
+          },
+          "width": {
+            "type": "number",
+            "nullable": true
+          },
+          "height": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
       "ImagesBlock": {
         "type": "object",
         "properties": {
@@ -202,6 +279,13 @@
             "nullable": true,
             "description": "Twitter card image URL."
           },
+          "assets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BrandAssetItem"
+            },
+            "description": "Additional brand imagery found on the site and its social profiles."
+          },
           "screenshot_url": {
             "type": "string",
             "format": "uri",
@@ -209,7 +293,11 @@
             "description": "URL to the page screenshot stored in cloud storage."
           }
         },
-        "required": ["og_image", "twitter_image", "screenshot_url"]
+        "required": [
+          "og_image",
+          "twitter_image",
+          "screenshot_url"
+        ]
       },
       "SocialLinks": {
         "type": "object",
@@ -220,37 +308,63 @@
           "linkedin": "https://linkedin.com/company/stripe"
         }
       },
+      "BrandBlock": {
+        "type": "object",
+        "description": "Brand identity extracted from the page.",
+        "properties": {
+          "colors": {
+            "$ref": "#/components/schemas/ColorsBlock"
+          },
+          "fonts": {
+            "$ref": "#/components/schemas/BrandFonts"
+          },
+          "logos": {
+            "$ref": "#/components/schemas/LogosBlock"
+          },
+          "images": {
+            "$ref": "#/components/schemas/ImagesBlock"
+          },
+          "social_links": {
+            "$ref": "#/components/schemas/SocialLinks"
+          }
+        },
+        "required": [
+          "colors",
+          "fonts",
+          "logos",
+          "images",
+          "social_links"
+        ]
+      },
       "BrandData": {
         "type": "object",
         "properties": {
-          "domain": {
-            "type": "string",
-            "description": "Normalized domain extracted from the URL.",
-            "example": "stripe.com"
-          },
           "url": {
             "type": "string",
             "format": "uri",
             "description": "The URL that was scraped.",
             "example": "https://stripe.com"
           },
-          "colors": { "$ref": "#/components/schemas/ColorsBlock" },
-          "fonts": { "$ref": "#/components/schemas/BrandFonts" },
-          "logos": { "$ref": "#/components/schemas/LogosBlock" },
-          "images": { "$ref": "#/components/schemas/ImagesBlock" },
-          "social_links": { "$ref": "#/components/schemas/SocialLinks" }
-        },
-        "required": ["domain", "url", "colors", "fonts", "logos", "images", "social_links"]
-      },
-      "ClassifyData": {
-        "type": "object",
-        "properties": {
-          "url": {
+          "domain": {
             "type": "string",
-            "format": "uri",
-            "description": "The URL that was classified.",
-            "example": "https://stripe.com"
+            "description": "Normalized domain extracted from the URL.",
+            "example": "stripe.com"
           },
+          "brand": {
+            "$ref": "#/components/schemas/BrandBlock"
+          }
+        },
+        "required": [
+          "url",
+          "domain",
+          "brand"
+        ]
+      },
+      "ClassificationBlock": {
+        "type": "object",
+        "nullable": true,
+        "description": "IAB classification of the site. Null in `/enrich` when classification failed.",
+        "properties": {
           "iab_id": {
             "type": "string",
             "description": "IAB subcategory ID.",
@@ -287,16 +401,50 @@
           },
           "stock_tickers": {
             "type": "array",
-            "items": { "type": "string" },
+            "items": {
+              "type": "string"
+            },
             "description": "Stock ticker symbols associated with the company, if publicly traded."
           },
           "isins": {
             "type": "array",
-            "items": { "type": "string" },
+            "items": {
+              "type": "string"
+            },
             "description": "ISIN codes associated with the company's securities."
           }
         },
-        "required": ["url", "iab_id", "iab_parent_id", "category", "subcategory", "description"]
+        "required": [
+          "iab_id",
+          "iab_parent_id",
+          "category",
+          "subcategory",
+          "description"
+        ]
+      },
+      "ClassifyData": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The URL that was classified.",
+            "example": "https://stripe.com"
+          },
+          "domain": {
+            "type": "string",
+            "description": "Normalized domain extracted from the URL.",
+            "example": "stripe.com"
+          },
+          "classification": {
+            "$ref": "#/components/schemas/ClassificationBlock"
+          }
+        },
+        "required": [
+          "url",
+          "domain",
+          "classification"
+        ]
       },
       "CompanyInfo": {
         "type": "object",
@@ -309,18 +457,34 @@
           },
           "emails": {
             "type": "array",
-            "items": { "type": "string", "format": "email" },
+            "items": {
+              "type": "string",
+              "format": "email"
+            },
             "description": "Contact email addresses found on the site.",
-            "example": ["support@stripe.com"]
+            "example": [
+              "support@stripe.com"
+            ]
           },
           "addresses": {
             "type": "array",
-            "items": { "type": "string" },
+            "items": {
+              "type": "string"
+            },
             "description": "Physical addresses found on the site.",
-            "example": ["354 Oyster Point Blvd, South San Francisco, CA 94080"]
+            "example": [
+              "354 Oyster Point Blvd, South San Francisco, CA 94080"
+            ]
+          },
+          "social_links": {
+            "$ref": "#/components/schemas/SocialLinks"
           }
         },
-        "required": ["name", "emails", "addresses"]
+        "required": [
+          "name",
+          "emails",
+          "addresses"
+        ]
       },
       "CompanyData": {
         "type": "object",
@@ -383,21 +547,745 @@
         },
         "required": ["url", "screenshot_url", "viewport", "format", "full_page", "captured_at"]
       },
+      "EnrichBrandBlock": {
+        "type": "object",
+        "description": "The same brand block `/brand` returns, without `social_links` — in `/enrich` those live on `company` instead.",
+        "properties": {
+          "colors": {
+            "$ref": "#/components/schemas/ColorsBlock"
+          },
+          "fonts": {
+            "$ref": "#/components/schemas/BrandFonts"
+          },
+          "logos": {
+            "$ref": "#/components/schemas/LogosBlock"
+          },
+          "images": {
+            "$ref": "#/components/schemas/ImagesBlock"
+          }
+        },
+        "required": [
+          "colors",
+          "fonts",
+          "logos",
+          "images"
+        ]
+      },
       "EnrichData": {
         "type": "object",
-        "description": "Combined output from brand, company, and classify extraction.",
+        "description": "Combined output from brand, company, and classify extraction. Each block sits under the same key the standalone endpoint uses.",
         "properties": {
-          "domain": { "type": "string", "example": "stripe.com" },
-          "url": { "type": "string", "format": "uri", "example": "https://stripe.com" },
-          "colors": { "$ref": "#/components/schemas/ColorsBlock" },
-          "fonts": { "$ref": "#/components/schemas/BrandFonts" },
-          "logos": { "$ref": "#/components/schemas/LogosBlock" },
-          "images": { "$ref": "#/components/schemas/ImagesBlock" },
-          "social_links": { "$ref": "#/components/schemas/SocialLinks" },
-          "company": { "$ref": "#/components/schemas/CompanyInfo" },
-          "classification": { "$ref": "#/components/schemas/ClassifyData" }
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://stripe.com"
+          },
+          "domain": {
+            "type": "string",
+            "example": "stripe.com"
+          },
+          "brand": {
+            "$ref": "#/components/schemas/EnrichBrandBlock"
+          },
+          "company": {
+            "$ref": "#/components/schemas/CompanyInfo"
+          },
+          "classification": {
+            "$ref": "#/components/schemas/ClassificationBlock"
+          }
         },
-        "required": ["domain", "url", "colors", "fonts", "logos", "images", "social_links", "company", "classification"]
+        "required": [
+          "url",
+          "domain",
+          "brand",
+          "company",
+          "classification"
+        ]
+      },
+      "ScrapeMetadata": {
+        "type": "object",
+        "description": "Always present, whatever formats were requested.",
+        "properties": {
+          "source_url": {
+            "type": "string",
+            "nullable": true,
+            "description": "The URL you requested."
+          },
+          "final_url": {
+            "type": "string",
+            "nullable": true,
+            "description": "The URL after redirects."
+          },
+          "status_code": {
+            "type": "integer",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true,
+            "example": "Stripe | Financial Infrastructure"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "language": {
+            "type": "string",
+            "nullable": true,
+            "example": "en"
+          },
+          "canonical_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "favicon": {
+            "type": "string",
+            "nullable": true
+          },
+          "author": {
+            "type": "string",
+            "nullable": true
+          },
+          "site_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "published_time": {
+            "type": "string",
+            "nullable": true
+          },
+          "modified_time": {
+            "type": "string",
+            "nullable": true
+          },
+          "robots": {
+            "type": "string",
+            "nullable": true,
+            "description": "The page's own robots meta tag."
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "open_graph": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "twitter": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "json_ld": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Parsed JSON-LD blocks, up to 10."
+          },
+          "headings": {
+            "type": "array",
+            "description": "The page's heading outline, up to 100 entries.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "level": {
+                  "type": "integer"
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "MarkdownBlock": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "GitHub Flavored Markdown. Links and images are resolved to absolute URLs."
+          },
+          "char_count": {
+            "type": "integer"
+          },
+          "word_count": {
+            "type": "integer"
+          },
+          "truncated": {
+            "type": "boolean",
+            "description": "True when the content hit the 1 MB size cap and was cut."
+          },
+          "main_content_only": {
+            "type": "boolean",
+            "description": "True when boilerplate was successfully isolated away. False means the full page body was returned."
+          }
+        }
+      },
+      "HtmlBlock": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "char_count": {
+            "type": "integer"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "main_content_only": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SummaryBlock": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "nullable": true,
+            "description": "Null when the summary could not be produced; see `warnings`."
+          },
+          "model": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ScrapeLinkItem": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string",
+            "nullable": true,
+            "description": "The anchor text."
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "rel": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "LinksBlock": {
+        "type": "object",
+        "properties": {
+          "internal": {
+            "type": "array",
+            "description": "Links on the same site, subdomains included.",
+            "items": {
+              "$ref": "#/components/schemas/ScrapeLinkItem"
+            }
+          },
+          "external": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScrapeLinkItem"
+            }
+          },
+          "count": {
+            "type": "integer"
+          }
+        }
+      },
+      "ScrapeImageItem": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "alt": {
+            "type": "string",
+            "nullable": true
+          },
+          "width": {
+            "type": "integer",
+            "nullable": true
+          },
+          "height": {
+            "type": "integer",
+            "nullable": true
+          },
+          "loading": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ScrapeImagesBlock": {
+        "type": "object",
+        "properties": {
+          "assets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScrapeImageItem"
+            }
+          },
+          "og_image": {
+            "type": "string",
+            "nullable": true
+          },
+          "twitter_image": {
+            "type": "string",
+            "nullable": true
+          },
+          "count": {
+            "type": "integer"
+          }
+        }
+      },
+      "JsonBlock": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "nullable": true,
+            "description": "The extracted object, shaped by your prompt or schema."
+          },
+          "model": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ScrapePayload": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "final_url": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string",
+            "nullable": true,
+            "example": "stripe.com"
+          },
+          "status_code": {
+            "type": "integer",
+            "nullable": true
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/ScrapeMetadata"
+          },
+          "markdown": {
+            "$ref": "#/components/schemas/MarkdownBlock"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/SummaryBlock"
+          },
+          "html": {
+            "$ref": "#/components/schemas/HtmlBlock"
+          },
+          "raw_html": {
+            "$ref": "#/components/schemas/HtmlBlock"
+          },
+          "links": {
+            "$ref": "#/components/schemas/LinksBlock"
+          },
+          "images": {
+            "$ref": "#/components/schemas/ScrapeImagesBlock"
+          },
+          "json": {
+            "$ref": "#/components/schemas/JsonBlock"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Non-fatal problems, such as a format that could not be produced."
+          }
+        },
+        "description": "The page content fields. Which of them are present depends on the `formats` requested."
+      },
+      "ScrapeData": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ScrapePayload"
+          }
+        ],
+        "required": [
+          "url",
+          "final_url",
+          "metadata"
+        ]
+      },
+      "MapLinkItem": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastmod": {
+            "type": "string",
+            "nullable": true,
+            "description": "From the sitemap, when the site publishes one."
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "sitemap",
+              "links"
+            ],
+            "description": "Where the URL was discovered."
+          }
+        }
+      },
+      "MapData": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string",
+            "nullable": true
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MapLinkItem"
+            }
+          },
+          "count": {
+            "type": "integer"
+          },
+          "total_discovered": {
+            "type": "integer",
+            "description": "Links found before `limit` was applied."
+          },
+          "sources": {
+            "type": "object",
+            "properties": {
+              "sitemap": {
+                "type": "integer"
+              },
+              "links": {
+                "type": "integer"
+              }
+            }
+          },
+          "sitemaps_used": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CrawlScrapeOptions": {
+        "type": "object",
+        "description": "How each crawled page is rendered. The same options `GET /scrape` takes.",
+        "properties": {
+          "formats": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "markdown",
+                "summary",
+                "html",
+                "raw_html",
+                "links",
+                "images",
+                "json"
+              ]
+            },
+            "default": [
+              "markdown"
+            ]
+          },
+          "only_main_content": {
+            "type": "boolean",
+            "default": true
+          },
+          "include_links": {
+            "type": "boolean",
+            "default": true
+          },
+          "include_images": {
+            "type": "boolean",
+            "default": true
+          },
+          "include_base64_images": {
+            "type": "boolean",
+            "default": false
+          },
+          "include_selectors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "exclude_selectors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "json_prompt": {
+            "type": "string"
+          },
+          "json_schema": {
+            "type": "object"
+          },
+          "summary_max_words": {
+            "type": "integer",
+            "minimum": 20,
+            "maximum": 400,
+            "default": 120
+          }
+        }
+      },
+      "CrawlRequest": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Where the crawl starts.",
+            "example": "https://docs.stripe.com"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500,
+            "default": 25,
+            "description": "Maximum pages to crawl."
+          },
+          "max_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5,
+            "default": 2,
+            "description": "How many links deep to follow from the start URL. Sitemap-seeded pages sit at depth 0, so `max_depth: 0` with `use_sitemap: true` crawls exactly what the sitemap lists and follows nothing."
+          },
+          "include_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Regular expressions matched against a URL's path and query. A URL must match at least one to be crawled.",
+            "example": [
+              "^/docs/"
+            ]
+          },
+          "exclude_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Regular expressions. A URL matching any of them is skipped. Exclusions win over inclusions.",
+            "example": [
+              "^/docs/changelog/"
+            ]
+          },
+          "allow_subdomains": {
+            "type": "boolean",
+            "default": false,
+            "description": "Follow links onto subdomains of the start URL."
+          },
+          "allow_external_links": {
+            "type": "boolean",
+            "default": false,
+            "description": "Follow links onto other sites."
+          },
+          "ignore_query_params": {
+            "type": "boolean",
+            "default": true,
+            "description": "Treat URLs that differ only by query string as one page."
+          },
+          "respect_robots_txt": {
+            "type": "boolean",
+            "default": true,
+            "description": "Obey the rules in `robots.txt` — Disallow and Crawl-delay. Sitemap discovery happens either way."
+          },
+          "use_sitemap": {
+            "type": "boolean",
+            "default": true,
+            "description": "Seed the crawl from the site's sitemap as well as from links."
+          },
+          "delay_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 30000,
+            "default": 0,
+            "description": "Politeness delay between pages. A larger `Crawl-delay` in robots.txt wins."
+          },
+          "concurrency": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "default": 2,
+            "description": "Pages fetched in parallel."
+          },
+          "scrape_options": {
+            "$ref": "#/components/schemas/CrawlScrapeOptions"
+          }
+        }
+      },
+      "CrawlJobData": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "crw_9f2c1a7b4e0d4c3a8b1e5f7d2c9a0b3e"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "running",
+              "completed",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "url": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "max_depth": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "After this, the crawl and its pages are no longer readable."
+          }
+        }
+      },
+      "CrawlPage": {
+        "type": "object",
+        "description": "One crawled page. Carries the same fields `GET /scrape` returns, plus the crawl's own bookkeeping.",
+        "allOf": [
+          {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string"
+              },
+              "depth": {
+                "type": "integer",
+                "description": "How many links from the start URL. Sitemap-seeded pages are depth 0."
+              },
+              "status_code": {
+                "type": "integer",
+                "nullable": true
+              },
+              "ok": {
+                "type": "boolean",
+                "description": "False when the page could not be fetched. You are not charged for it."
+              },
+              "error": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          },
+          {
+            "$ref": "#/components/schemas/ScrapePayload"
+          }
+        ]
+      },
+      "CrawlStatusData": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "running",
+              "completed",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "url": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer",
+            "description": "Pages the crawl expects to fetch, as currently known. Rises as it discovers more."
+          },
+          "completed": {
+            "type": "integer"
+          },
+          "failed": {
+            "type": "integer"
+          },
+          "credits_used": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "finished_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "description": "URL for the next page of results, or null when there are no more."
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CrawlPage"
+            },
+            "description": "Crawled pages, in completion order."
+          }
+        }
       }
     },
     "parameters": {
@@ -454,6 +1342,198 @@
         "schema": {
           "type": "boolean",
           "default": false
+        }
+      },
+      "scrapeFormats": {
+        "name": "formats",
+        "in": "query",
+        "required": false,
+        "description": "Comma-separated list of output formats. Each requested format appears as its own object on `data`; formats you do not request are absent, not null.",
+        "schema": {
+          "type": "string",
+          "default": "markdown",
+          "example": "markdown,links"
+        }
+      },
+      "onlyMainContent": {
+        "name": "only_main_content",
+        "in": "query",
+        "required": false,
+        "description": "Strip navigation, sidebars, footers, and cookie banners before rendering `markdown`, `html`, `summary`, and `json`. `links` and `images` always come from the full document.",
+        "schema": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "includeLinks": {
+        "name": "include_links",
+        "in": "query",
+        "required": false,
+        "description": "Keep hyperlinks in the `markdown` and `html` output. When false, link text is kept and the target is dropped.",
+        "schema": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "includeImages": {
+        "name": "include_images",
+        "in": "query",
+        "required": false,
+        "description": "Keep images in the `markdown` and `html` output.",
+        "schema": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "includeBase64Images": {
+        "name": "include_base64_images",
+        "in": "query",
+        "required": false,
+        "description": "Keep inline `data:` images. Off by default because base64 payloads are large and carry no meaning as text.",
+        "schema": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "includeSelectors": {
+        "name": "include_selectors",
+        "in": "query",
+        "required": false,
+        "description": "Comma-separated CSS selectors to keep. Overrides main-content detection entirely.",
+        "schema": {
+          "type": "string",
+          "example": "article,.post-body"
+        }
+      },
+      "excludeSelectors": {
+        "name": "exclude_selectors",
+        "in": "query",
+        "required": false,
+        "description": "Comma-separated CSS selectors to remove before rendering.",
+        "schema": {
+          "type": "string",
+          "example": ".cookie-bar,#promo"
+        }
+      },
+      "jsonPrompt": {
+        "name": "json_prompt",
+        "in": "query",
+        "required": false,
+        "description": "What to extract, in plain language. Required for the `json` format unless `json_schema` is given.",
+        "schema": {
+          "type": "string",
+          "example": "product name, price and availability"
+        }
+      },
+      "jsonSchema": {
+        "name": "json_schema",
+        "in": "query",
+        "required": false,
+        "description": "A JSON Schema, passed as a JSON string, describing the object the `json` format should return.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "summaryMaxWords": {
+        "name": "summary_max_words",
+        "in": "query",
+        "required": false,
+        "description": "Word budget for the `summary` format.",
+        "schema": {
+          "type": "integer",
+          "minimum": 20,
+          "maximum": 400,
+          "default": 120
+        }
+      },
+      "mapLimit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "description": "Maximum number of links to return.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5000,
+          "default": 1000
+        }
+      },
+      "mapSearch": {
+        "name": "search",
+        "in": "query",
+        "required": false,
+        "description": "Rank and filter results by relevance to this query. Links that match nothing are dropped.",
+        "schema": {
+          "type": "string",
+          "example": "pricing"
+        }
+      },
+      "mapSitemap": {
+        "name": "sitemap",
+        "in": "query",
+        "required": false,
+        "description": "Which sources to use. `include` merges sitemap entries with on-page links, `skip` uses on-page links only, `only` uses sitemaps only.",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "include",
+            "skip",
+            "only"
+          ],
+          "default": "include"
+        }
+      },
+      "mapIncludeSubdomains": {
+        "name": "include_subdomains",
+        "in": "query",
+        "required": false,
+        "description": "Include links on subdomains of the target.",
+        "schema": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "mapIgnoreQueryParams": {
+        "name": "ignore_query_params",
+        "in": "query",
+        "required": false,
+        "description": "Treat URLs that differ only by query string as one page.",
+        "schema": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "crawlId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "The crawl id returned by `POST /crawl`.",
+        "schema": {
+          "type": "string",
+          "example": "crw_9f2c1a7b4e0d4c3a8b1e5f7d2c9a0b3e"
+        }
+      },
+      "crawlSkip": {
+        "name": "skip",
+        "in": "query",
+        "required": false,
+        "description": "Number of result pages to skip. Use the `next` link rather than building this by hand.",
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        }
+      },
+      "crawlPageLimit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "description": "Number of crawled pages to return per request.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 25
         }
       }
     }
@@ -561,15 +1641,18 @@
                   "success": true,
                   "data": {
                     "url": "https://stripe.com",
-                    "iab_id": "IAB13-11",
-                    "iab_parent_id": "IAB13",
-                    "category": "Personal Finance",
-                    "subcategory": "Financial Planning",
-                    "description": "Stripe provides payment processing infrastructure for internet businesses.",
-                    "tagline_description": "Payment infrastructure for the internet.",
-                    "long_description": "Stripe provides payment processing infrastructure for internet businesses, enabling companies to accept payments, manage subscriptions, and handle global commerce operations.",
-                    "stock_tickers": [],
-                    "isins": []
+                    "domain": "stripe.com",
+                    "classification": {
+                      "iab_id": "IAB13-11",
+                      "iab_parent_id": "IAB13",
+                      "category": "Personal Finance",
+                      "subcategory": "Financial Planning",
+                      "description": "Stripe provides payment processing infrastructure for internet businesses.",
+                      "tagline_description": "Payment infrastructure for the internet.",
+                      "long_description": "Stripe provides payment processing infrastructure for internet businesses, enabling companies to accept payments, manage subscriptions, and handle global commerce operations.",
+                      "stock_tickers": [],
+                      "isins": []
+                    }
                   },
                   "meta": {
                     "requestId": "a3f2c1d4-7b6e-4f2a-9c1d-8e3f2a1b4c5d",
@@ -905,6 +1988,819 @@
           "429": { "description": "Rate limit exceeded.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "503": { "description": "Service temporarily busy — retry shortly.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "504": { "description": "Request timed out.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/scrape": {
+      "get": {
+        "operationId": "scrapeUrl",
+        "summary": "Scrape a page",
+        "description": "Fetches one URL and returns it in the formats you request: clean markdown, an LLM summary, cleaned or raw HTML, links, images, or JSON matching your own schema. Pages that need JavaScript are rendered in a real browser automatically. **Credit cost: 3.**",
+        "tags": [
+          "Endpoints"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/url"
+          },
+          {
+            "$ref": "#/components/parameters/scrapeFormats"
+          },
+          {
+            "$ref": "#/components/parameters/onlyMainContent"
+          },
+          {
+            "$ref": "#/components/parameters/includeLinks"
+          },
+          {
+            "$ref": "#/components/parameters/includeImages"
+          },
+          {
+            "$ref": "#/components/parameters/includeBase64Images"
+          },
+          {
+            "$ref": "#/components/parameters/includeSelectors"
+          },
+          {
+            "$ref": "#/components/parameters/excludeSelectors"
+          },
+          {
+            "$ref": "#/components/parameters/jsonPrompt"
+          },
+          {
+            "$ref": "#/components/parameters/jsonSchema"
+          },
+          {
+            "$ref": "#/components/parameters/summaryMaxWords"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page scraped.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ScrapeData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "url": "https://stripe.com",
+                    "final_url": "https://stripe.com",
+                    "domain": "stripe.com",
+                    "status_code": 200,
+                    "metadata": {
+                      "source_url": "https://stripe.com",
+                      "final_url": "https://stripe.com",
+                      "status_code": 200,
+                      "title": "Stripe | Financial Infrastructure to Grow Your Revenue",
+                      "description": "Stripe powers online payment processing for internet businesses.",
+                      "language": "en",
+                      "canonical_url": "https://stripe.com",
+                      "favicon": "https://stripe.com/favicon.ico",
+                      "author": null,
+                      "site_name": "Stripe",
+                      "published_time": null,
+                      "modified_time": null,
+                      "robots": null,
+                      "keywords": [],
+                      "open_graph": {
+                        "title": "Stripe",
+                        "type": "website"
+                      },
+                      "twitter": {
+                        "card": "summary_large_image"
+                      },
+                      "json_ld": [],
+                      "headings": [
+                        {
+                          "level": 1,
+                          "text": "Financial infrastructure to grow your revenue"
+                        }
+                      ]
+                    },
+                    "markdown": {
+                      "content": "# Financial infrastructure to grow your revenue\n\nJoin the millions of companies that use Stripe to accept payments online...",
+                      "char_count": 4821,
+                      "word_count": 702,
+                      "truncated": false,
+                      "main_content_only": true
+                    },
+                    "links": {
+                      "internal": [
+                        {
+                          "url": "https://stripe.com/pricing",
+                          "text": "Pricing",
+                          "title": null,
+                          "rel": null
+                        }
+                      ],
+                      "external": [],
+                      "count": 84
+                    }
+                  },
+                  "meta": {
+                    "requestId": "a3f2c1d4-7b6e-4f2a-9c1d-8e3f2a1b4c5d",
+                    "durationMs": 2140
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, credit limit, or blocklisted URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The URL hostname could not be resolved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily busy. Retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Request timed out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/map": {
+      "get": {
+        "operationId": "mapSite",
+        "summary": "Map a site's URLs",
+        "description": "Discovers the URLs a site exposes without fetching them: its sitemaps, found through `robots.txt` and the conventional locations, merged with the links on the page itself. **Credit cost: 3.**",
+        "tags": [
+          "Endpoints"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/url"
+          },
+          {
+            "$ref": "#/components/parameters/mapLimit"
+          },
+          {
+            "$ref": "#/components/parameters/mapSearch"
+          },
+          {
+            "$ref": "#/components/parameters/mapSitemap"
+          },
+          {
+            "$ref": "#/components/parameters/mapIncludeSubdomains"
+          },
+          {
+            "$ref": "#/components/parameters/mapIgnoreQueryParams"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Links discovered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/MapData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "url": "https://stripe.com",
+                    "domain": "stripe.com",
+                    "links": [
+                      {
+                        "url": "https://stripe.com/pricing",
+                        "title": "Pricing",
+                        "description": null,
+                        "lastmod": "2026-07-02",
+                        "source": "sitemap"
+                      },
+                      {
+                        "url": "https://stripe.com/enterprise/pricing",
+                        "title": null,
+                        "description": null,
+                        "lastmod": null,
+                        "source": "sitemap"
+                      }
+                    ],
+                    "count": 2,
+                    "total_discovered": 2,
+                    "sources": {
+                      "sitemap": 2,
+                      "links": 0
+                    },
+                    "sitemaps_used": [
+                      "https://stripe.com/sitemap/sitemap.xml"
+                    ]
+                  },
+                  "meta": {
+                    "requestId": "b4e3d2c1-8a7b-4c3d-9e2f-1a3b5c7d9e1f",
+                    "durationMs": 1830
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, credit limit, or blocklisted URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The URL hostname could not be resolved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily busy. Retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Request timed out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/crawl": {
+      "post": {
+        "operationId": "startCrawl",
+        "summary": "Start a crawl",
+        "description": "Queues a breadth-first crawl and returns its id immediately. Crawls run for minutes, so nothing waits on this request — poll `GET /crawl/{id}` for progress and results.\n\n**Credit cost: 3 to submit, plus 3 per page the crawl returns.** Pages are charged as they complete, so you pay for what was fetched rather than for the `limit` you asked for.",
+        "tags": [
+          "Endpoints"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrawlRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Crawl accepted and queued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CrawlJobData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": "crw_9f2c1a7b4e0d4c3a8b1e5f7d2c9a0b3e",
+                    "status": "pending",
+                    "url": "https://docs.stripe.com",
+                    "limit": 50,
+                    "max_depth": 2,
+                    "created_at": "2026-08-20T09:14:03.221Z",
+                    "expires_at": "2026-08-21T09:14:03.221Z"
+                  },
+                  "meta": {
+                    "requestId": "c5f4e3d2-9b8c-4d5e-af3a-2b4c6d8e0f21",
+                    "durationMs": 84
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, credit limit, or blocklisted URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The URL hostname could not be resolved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily busy. Retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Request timed out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/crawl/{id}": {
+      "get": {
+        "operationId": "getCrawl",
+        "summary": "Get crawl status and results",
+        "description": "Returns progress plus a page of crawled pages, oldest first. Follow `next` until it is null to read every page. Results stay readable for 24 hours after the crawl finishes.\n\nThis is also where crawled pages are billed: each call charges for the pages that completed since the previous call, so polling repeatedly never charges twice for the same page.",
+        "tags": [
+          "Endpoints"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/crawlId"
+          },
+          {
+            "$ref": "#/components/parameters/crawlSkip"
+          },
+          {
+            "$ref": "#/components/parameters/crawlPageLimit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Crawl status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CrawlStatusData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": "crw_9f2c1a7b4e0d4c3a8b1e5f7d2c9a0b3e",
+                    "status": "running",
+                    "url": "https://docs.stripe.com",
+                    "total": 38,
+                    "completed": 12,
+                    "failed": 1,
+                    "credits_used": 36,
+                    "created_at": "2026-08-20T09:14:03.221Z",
+                    "started_at": "2026-08-20T09:14:04.010Z",
+                    "finished_at": null,
+                    "expires_at": "2026-08-21T09:14:03.221Z",
+                    "error": null,
+                    "next": "/crawl/crw_9f2c1a7b4e0d4c3a8b1e5f7d2c9a0b3e?skip=25&limit=25",
+                    "data": [
+                      {
+                        "url": "https://docs.stripe.com/payments",
+                        "depth": 0,
+                        "status_code": 200,
+                        "ok": true,
+                        "error": null,
+                        "final_url": "https://docs.stripe.com/payments",
+                        "domain": "docs.stripe.com",
+                        "metadata": {
+                          "title": "Payments",
+                          "description": "Accept payments online.",
+                          "language": "en"
+                        },
+                        "markdown": {
+                          "content": "# Payments\n\nAccept payments online, in person, and around the world...",
+                          "char_count": 2841,
+                          "word_count": 402,
+                          "truncated": false,
+                          "main_content_only": true
+                        }
+                      }
+                    ]
+                  },
+                  "meta": {
+                    "requestId": "d6a5f4e3-ac9d-4e6f-b04b-3c5d7e9f1a32",
+                    "durationMs": 96
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, credit limit, or blocklisted URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The URL hostname could not be resolved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily busy. Retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Request timed out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Crawl not found, expired, or owned by another key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "cancelCrawl",
+        "summary": "Cancel a crawl",
+        "description": "Stops a running crawl. Pages already crawled stay readable until the crawl expires, and are billed on the next status call as usual. Cancelling a finished crawl is a no-op that returns its final state. Free.",
+        "tags": [
+          "Endpoints"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/crawlId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Crawl cancelled, or already finished.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CrawlStatusData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, credit limit, or blocklisted URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The URL hostname could not be resolved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily busy. Retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Request timed out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Crawl not found, expired, or owned by another key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
         }
       }
     }

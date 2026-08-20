@@ -11,21 +11,23 @@ openapi: "GET /brand"
 - **Colors** — extracted from the logo, optionally from the screenshot and source code
 - **Logos** — primary logo URL with dimensions, plus secondary candidates and favicon
 - **Fonts** — font family names detected on the page
-- **Images** — OG image, Twitter card image, screenshot URL
+- **Images** — OG image, Twitter card image, brand assets, screenshot URL
 - **Social links** — keyed by platform (twitter, linkedin, github, etc.)
+
+Everything sits under `data.brand`, the same key `/enrich` uses — so `data.brand.colors` reads identically from either endpoint.
 
 ## Color extraction options
 
-| Parameter | What it extracts |
-|---|---|
-| *(default)* | Logo colors (`brand_colors`) only |
-| `screenshotColors=6` | + N dominant colors from the page screenshot |
-| `css=true` | + Colors defined in CSS stylesheets |
-| `html=true` | + Colors defined in HTML attributes |
-| `javascript=true` | + Colors defined in JavaScript source |
-| `filterAchromatic=true` | Exclude near-white, near-black, and greyscale results |
+| Parameter | What it adds | Where it lands |
+|---|---|---|
+| *(default)* | Logo colors only | `brand.colors.brand_colors` |
+| `screenshotColors=6` | N dominant colors from the page screenshot | `brand.colors.screenshot_colors` |
+| `css=true` | Colors defined in CSS stylesheets | `brand.colors.code_colors` |
+| `html=true` | Colors defined in HTML attributes | `brand.colors.code_colors` |
+| `javascript=true` | Colors defined in JavaScript source | `brand.colors.code_colors` |
+| `filterAchromatic=true` | Excludes near-white, near-black, and greyscale results | — |
 
-You can combine any of these.
+You can combine any of these. Note that `css`, `html`, and `javascript` all feed the **same** `code_colors` map — it is keyed by nearest named color, not split per source.
 
 ## Example requests
 
@@ -52,9 +54,9 @@ const res = await fetch(
   { headers: { "X-API-Key": process.env.PREFETCH_API_KEY } }
 );
 const { success, data } = await res.json();
-console.log(data.colors.brand_colors[0].hex); // "#635BFF"
-console.log(data.logos.primary.url);
-console.log(data.fonts.families);
+console.log(data.brand.colors.brand_colors[0].hex); // "#635BFF"
+console.log(data.brand.logos.primary.url);
+console.log(data.brand.fonts.families);
 ```
 
 </CodeGroup>
@@ -65,40 +67,50 @@ console.log(data.fonts.families);
 {
   "success": true,
   "data": {
-    "domain": "stripe.com",
     "url": "https://stripe.com",
-    "colors": {
-      "brand_colors": [
-        { "hex": "#635BFF", "name": "blueviolet" },
-        { "hex": "#00D4FF", "name": "cyan" }
-      ],
-      "screenshot_colors": [
-        { "hex": "#FFFFFF", "name": "white" },
-        { "hex": "#0A2540", "name": "darkblue" }
-      ]
-    },
-    "fonts": {
-      "families": ["Sohne", "Inter"]
-    },
-    "logos": {
-      "primary": {
-        "url": "https://assets.prefetch.io/logos/stripe-logo.svg",
-        "width": null,
-        "height": null
+    "domain": "stripe.com",
+    "brand": {
+      "colors": {
+        "brand_colors": [
+          { "color": "rgb(99, 91, 255)", "hex": "#635BFF", "name": "blueviolet" },
+          { "color": "rgb(0, 212, 255)", "hex": "#00D4FF", "name": "cyan" }
+        ],
+        "screenshot_colors": [
+          { "color": "rgb(255, 255, 255)", "hex": "#FFFFFF", "name": "white", "source": "screenshot" },
+          { "color": "rgb(10, 37, 64)", "hex": "#0A2540", "name": "darkblue", "source": "screenshot" }
+        ]
       },
-      "secondary": [],
-      "favicon_url": "https://stripe.com/favicon.ico",
-      "icon_url": null,
-      "apple_touch_icon": null
-    },
-    "images": {
-      "og_image": "https://stripe.com/img/v3/home/social.png",
-      "twitter_image": "https://stripe.com/img/v3/home/social.png",
-      "screenshot_url": "https://assets.prefetch.io/screenshots/stripe-1440x900.jpg"
-    },
-    "social_links": {
-      "twitter": "https://twitter.com/stripe",
-      "linkedin": "https://linkedin.com/company/stripe"
+      "fonts": {
+        "families": ["Sohne", "Inter"]
+      },
+      "logos": {
+        "primary": {
+          "url": "https://assets.prefetch.io/logos/stripe-logo.svg",
+          "width": null,
+          "height": null
+        },
+        "secondary": [],
+        "favicon_url": "https://stripe.com/favicon.ico",
+        "icon_url": null,
+        "apple_touch_icon": null
+      },
+      "images": {
+        "og_image": "https://stripe.com/img/v3/home/social.png",
+        "twitter_image": "https://stripe.com/img/v3/home/social.png",
+        "assets": [
+          {
+            "url": "https://assets.prefetch.io/images/stripe-twitter-banner.jpg",
+            "alt": null,
+            "width": 1500,
+            "height": 500
+          }
+        ],
+        "screenshot_url": "https://assets.prefetch.io/screenshots/stripe-1440x900.jpg"
+      },
+      "social_links": {
+        "twitter": "https://twitter.com/stripe",
+        "linkedin": "https://linkedin.com/company/stripe"
+      }
     }
   },
   "meta": {

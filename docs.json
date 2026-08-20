@@ -61,6 +61,16 @@
               "api-reference/endpoint/screenshot",
               "api-reference/endpoint/enrich"
             ]
+          },
+          {
+            "group": "Web extraction",
+            "pages": [
+              "api-reference/endpoint/scrape",
+              "api-reference/endpoint/map",
+              "api-reference/endpoint/crawl",
+              "api-reference/endpoint/crawl-status",
+              "api-reference/endpoint/crawl-cancel"
+            ]
           }
         ]
       }

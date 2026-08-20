@@ -14,6 +14,11 @@ Each data extraction endpoint consumes a fixed number of credits per successful 
 | `GET /brand` | 10 | Colors, logos, fonts, social links |
 | `GET /company` | 5 | Company name, emails, addresses |
 | `GET /classify` | 5 | IAB category, descriptions, tickers, ISINs |
+| `GET /scrape` | 3 | One page as markdown, summary, HTML, links, images, or JSON |
+| `GET /map` | 3 | Every URL a site exposes |
+| `POST /crawl` | 3 | Submitting a crawl |
+| `GET /crawl/{id}` | 3 per page | Charged as pages complete, never for the `limit` you asked for |
+| `DELETE /crawl/{id}` | — | Cancelling a crawl |
 | `GET /screenshot` | 2 | Webpage screenshot URL |
 | `GET /health` | — | Liveness check |
 | `GET /ready` | — | Readiness check |
@@ -28,6 +33,21 @@ You are **not charged** for:
 - Authentication failures
 - Rate limit rejections (429)
 - Timeouts (504)
+- Individual crawl pages that failed to fetch (`ok: false`)
+
+## How crawls are charged
+
+A crawl is the only endpoint billed across more than one request:
+
+- **3 credits** when you submit it with `POST /crawl`.
+- **3 credits per page** the crawl actually returns, charged on `GET /crawl/{id}` as pages complete.
+
+Two consequences worth knowing:
+
+- You pay for pages **fetched**, never for the `limit` you requested. A crawl capped at 500 pages that finds 12 costs 36 credits, not 1,500.
+- **Polling is free.** Each status call bills only the pages that completed since your previous call, so checking every five seconds costs exactly the same as checking once at the end.
+
+Cancelling a crawl charges you for what it fetched before it stopped, and nothing else.
 
 ## Credit limits
 
@@ -68,3 +88,6 @@ When you need brand, company, and classification data for a URL, use `/enrich` f
 | Need classification only | `/classify` | 5 |
 | Need screenshot only | `/screenshot` | 2 |
 | Need brand + classification | `/brand` + `/classify` | 15 |
+| Need one page's content | `/scrape` | 3 |
+| Need a site's URL list | `/map` | 3 |
+| Need 40 pages of a site | `/crawl` | 123 (3 + 40 × 3) |

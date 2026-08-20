@@ -77,7 +77,7 @@ if (!success) {
   throw new Error(error);
 }
 
-console.log(data.category); // "Personal Finance"
+console.log(data.classification.category); // "Personal Finance"
 ```
 
 ```python Python
@@ -95,7 +95,7 @@ body = response.json()
 if not body["success"]:
     raise Exception(body["error"])
 
-print(body["data"]["category"])  # "Personal Finance"
+print(body["data"]["classification"]["category"])  # "Personal Finance"
 ```
 
 ```typescript TypeScript
@@ -108,12 +108,16 @@ const res = await fetch(
 
 const json = await res.json() as {
   success: boolean;
-  data?: { category: string; subcategory: string; description: string };
+  data?: {
+    url: string;
+    domain: string;
+    classification: { category: string; subcategory: string | null; description: string };
+  };
   error?: string;
 };
 
 if (!json.success) throw new Error(json.error);
-console.log(json.data!.category);
+console.log(json.data!.classification.category);
 ```
 
 </CodeGroup>

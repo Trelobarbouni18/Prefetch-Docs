@@ -1,12 +1,12 @@
 ---
 title: "Prefetch API"
-description: "Extract brand assets, company info, classifications, and screenshots from any website."
+description: "Extract brand assets, company info, classifications, screenshots, and clean page content from any website."
 mode: "frame"
 ---
 
 <div style={{ textAlign: 'center', padding: '3rem 0 2.5rem' }}>
   <h1 style={{ fontSize: '3rem', fontWeight: '700', letterSpacing: '-0.02em', marginBottom: '1rem', color: 'white' }}>Documentation</h1>
-  <p style={{ fontSize: '1.125rem', color: 'rgb(120, 110, 130)', maxWidth: '520px', margin: '0 auto', lineHeight: '1.7' }}>Extract brand assets, company info, classifications, and screenshots from any website.</p>
+  <p style={{ fontSize: '1.125rem', color: 'rgb(120, 110, 130)', maxWidth: '520px', margin: '0 auto', lineHeight: '1.7' }}>Extract brand assets, company info, classifications, screenshots, and clean page content from any website.</p>
 </div>
 
 <Card
@@ -47,5 +47,26 @@ mode: "frame"
     href="/api-reference/endpoint/screenshot"
   >
     Full-page or viewport captures in JPEG, PNG, or WebP.
+  </Card>
+  <Card
+    title="Page scraping"
+    icon="file-lines"
+    href="/api-reference/endpoint/scrape"
+  >
+    Any page as clean markdown, a summary, links, images, or your own JSON schema.
+  </Card>
+  <Card
+    title="Site mapping"
+    icon="sitemap"
+    href="/api-reference/endpoint/map"
+  >
+    Every URL a site exposes, from its sitemaps and on-page links.
+  </Card>
+  <Card
+    title="Crawling"
+    icon="spider"
+    href="/api-reference/endpoint/crawl"
+  >
+    Walk a whole site to the depth you choose and get every page as markdown.
   </Card>
 </CardGroup>

@@ -1,0 +1,88 @@
+---
+title: "DELETE /crawl/{id}"
+description: "Stop a running crawl. Pages already fetched stay readable. Free."
+openapi: "DELETE /crawl/{id}"
+---
+
+## Overview
+
+Stops a crawl that is `pending` or `running`. The worker notices within a few pages and stops fetching.
+
+Nothing is thrown away: pages already crawled stay readable through [`GET /crawl/{id}`](/api-reference/endpoint/crawl-status) until the crawl expires, 24 hours after it stopped. They are billed on the next status call as usual, so you pay for what was fetched and nothing more.
+
+Cancelling is free.
+
+## Example request
+
+<CodeGroup>
+
+```bash cURL
+curl -X DELETE "https://api.prefetch.io/crawl/crw_9f2c1a7b4e0d4c3a8b1e5f7d2c9a0b3e" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```javascript Node.js
+const res = await fetch(
+  `https://api.prefetch.io/crawl/${crawlId}`,
+  { method: "DELETE", headers: { "X-API-Key": process.env.PREFETCH_API_KEY } }
+);
+const { data } = await res.json();
+console.log(data.status); // "cancelled"
+```
+
+```python Python
+import requests, os
+
+r = requests.delete(
+    f"https://api.prefetch.io/crawl/{crawl_id}",
+    headers={"X-API-Key": os.environ["PREFETCH_API_KEY"]},
+)
+print(r.json()["data"]["status"])  # "cancelled"
+```
+
+</CodeGroup>
+
+## Example response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "crw_9f2c1a7b4e0d4c3a8b1e5f7d2c9a0b3e",
+    "status": "cancelled",
+    "url": "https://docs.stripe.com",
+    "total": 38,
+    "completed": 12,
+    "failed": 1,
+    "credits_used": 36,
+    "created_at": "2026-08-20T09:14:03.221Z",
+    "started_at": "2026-08-20T09:14:04.010Z",
+    "finished_at": "2026-08-20T09:16:41.882Z",
+    "expires_at": "2026-08-21T09:14:03.221Z",
+    "error": null
+  },
+  "meta": {
+    "requestId": "e7b6a5f4-bd0e-4f70-c15c-4d6e8f0a2b43",
+    "durationMs": 61
+  }
+}
+```
+
+## Behavior
+
+- **Already finished?** Cancelling a `completed`, `failed`, or `cancelled` crawl is a no-op. You get `200` with the crawl's real final state rather than an error.
+- **Not yet started?** The queued job is removed, so no pages are ever fetched.
+- **Unknown or expired id?** `404`.
+
+A crawl you do not own also returns `404` rather than `403`. Crawl ids are unguessable, and confirming that some id exists is the only thing an enumeration attempt is after.
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="POST /crawl" icon="spider" href="/api-reference/endpoint/crawl">
+    Start a crawl.
+  </Card>
+  <Card title="GET /crawl/{id}" icon="list-check" href="/api-reference/endpoint/crawl-status">
+    Read progress and results.
+  </Card>
+</CardGroup>

@@ -12,6 +12,8 @@ This is equivalent to calling `/brand` + `/company` + `/classify` together, but 
 
 **Use `/enrich` when you want a complete profile of a domain.**
 
+Each block sits under the same key its standalone endpoint uses — `data.brand`, `data.company`, `data.classification` — so code written against `/brand` or `/classify` reads an `/enrich` response unchanged. The one difference: `social_links` lives on `data.company` here, rather than on `data.brand` as it does in `/brand`.
+
 ## Cost comparison
 
 | Approach | Credits | Requests |
@@ -41,8 +43,9 @@ const res = await fetch(
 const { success, data } = await res.json();
 
 // Access all three data sets
-console.log(data.colors.brand_colors[0].hex);            // "#635BFF"
+console.log(data.brand.colors.brand_colors[0].hex);       // "#635BFF"
 console.log(data.company.name);                           // "Stripe, Inc."
+console.log(data.company.social_links.twitter);           // "https://twitter.com/stripe"
 console.log(data.classification.category);                // "Personal Finance"
 console.log(data.classification.tagline_description);     // "Payment infrastructure for the internet."
 ```
@@ -58,7 +61,7 @@ r = requests.get(
 data = r.json()["data"]
 print(data["company"]["name"])
 print(data["classification"]["category"])
-print(data["logos"]["primary"]["url"])
+print(data["brand"]["logos"]["primary"]["url"])
 ```
 
 </CodeGroup>
@@ -69,48 +72,50 @@ print(data["logos"]["primary"]["url"])
 {
   "success": true,
   "data": {
-    "domain": "stripe.com",
     "url": "https://stripe.com",
-    "colors": {
-      "brand_colors": [
-        { "hex": "#635BFF", "name": "blueviolet" },
-        { "hex": "#00D4FF", "name": "cyan" }
-      ],
-      "screenshot_colors": [
-        { "hex": "#FFFFFF", "name": "white" },
-        { "hex": "#0A2540", "name": "darkblue" }
-      ]
-    },
-    "fonts": {
-      "families": ["Sohne", "Inter"]
-    },
-    "logos": {
-      "primary": {
-        "url": "https://assets.prefetch.io/logos/stripe-logo.svg",
-        "width": null,
-        "height": null
+    "domain": "stripe.com",
+    "brand": {
+      "colors": {
+        "brand_colors": [
+          { "color": "rgb(99, 91, 255)", "hex": "#635BFF", "name": "blueviolet" },
+          { "color": "rgb(0, 212, 255)", "hex": "#00D4FF", "name": "cyan" }
+        ],
+        "screenshot_colors": [
+          { "color": "rgb(255, 255, 255)", "hex": "#FFFFFF", "name": "white", "source": "screenshot" },
+          { "color": "rgb(10, 37, 64)", "hex": "#0A2540", "name": "darkblue", "source": "screenshot" }
+        ]
       },
-      "secondary": [],
-      "favicon_url": "https://stripe.com/favicon.ico",
-      "icon_url": null,
-      "apple_touch_icon": null
-    },
-    "images": {
-      "og_image": "https://stripe.com/img/v3/home/social.png",
-      "twitter_image": "https://stripe.com/img/v3/home/social.png",
-      "screenshot_url": "https://assets.prefetch.io/screenshots/stripe-1440x900.jpg"
-    },
-    "social_links": {
-      "twitter": "https://twitter.com/stripe",
-      "linkedin": "https://linkedin.com/company/stripe"
+      "fonts": {
+        "families": ["Sohne", "Inter"]
+      },
+      "logos": {
+        "primary": {
+          "url": "https://assets.prefetch.io/logos/stripe-logo.svg",
+          "width": null,
+          "height": null
+        },
+        "secondary": [],
+        "favicon_url": "https://stripe.com/favicon.ico",
+        "icon_url": null,
+        "apple_touch_icon": null
+      },
+      "images": {
+        "og_image": "https://stripe.com/img/v3/home/social.png",
+        "twitter_image": "https://stripe.com/img/v3/home/social.png",
+        "assets": [],
+        "screenshot_url": "https://assets.prefetch.io/screenshots/stripe-1440x900.jpg"
+      }
     },
     "company": {
       "name": "Stripe, Inc.",
       "emails": ["support@stripe.com"],
-      "addresses": ["354 Oyster Point Blvd, South San Francisco, CA 94080"]
+      "addresses": ["354 Oyster Point Blvd, South San Francisco, CA 94080"],
+      "social_links": {
+        "twitter": "https://twitter.com/stripe",
+        "linkedin": "https://linkedin.com/company/stripe"
+      }
     },
     "classification": {
-      "url": "https://stripe.com",
       "iab_id": "IAB13-11",
       "iab_parent_id": "IAB13",
       "category": "Personal Finance",

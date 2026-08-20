@@ -1,0 +1,222 @@
+---
+title: "GET /scrape"
+description: "Turn any page into clean markdown, an LLM summary, structured JSON, links, or images. Costs 3 credits."
+openapi: "GET /scrape"
+---
+
+## Overview
+
+`/scrape` fetches one URL and gives it back to you in whichever formats you ask for. It handles the parts that make scraping tedious:
+
+- **JavaScript rendering** — pages that need a browser get one, automatically. Static pages take the fast path.
+- **Bot walls** — blocked requests escalate through stealth and proxy tiers before giving up.
+- **Boilerplate** — navigation, sidebars, footers, and cookie banners are stripped by default.
+- **Absolute URLs** — every link and image is resolved against the page, so the output still works once you store it somewhere else.
+
+Pass `formats` as a comma-separated list. Each format you request appears as its own object on `data`. Formats you do not request are **absent**, not null — so `if (data.markdown)` is a reliable check.
+
+| Format | You get |
+|---|---|
+| `markdown` | GitHub Flavored Markdown, plus character and word counts. The default. |
+| `summary` | A natural-language summary of the page. |
+| `html` | Cleaned HTML: scripts, styles, and inline event handlers removed. |
+| `raw_html` | The source exactly as fetched. |
+| `links` | Every link, split into `internal` and `external`. |
+| `images` | Every image, including `srcset` and lazy-loaded sources. |
+| `json` | Structured data matching your own prompt or JSON Schema. |
+
+`metadata` is always present, whatever you request.
+
+## Example requests
+
+<CodeGroup>
+
+```bash Markdown (default)
+curl "https://api.prefetch.io/scrape?url=https://stripe.com" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```bash Markdown + links
+curl "https://api.prefetch.io/scrape?url=https://stripe.com&formats=markdown,links" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```bash Full page, no boilerplate stripping
+curl "https://api.prefetch.io/scrape?url=https://stripe.com&only_main_content=false" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```javascript Node.js
+const params = new URLSearchParams({
+  url: "https://stripe.com",
+  formats: "markdown,links",
+});
+
+const res = await fetch(`https://api.prefetch.io/scrape?${params}`, {
+  headers: { "X-API-Key": process.env.PREFETCH_API_KEY },
+});
+const { data } = await res.json();
+
+console.log(data.markdown.content);
+console.log(`${data.links.count} links found`);
+```
+
+```python Python
+import requests, os
+
+r = requests.get(
+    "https://api.prefetch.io/scrape",
+    params={"url": "https://stripe.com", "formats": "markdown,links"},
+    headers={"X-API-Key": os.environ["PREFETCH_API_KEY"]},
+)
+data = r.json()["data"]
+print(data["markdown"]["content"])
+```
+
+</CodeGroup>
+
+## Example response
+
+```json
+{
+  "success": true,
+  "data": {
+    "url": "https://stripe.com",
+    "final_url": "https://stripe.com",
+    "domain": "stripe.com",
+    "status_code": 200,
+    "metadata": {
+      "source_url": "https://stripe.com",
+      "final_url": "https://stripe.com",
+      "status_code": 200,
+      "title": "Stripe | Financial Infrastructure to Grow Your Revenue",
+      "description": "Stripe powers online payment processing for internet businesses.",
+      "language": "en",
+      "canonical_url": "https://stripe.com",
+      "favicon": "https://stripe.com/favicon.ico",
+      "site_name": "Stripe",
+      "keywords": [],
+      "open_graph": { "title": "Stripe", "type": "website" },
+      "twitter": { "card": "summary_large_image" },
+      "json_ld": [],
+      "headings": [
+        { "level": 1, "text": "Financial infrastructure to grow your revenue" }
+      ]
+    },
+    "markdown": {
+      "content": "# Financial infrastructure to grow your revenue\n\nJoin the millions of companies that use Stripe...",
+      "char_count": 4821,
+      "word_count": 702,
+      "truncated": false,
+      "main_content_only": true
+    },
+    "links": {
+      "internal": [
+        { "url": "https://stripe.com/pricing", "text": "Pricing", "title": null, "rel": null }
+      ],
+      "external": [],
+      "count": 84
+    }
+  },
+  "meta": {
+    "requestId": "a3f2c1d4-7b6e-4f2a-9c1d-8e3f2a1b4c5d",
+    "durationMs": 2140
+  }
+}
+```
+
+## Main content isolation
+
+`only_main_content` defaults to `true`. It removes navigation, headers, footers, sidebars, share widgets, and cookie bars before rendering `markdown`, `html`, `summary`, and `json`.
+
+When a page is not article-shaped — a product grid, a landing page — isolation would have to guess which fragment is "the content". Rather than guess, it returns the full page body, sets `main_content_only: false`, and tells you in `warnings`:
+
+```json
+{
+  "markdown": { "main_content_only": false, "...": "..." },
+  "warnings": ["Main content could not be isolated; returned the full page body instead."]
+}
+```
+
+<Note>
+  `links` and `images` are always read from the **full** document, even when `only_main_content` is true. If you are mapping a site, the navigation links are exactly the ones you want.
+</Note>
+
+To take control yourself, use `include_selectors` to name the content, or `exclude_selectors` to name what to drop:
+
+```bash
+curl "https://api.prefetch.io/scrape?url=https://example.com/post&include_selectors=article,.post-body" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+## Structured extraction with `json`
+
+Ask for the `json` format with a plain-language `json_prompt`, a `json_schema`, or both. Requesting `json` without either returns a `400`.
+
+<CodeGroup>
+
+```bash Prompt
+curl -G "https://api.prefetch.io/scrape" \
+  --data-urlencode "url=https://example.com/product" \
+  --data-urlencode "formats=json" \
+  --data-urlencode "json_prompt=product name, price and availability" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```bash JSON Schema
+curl -G "https://api.prefetch.io/scrape" \
+  --data-urlencode "url=https://example.com/product" \
+  --data-urlencode "formats=json" \
+  --data-urlencode 'json_schema={"type":"object","properties":{"name":{"type":"string"},"price":{"type":"number"}}}' \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+</CodeGroup>
+
+```json
+{
+  "json": {
+    "data": {
+      "product_name": "Widget Pro",
+      "price": "$49.00",
+      "availability": "In stock"
+    },
+    "model": "gpt-4.1-mini"
+  }
+}
+```
+
+Values come only from the page. A field that is not on the page comes back `null` rather than being filled in from the model's own knowledge.
+
+## Partial failures
+
+The LLM-backed formats (`summary` and `json`) can fail on their own without losing the rest of the scrape. When that happens the format returns null values and the reason appears in `warnings`:
+
+```json
+{
+  "markdown": { "content": "# Still here...", "...": "..." },
+  "summary": { "text": null, "model": null },
+  "warnings": ["Summary failed: Request timed out"]
+}
+```
+
+The response is still `success: true`, and you are still charged — the page was fetched.
+
+## Content size
+
+`markdown`, `html`, and `raw_html` are each capped at 1 MB. Content that hits the cap is cut on a character boundary and flagged:
+
+```json
+{ "raw_html": { "char_count": 1000000, "truncated": true, "...": "..." } }
+```
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="GET /map" icon="sitemap" href="/api-reference/endpoint/map">
+    Find every URL on a site before you scrape it. **3 credits.**
+  </Card>
+  <Card title="POST /crawl" icon="spider" href="/api-reference/endpoint/crawl">
+    Scrape a whole site in one job. **3 credits + 3 per page.**
+  </Card>
+</CardGroup>
