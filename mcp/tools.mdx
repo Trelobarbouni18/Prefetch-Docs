@@ -1,0 +1,177 @@
+---
+title: "MCP tools"
+description: "Every tool the Prefetch MCP server exposes, with its parameters and defaults."
+icon: "wrench"
+---
+
+Ten tools, one per API capability. Your agent reads these descriptions and picks the right one — you rarely need to name a tool yourself.
+
+All parameters are snake_case. Only `url` (or `id`, for the crawl status tools) is ever required.
+
+See [MCP server](/mcp/overview) for setup.
+
+## Web extraction
+
+### `prefetch_scrape`
+
+Fetch one URL and return its content. Handles JavaScript-rendered pages, strips boilerplate, and resolves every link and image to an absolute URL.
+
+Use it when you know which page you want. To find pages first, use `prefetch_map`.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `url` | string | — | **Required.** `https://` is assumed if the scheme is omitted. |
+| `formats` | string[] | `["markdown"]` | Any of `markdown`, `summary`, `html`, `raw_html`, `links`, `images`, `json`. |
+| `only_main_content` | boolean | `true` | Strip navigation, sidebars, headers, and footers. |
+| `include_links` | boolean | `true` | Keep hyperlinks in the markdown. |
+| `include_images` | boolean | `true` | Keep images in the markdown. |
+| `include_base64_images` | boolean | `false` | Keep inline `data:` image URIs. These are very large. |
+| `include_selectors` | string[] | — | CSS selectors to keep, overriding main-content detection. |
+| `exclude_selectors` | string[] | — | CSS selectors to drop, like `[".cookie-bar", "#promo"]`. |
+| `json_prompt` | string | — | For `formats: ["json"]` — what to extract, in plain English. |
+| `json_schema` | object | — | For `formats: ["json"]` — a JSON Schema the result must match. |
+| `summary_max_words` | number | `120` | Word budget for `formats: ["summary"]`. 20–400. |
+
+<Tip>
+`include_selectors` is the best way to cut a large page down to what matters — it beats truncation, because you choose what survives.
+</Tip>
+
+`raw_html` is much larger than `markdown`. Only ask for it when you need the source.
+
+### `prefetch_map`
+
+Discover the URLs on a site, from its sitemaps and on-page links, without fetching page content. Fast and cheap.
+
+Mapping first and then scraping the two or three pages you want is usually better — and much cheaper — than crawling.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `url` | string | — | **Required.** |
+| `search` | string | — | Rank and filter results by this term, like `"pricing"`. |
+| `limit` | number | `1000` | Maximum URLs to return. 1–5000. |
+| `sitemap` | string | `include` | `include` merges sitemap and link discovery, `only` trusts the sitemap alone, `skip` ignores it. |
+| `include_subdomains` | boolean | `true` | Include URLs on subdomains. |
+| `ignore_query_params` | boolean | `true` | Collapse URLs that differ only by query string. |
+
+### `prefetch_crawl`
+
+Crawl a site or a section of one, returning each page as markdown. Starts the crawl and waits for it — see [how crawling works](/mcp/overview#how-crawling-works).
+
+Crawls are billed per page. Scope them with `include_paths` and keep `limit` as low as will do.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `url` | string | — | **Required.** |
+| `limit` | number | `25` | Maximum pages to crawl. 1–500. Each page is billed. |
+| `max_depth` | number | `2` | How many links deep to follow. 0–5. |
+| `include_paths` | string[] | — | Regex patterns; a URL must match at least one, like `["^/docs/"]`. |
+| `exclude_paths` | string[] | — | Regex patterns; a URL matching any is skipped. |
+| `allow_subdomains` | boolean | `false` | Follow links onto subdomains. |
+| `allow_external_links` | boolean | `false` | Follow links onto other sites. This can make a crawl very large. |
+| `ignore_query_params` | boolean | `true` | Treat URLs differing only by query string as one page. |
+| `use_sitemap` | boolean | `true` | Seed the crawl from the site's sitemap as well as from links. |
+| `concurrency` | number | `2` | Pages fetched in parallel. 1–5. |
+| `delay_ms` | number | `0` | Politeness delay between pages. |
+| `scrape_options` | object | — | How each page is rendered — the same options `prefetch_scrape` takes. |
+| `wait_seconds` | number | `60` | How long to wait before handing back a crawl id to poll. 0–120. |
+
+<Note>
+Sitemap-seeded pages sit at depth 0, because they were handed over rather than followed. So `max_depth: 0` with `use_sitemap: true` crawls exactly what the sitemap lists and follows nothing.
+</Note>
+
+### `prefetch_check_crawl_status`
+
+Status and results for a crawl. Returns one page of results at a time.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `id` | string | — | **Required.** The crawl id from `prefetch_crawl`. |
+| `skip` | number | `0` | Results to skip, for paging. |
+| `limit` | number | `25` | Results per page. 1–100. |
+
+Calling this is free. Only pages that completed since your last call are billed.
+
+### `prefetch_cancel_crawl`
+
+Stop a running crawl. Pages already fetched stay readable via `prefetch_check_crawl_status` until the crawl expires.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `id` | string | — | **Required.** The crawl id from `prefetch_crawl`. |
+
+## Brand and company data
+
+### `prefetch_enrich`
+
+Everything known about the company behind a URL in one call: brand assets, company details, and IAB classification.
+
+<Tip>
+Prefer this over calling `prefetch_brand`, `prefetch_company`, and `prefetch_classify` separately. It is one page fetch instead of three, and costs less than the three combined.
+</Tip>
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `url` | string | — | **Required.** |
+| `html` | boolean | `false` | Also extract colors from inline HTML style attributes. |
+| `css` | boolean | `false` | Also extract colors from stylesheets, grouped by CSS property. |
+| `javascript` | boolean | `false` | Also extract colors from inline JavaScript. |
+| `screenshot_colors` | number | — | Sample this many dominant colors from a rendered screenshot. 2–12. |
+| `screenshot_width` | number | `1440` | Screenshot viewport width. |
+| `screenshot_height` | number | `900` | Screenshot viewport height. |
+| `screenshot_full_page` | boolean | `false` | Capture the whole scrollable page. |
+| `filter_achromatic` | boolean | `false` | Drop near-white, near-black, and grey results. |
+
+`screenshot_colors` catches colors that only exist inside images, at the cost of a slower call.
+
+### `prefetch_brand`
+
+Brand identity for a URL: palette with color names and hex values, font families, logos, favicon, and Open Graph images.
+
+Takes the same parameters as `prefetch_enrich`. Use `prefetch_enrich` instead if you also want company details or industry.
+
+### `prefetch_company`
+
+Company name, contact emails, postal addresses, and social profiles for the organisation behind a URL.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `url` | string | — | **Required.** |
+
+### `prefetch_classify`
+
+IAB content category and subcategory, with a description and — for public companies — stock tickers and ISINs.
+
+The cheapest way to answer "what kind of business is this".
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `url` | string | — | **Required.** |
+
+### `prefetch_screenshot`
+
+Render a page and return a hosted image URL.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `url` | string | — | **Required.** |
+| `width` | number | `1440` | Viewport width. 320–2560. |
+| `height` | number | `900` | Viewport height. 240–5000. |
+| `format` | string | `jpeg` | `jpeg`, `png`, or `webp`. |
+| `full_page` | boolean | `false` | Capture the whole scrollable page. |
+
+<Note>
+This returns a link, not image bytes. Pass the URL on to the user, or to a tool that can fetch images.
+</Note>
+
+## Choosing a tool
+
+| You want | Use | Credits |
+|---|---|---|
+| One page's content | `prefetch_scrape` | 3 |
+| To know which pages exist | `prefetch_map` | 3 |
+| A few specific pages | `prefetch_map`, then `prefetch_scrape` on each | 3 + 3 each |
+| A whole section of a site | `prefetch_crawl` with `include_paths` | 3 + 3/page |
+| Brand, company, and industry | `prefetch_enrich` | 20 |
+| Just the brand colors | `prefetch_brand` | 10 |
+| Just the industry | `prefetch_classify` | 5 |
+| A picture of the page | `prefetch_screenshot` | 2 |

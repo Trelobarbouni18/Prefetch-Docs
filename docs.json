@@ -43,6 +43,19 @@
         ]
       },
       {
+        "tab": "MCP",
+        "icon": "plug",
+        "groups": [
+          {
+            "group": "Agents",
+            "pages": [
+              "mcp/overview",
+              "mcp/tools"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "API Reference",
         "icon": "rectangle-terminal",
         "groups": [

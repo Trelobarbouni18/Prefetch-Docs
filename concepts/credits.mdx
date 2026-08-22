@@ -23,6 +23,17 @@ Each data extraction endpoint consumes a fixed number of credits per successful 
 | `GET /health` | — | Liveness check |
 | `GET /ready` | — | Readiness check |
 
+## Credits over MCP
+
+The [MCP server](/mcp/overview) charges exactly what the equivalent REST endpoint charges — `prefetch_enrich` costs 20 credits, `prefetch_scrape` costs 3, and so on. There is no surcharge for calling a tool instead of an endpoint.
+
+Two MCP tools are free, because they only read work you have already paid for:
+
+- `prefetch_check_crawl_status` — bills only the crawl pages that completed since your last call.
+- `prefetch_cancel_crawl` — never charges.
+
+MCP calls also share the request cache with REST calls, so an agent scraping a page you already fetched pays nothing for it.
+
 ## When credits are deducted
 
 Credits are deducted **only on successful responses** — meaning the API returned `"success": true` with a `200` status code.

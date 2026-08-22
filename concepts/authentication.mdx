@@ -15,6 +15,17 @@ curl "https://api.prefetch.io/classify?url=https://example.com" \
 
 Get your API key from the [dashboard](https://dashboard.prefetch.io).
 
+## Bearer tokens
+
+The `POST /mcp` endpoint also accepts your key as a bearer token, because many MCP clients only offer an `Authorization` field:
+
+```bash
+curl -X POST https://api.prefetch.io/mcp \
+  -H "Authorization: Bearer your_api_key_here"
+```
+
+`X-API-Key` takes precedence if you send both. This applies to `/mcp` only — REST endpoints require `X-API-Key`. See [MCP server](/mcp/overview) for client setup.
+
 ## Key validation
 
 Every request validates your API key against the following checks, in order:

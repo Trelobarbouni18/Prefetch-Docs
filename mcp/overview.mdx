@@ -1,0 +1,204 @@
+---
+title: "MCP server"
+description: "Connect Claude, Cursor, or any MCP client to the Prefetch API so your agent can scrape, map, crawl, and enrich on its own."
+icon: "plug"
+---
+
+Prefetch speaks the [Model Context Protocol](https://modelcontextprotocol.io), so an AI agent can call the API directly instead of you writing HTTP glue for it.
+
+There is nothing to install. The MCP server *is* the API — one endpoint, `POST /mcp`, authenticated with the same key you already use.
+
+```
+https://api.prefetch.io/mcp
+```
+
+## Connect
+
+<Tabs>
+  <Tab title="Claude Code">
+    ```bash
+    claude mcp add --transport http prefetch https://api.prefetch.io/mcp \
+      --header "X-API-Key: $PREFETCH_API_KEY"
+    ```
+
+    Verify it connected:
+
+    ```bash
+    claude mcp list
+    ```
+  </Tab>
+
+  <Tab title="Claude Desktop">
+    Add this to your `claude_desktop_config.json`:
+
+    ```json
+    {
+      "mcpServers": {
+        "prefetch": {
+          "type": "http",
+          "url": "https://api.prefetch.io/mcp",
+          "headers": { "X-API-Key": "your_api_key_here" }
+        }
+      }
+    }
+    ```
+
+    Restart Claude Desktop to pick up the change.
+  </Tab>
+
+  <Tab title="Cursor">
+    Add this to `.cursor/mcp.json` in your project, or to `~/.cursor/mcp.json` for every project:
+
+    ```json
+    {
+      "mcpServers": {
+        "prefetch": {
+          "type": "http",
+          "url": "https://api.prefetch.io/mcp",
+          "headers": { "X-API-Key": "your_api_key_here" }
+        }
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Other clients">
+    Any client that supports remote MCP servers over streamable HTTP works. Point it at:
+
+    ```
+    https://api.prefetch.io/mcp
+    ```
+
+    and send your key as either an `X-API-Key` or an `Authorization: Bearer` header.
+  </Tab>
+</Tabs>
+
+<Warning>
+Put your key in your client's secret storage or an environment variable — never in the URL. URLs end up in logs, shell history, and shared config files.
+</Warning>
+
+## Try it
+
+Once connected, ask for what you want in plain language:
+
+> Get me the brand colors and industry category for stripe.com
+
+> Find every pricing page on vercel.com and summarise what changed
+
+> Crawl the /docs section of fastapi.tiangolo.com and list the endpoints it documents
+
+Your agent picks the right tool, calls it, and reads the result.
+
+## The ten tools
+
+| Tool | What it does | Credits |
+|---|---|---|
+| `prefetch_scrape` | One page as markdown, summary, HTML, links, images, or extracted JSON | 3 |
+| `prefetch_map` | Every URL a site exposes, without fetching page content | 3 |
+| `prefetch_crawl` | Many pages as markdown | 3 + 3/page |
+| `prefetch_check_crawl_status` | Status and results for a crawl | — |
+| `prefetch_cancel_crawl` | Stop a crawl early | — |
+| `prefetch_enrich` | Brand + company + classification in one call | 20 |
+| `prefetch_brand` | Colors, fonts, logos, favicon, OG images | 10 |
+| `prefetch_company` | Name, emails, addresses, social profiles | 5 |
+| `prefetch_classify` | IAB category, description, stock tickers | 5 |
+| `prefetch_screenshot` | Render a page, return a hosted image URL | 2 |
+
+See the [tool reference](/mcp/tools) for every parameter.
+
+Credits work exactly as they do over REST — same costs, same "only successful requests are charged" rule. See [Credits](/concepts/credits).
+
+## How crawling works
+
+A crawl takes minutes, which is longer than an agent wants to sit on a tool call. So `prefetch_crawl` starts the crawl and waits for it, up to `wait_seconds` (60 by default).
+
+If the crawl finishes in time, you get the pages back immediately. If it does not, you get the crawl id and an instruction:
+
+```
+Crawl crw_a1b2c3 is still running — 12 of 25 pages done.
+
+Call prefetch_check_crawl_status with id="crw_a1b2c3" to collect the results.
+Call prefetch_cancel_crawl with the same id to stop it early.
+```
+
+Two things worth knowing:
+
+- **Polling is free.** Pages are billed as they complete, claimed atomically, so checking twice never charges twice.
+- **Disconnecting cancels the crawl.** If your client hangs up while `prefetch_crawl` is still waiting, the crawl is stopped rather than left running and billing pages nobody will read.
+
+## Response size
+
+Tool results go straight into your agent's context window, so content is capped at **50,000 characters** per result — well below the 1 MB cap the REST API uses. A full Wikipedia article in `raw_html` is roughly 240,000 characters; one uncapped call like that would crowd out most of what the agent knows.
+
+Truncation is always announced, never silent:
+
+```
+---
+[truncated: 189,747 of 239,747 characters omitted.
+ Narrow the extraction with include_selectors, or keep only_main_content=true.]
+```
+
+To fit more signal into less space:
+
+<Columns cols={2}>
+  <Card title="Target the content" icon="crosshairs">
+    Pass `include_selectors` with the part of the page you actually want, like `["article"]`.
+  </Card>
+  <Card title="Ask for a summary" icon="compress">
+    Use `formats: ["summary"]` instead of `["markdown"]` when you only need the gist.
+  </Card>
+</Columns>
+
+## Errors
+
+Failures come back as readable tool results rather than transport faults, so your agent can read the message and correct itself:
+
+```
+formats: unsupported value(s) pdf. Supported: markdown, summary, html, raw_html, links, images, json (HTTP 400)
+The target URL could not be resolved. Please check the domain name. (HTTP 422)
+Private or reserved IP ranges are not allowed (HTTP 400)
+```
+
+Authentication is the exception and fails at the HTTP layer: `401` with no key, `403` with an invalid one. See [Error handling](/concepts/errors) for the full list.
+
+## Good to know
+
+<AccordionGroup>
+  <Accordion title="MCP and REST are the same API">
+    Both run the identical pipeline, so credits, caching, rate limits, and the blocklist behave the same either way. An MCP scrape even hits the cache a REST scrape warmed, because both build the same cache key.
+  </Accordion>
+
+  <Accordion title="The endpoint is stateless">
+    Every request is self-contained — there are no MCP sessions to manage. All ten tools are one-shot request/response, so nothing is lost. `GET` and `DELETE` on `/mcp` return `405`; use `POST`.
+  </Accordion>
+
+  <Accordion title="RapidAPI subscriptions cannot use MCP">
+    RapidAPI meters usage from a response header that has to be set before the response body is written, and over MCP the cost of a call is not known until after the tool has run. Rather than under-bill silently, `/mcp` returns `400` for RapidAPI traffic.
+
+    Everything is available over REST through RapidAPI exactly as documented. MCP needs a direct Prefetch key from the [dashboard](https://dashboard.prefetch.io).
+  </Accordion>
+
+  <Accordion title="Which tool should my agent use?">
+    Each tool's description tells the agent when to reach for it and when to reach for something else, so this mostly takes care of itself. Two patterns are worth knowing:
+
+    - **`prefetch_enrich` beats three separate calls.** It is one page fetch instead of three, and costs less than `prefetch_brand` + `prefetch_company` + `prefetch_classify` combined.
+    - **Map then scrape usually beats crawling.** `prefetch_map` is cheap and tells you which pages exist; scraping the three you actually want costs far less than crawling fifty.
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Tool reference" icon="wrench" href="/mcp/tools">
+    Every tool, every parameter.
+  </Card>
+  <Card title="Credits" icon="coins" href="/concepts/credits">
+    What each call costs.
+  </Card>
+  <Card title="Authentication" icon="key" href="/concepts/authentication">
+    Keys, headers, and error codes.
+  </Card>
+  <Card title="REST API" icon="rectangle-terminal" href="/api-reference/introduction">
+    The same capabilities over HTTP.
+  </Card>
+</CardGroup>
