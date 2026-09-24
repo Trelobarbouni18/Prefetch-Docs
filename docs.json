@@ -8,21 +8,35 @@
   "name": "Prefetch API",
   "colors": {
     "primary": "#F7B00A",
-    "light": "#ffc52e",
+    "light": "#F7B00A",
     "dark": "#F7B00A"
   },
+  "background": {
+    "color": {
+      "light": "#FCFBF6",
+      "dark": "#1A0618"
+    }
+  },
   "favicon": "/favicon.svg",
-  "font": {
-    "headings": { "family": "Space Grotesk" },
+  "fonts": {
+    "heading": { "family": "Space Grotesk" },
     "body": { "family": "Inter" }
   },
-  "codeFont": { "family": "Source Code Pro" },
+  "styling": {
+    "codeblocks": {
+      "theme": "css-variables"
+    }
+  },
+  "thumbnails": {
+    "appearance": "dark",
+    "background": "/images/og-background.png",
+    "fonts": { "family": "Space Grotesk" }
+  },
   "css": "/custom.css",
   "navigation": {
     "tabs": [
       {
         "tab": "Home",
-        "icon": "house",
         "groups": [
           {
             "group": "Getting started",
@@ -44,7 +58,6 @@
       },
       {
         "tab": "MCP",
-        "icon": "plug",
         "groups": [
           {
             "group": "Agents",
@@ -57,7 +70,6 @@
       },
       {
         "tab": "API Reference",
-        "icon": "rectangle-terminal",
         "groups": [
           {
             "group": "Overview",
@@ -105,7 +117,7 @@
     "primary": {
       "type": "button",
       "label": "Get API Key",
-      "href": "https://dashboard.prefetch.io"
+      "href": "https://prefetch.io/account"
     }
   },
   "contextual": {
@@ -120,7 +132,32 @@
     ]
   },
   "footer": {
-    "socials": {
-    }
+    "links": [
+      {
+        "header": "Product",
+        "items": [
+          { "label": "Website", "href": "https://prefetch.io" },
+          { "label": "Brand Catalog", "href": "https://prefetch.io/brands" },
+          { "label": "Dashboard", "href": "https://prefetch.io/dashboard" }
+        ]
+      },
+      {
+        "header": "Resources",
+        "items": [
+          { "label": "Quickstart", "href": "/quickstart" },
+          { "label": "API Reference", "href": "/api-reference/introduction" },
+          { "label": "MCP Server", "href": "/mcp/overview" }
+        ]
+      },
+      {
+        "header": "Company",
+        "items": [
+          { "label": "Book a Demo", "href": "https://cal.com/nestoras.design" },
+          { "label": "Contact", "href": "mailto:hi@prefetch.io" },
+          { "label": "Privacy", "href": "https://prefetch.io/privacy" },
+          { "label": "Terms", "href": "https://prefetch.io/terms" }
+        ]
+      }
+    ]
   }
 }

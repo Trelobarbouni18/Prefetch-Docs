@@ -1,7 +1,22 @@
-<svg width="502" height="502" viewBox="0 0 502 502" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="502" height="502" fill="#3C2532"/>
-<rect x="4" y="4" width="494" height="494" fill="#1a0c14"/>
-<path d="M16 16h470v2H16zM16 16h2v470H16z" fill="rgba(255,255,255,0.6)"/>
-<path d="M484 484H16v-2h468zM484 484h-2V16h2z" fill="rgba(0,0,0,0.8)"/>
-<text x="251" y="360" font-family="monospace" font-size="320" font-weight="bold" fill="#E5E3D3" text-anchor="middle" dominant-baseline="auto">P</text>
+<svg width="800" height="800" viewBox="0 0 800 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M0 0H800V800H0V0Z" fill="#3C2532"/>
+<rect x="110" y="110" width="580" height="580" fill="#1A0618"/>
+<rect width="6" height="800" fill="white" fill-opacity="0.5"/>
+<rect x="800" width="6.00002" height="794" transform="rotate(90 800 0)" fill="white" fill-opacity="0.5"/>
+<rect x="6" y="6" width="6" height="794" fill="white" fill-opacity="0.25"/>
+<rect x="800" y="6" width="6.00002" height="788" transform="rotate(90 800 6)" fill="white" fill-opacity="0.25"/>
+<rect x="690" y="684" width="6.00005" height="574" transform="rotate(-180 690 684)" fill="white" fill-opacity="0.5"/>
+<rect x="110" y="690" width="6.00009" height="580" transform="rotate(-90 110 690)" fill="white" fill-opacity="0.5"/>
+<rect x="684" y="678" width="6.00005" height="568" transform="rotate(-180 684 678)" fill="white" fill-opacity="0.25"/>
+<rect x="110" y="684" width="6.00009" height="574" transform="rotate(-90 110 684)" fill="white" fill-opacity="0.25"/>
+<rect x="800" y="794" width="5.99997" height="794" transform="rotate(180 800 794)" fill="black" fill-opacity="0.5"/>
+<rect x="794" y="788" width="5.99997" height="788" transform="rotate(180 794 788)" fill="black" fill-opacity="0.25"/>
+<rect y="800" width="6" height="800" transform="rotate(-90 0 800)" fill="black" fill-opacity="0.5"/>
+<rect y="794" width="5.99999" height="794" transform="rotate(-90 0 794)" fill="black" fill-opacity="0.25"/>
+<rect x="110" y="110" width="6.00004" height="580" fill="black" fill-opacity="0.5"/>
+<rect x="116" y="110" width="6.00004" height="580" fill="black" fill-opacity="0.25"/>
+<rect x="690" y="110" width="6.00006" height="580" transform="rotate(90 690 110)" fill="black" fill-opacity="0.5"/>
+<rect x="690" y="116" width="6.00006" height="568" transform="rotate(90 690 116)" fill="black" fill-opacity="0.25"/>
+<path d="M503.95 390.522V261.188H374.934V390.522H503.95ZM289 606V218H547.033V261.188H590V390.522H547.033V433.594H374.934V606H289Z" fill="#885A11"/>
+<path d="M478.951 365.522V236.188H349.934V365.522H478.951ZM264 581V193H522.033V236.188H565V365.522H522.033V408.594H349.934V581H264Z" fill="#E5E3D3"/>
 </svg>

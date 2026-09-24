@@ -175,7 +175,7 @@ Authentication is the exception and fails at the HTTP layer: `401` with no key, 
   <Accordion title="RapidAPI subscriptions cannot use MCP">
     RapidAPI meters usage from a response header that has to be set before the response body is written, and over MCP the cost of a call is not known until after the tool has run. Rather than under-bill silently, `/mcp` returns `400` for RapidAPI traffic.
 
-    Everything is available over REST through RapidAPI exactly as documented. MCP needs a direct Prefetch key from the [dashboard](https://dashboard.prefetch.io).
+    Everything is available over REST through RapidAPI exactly as documented. MCP needs a direct Prefetch key from the [dashboard](https://prefetch.io/dashboard).
   </Accordion>
 
   <Accordion title="Which tool should my agent use?">

@@ -5,3 +5,15 @@
 # Draft content
 drafts/
 *.draft.mdx
+
+# Mintlify starter-template pages and assets (not part of the Prefetch docs)
+essentials/
+ai-tools/
+snippets/
+api-reference/endpoint/create.mdx
+api-reference/endpoint/get.mdx
+api-reference/endpoint/delete.mdx
+api-reference/endpoint/webhook.mdx
+images/hero-light.png
+images/hero-dark.png
+images/checks-passed.png
