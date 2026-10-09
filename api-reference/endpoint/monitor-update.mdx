@@ -1,0 +1,102 @@
+---
+title: "PATCH /monitor/{id}"
+description: "Change a monitor — its schedule, goal, targets or webhook — or pause and resume it. Free."
+openapi: "PATCH /monitor/{id}"
+---
+
+## Overview
+
+Send only the fields you want to change; everything else stays as it is. The response is the updated monitor.
+
+## Pause and resume
+
+```json
+{ "status": "paused" }
+```
+
+A paused monitor keeps its settings and history but runs no scheduled checks, so it costs nothing. Set `"status": "active"` to resume. The next check runs at the next scheduled time — runs missed while paused are not replayed. A check can still be run by hand while paused, with [`POST /monitor/{id}/run`](/api-reference/endpoint/monitor-run).
+
+## Example request
+
+<CodeGroup>
+
+```bash cURL
+curl -X PATCH "https://api.prefetch.io/monitor/mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c" \
+  -H "X-API-Key: $PREFETCH_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "schedule": { "text": "every 2 hours" },
+    "goal": "Alert me when the Pro plan price changes"
+  }'
+```
+
+```javascript Node.js
+const res = await fetch(`https://api.prefetch.io/monitor/${monitorId}`, {
+  method: "PATCH",
+  headers: {
+    "X-API-Key": process.env.PREFETCH_API_KEY,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ status: "paused" }),
+});
+const { data } = await res.json();
+console.log(data.status, data.next_run_at); // "paused" null
+```
+
+```python Python
+import os, requests
+
+r = requests.patch(
+    f"https://api.prefetch.io/monitor/{monitor_id}",
+    headers={"X-API-Key": os.environ["PREFETCH_API_KEY"]},
+    json={"status": "active"},
+)
+print(r.json()["data"]["next_run_at"])
+```
+
+</CodeGroup>
+
+## What each field does
+
+| Field | Effect |
+|---|---|
+| `name`, `retention_days` | Replaced. |
+| `schedule` | Replaced; the next run is recalculated. |
+| `goal` | Replaced. Setting a goal turns judging on; `null` clears it and turns judging off. |
+| `judge_enabled` | Turns judging on or off without touching the goal. |
+| `targets` | Replaces the **whole list** — see below. |
+| `webhook` | Replaced. The signing secret is kept unless you send a new `secret` or `"rotate_secret": true`. `null` removes the webhook. |
+| `status` | `active` or `paused`. |
+
+## Changing targets
+
+Each target keeps its own snapshots, so what you get on the next check depends on whether a target is still the same target:
+
+- A target you send with its existing `id` keeps its snapshots.
+- A target without an `id` that watches **the same URLs** as an existing one inherits that target's id, and its snapshots, automatically. Changing only its options — adding an `exclude_selectors`, say — keeps its history.
+- Any other target is new. Its first check is a silent baseline: every page is `new`, and nothing is announced.
+
+Snapshots of targets you leave out are deleted.
+
+<Note>
+  Changing what a target compares — its selectors, or switching it to the json mode — can make the next check report pages as `changed` once, because the old snapshot was taken the old way. From the check after that, the comparison is like for like again.
+</Note>
+
+## Rotating the signing secret
+
+```json
+{ "webhook": { "url": "https://you.example.org/hooks/prefetch", "rotate_secret": true } }
+```
+
+The new secret is in the response, and applies to every delivery from then on, including retries of events queued before the change.
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="GET /monitor/{id}" icon="eye" href="/api-reference/endpoint/monitor-get">
+    The monitor as it now runs.
+  </Card>
+  <Card title="DELETE /monitor/{id}" icon="trash" href="/api-reference/endpoint/monitor-delete">
+    Delete it for good.
+  </Card>
+</CardGroup>

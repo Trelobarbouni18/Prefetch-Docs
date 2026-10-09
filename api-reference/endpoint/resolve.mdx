@@ -1,0 +1,120 @@
+---
+title: "GET /resolve"
+description: "Turn a company, brand or product name into the domain of its official website. Costs 1 credit — 3 with a live lookup, 0 when nothing matches."
+openapi: "GET /resolve"
+---
+
+## Overview
+
+Every other endpoint takes a URL. `/resolve` is how you get one when all you have is a name: `Stripe` → `stripe.com`, `Delta` → `delta.com`, `The Coca-Cola Company` → `coca-cola.com`.
+
+Results are ranked, one per domain, and each carries a `confidence` from 0 to 1. Only the first result can reach **0.8** — when it does, that is the answer; anything lower is a candidate to check. Case, accents, punctuation and legal suffixes don't matter: "The Coca-Cola Company", "coca-cola" and "Coca Cola" are the same query.
+
+Answers come from two places:
+
+- **The name index** — about 550,000 brands, companies, websites, software products and publications, in milliseconds. Reviewed brand data always ranks first.
+- **A live lookup** — only with `live=true`, and only when the index has no answer at 0.8 or above. Candidate domains are proposed and each is checked against its own homepage: the site has to call itself by the name you asked for. Parked and for-sale domains never pass. It takes a few seconds, and the verified answer is added to the index, so the next lookup of that name is instant.
+
+## Example requests
+
+<CodeGroup>
+
+```bash Index only
+curl "https://api.prefetch.io/resolve?name=Delta" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```bash With a live lookup
+curl "https://api.prefetch.io/resolve?name=Linear&live=true" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```javascript Node.js
+const params = new URLSearchParams({ name: "Delta", live: "true" });
+
+const res = await fetch(`https://api.prefetch.io/resolve?${params}`, {
+  headers: { "X-API-Key": process.env.PREFETCH_API_KEY },
+});
+const { data } = await res.json();
+
+const [best] = data.results;
+if (best && best.confidence >= 0.8) {
+  console.log(`${data.query} → ${best.domain}`);
+} else {
+  console.log("No confident answer; candidates:", data.results.map((r) => r.domain));
+}
+```
+
+```python Python
+import requests, os
+
+r = requests.get(
+    "https://api.prefetch.io/resolve",
+    params={"name": "Delta", "live": "true"},
+    headers={"X-API-Key": os.environ["PREFETCH_API_KEY"]},
+)
+results = r.json()["data"]["results"]
+if results and results[0]["confidence"] >= 0.8:
+    print(results[0]["domain"])
+```
+
+</CodeGroup>
+
+## Example response
+
+```json
+{
+  "success": true,
+  "data": {
+    "query": "Delta",
+    "results": [
+      { "name": "Delta Air Lines", "domain": "delta.com", "url": "https://delta.com", "confidence": 0.92, "source": "index" },
+      { "name": "DELTA", "domain": "delta.nl", "url": "https://delta.nl", "confidence": 0.79, "source": "index" },
+      { "name": "Delta Holding", "domain": "deltaholding.rs", "url": "https://deltaholding.rs", "confidence": 0.79, "source": "index" }
+    ],
+    "count": 3,
+    "live_used": false,
+    "warnings": []
+  },
+  "meta": {
+    "requestId": "b4e3d2c1-8a7b-4c3d-9e2f-1a3b5c7d9e1f",
+    "durationMs": 41
+  }
+}
+```
+
+## Reading the response
+
+| Field | Meaning |
+|---|---|
+| `results[0].confidence` | 0.8 or above: this is the answer. Below: a candidate — check it, or retry with `live=true`. |
+| `source` | `curated` (reviewed brand data), `index` (the name index), or `live` (verified against the site during this request). |
+| `domain` | A bare host, ready for the `url` parameter of `/enrich`, `/brand`, `/company` and the rest. |
+| `live_used` | Whether the live lookup ran — and so whether you were billed 3 credits. |
+| `warnings` | Non-fatal notes. If the live lookup could not run (the service was busy, for example) you get the index's answer, billed at the index price, and a warning saying so. |
+
+Nothing matched is still a `200` with an empty `results` list.
+
+## Credits
+
+| Outcome | Credits |
+|---|---|
+| Answered from the index | 1 |
+| Nothing matched (without `live`) | 0 |
+| `live=true` and the live lookup ran | 3 — whether or not it found anything |
+| `live=true`, but the index was already confident | 1 |
+
+## Typeahead
+
+`/resolve` also completes partial names — `stri` returns Stripe first — which makes it usable behind a search box. Completions are always below 0.8: they are suggestions, not answers. Leave `live` off for typeahead, and debounce keystrokes: each request counts against your rate limit.
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="GET /enrich" icon="layer-group" href="/api-reference/endpoint/enrich">
+    Everything about the company behind the domain you just found. **20 credits.**
+  </Card>
+  <Card title="GET /brand" icon="palette" href="/api-reference/endpoint/brand">
+    Colors, fonts and logos for it. **10 credits.**
+  </Card>
+</CardGroup>

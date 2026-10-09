@@ -1,0 +1,111 @@
+---
+title: "POST /monitor/{id}/run"
+description: "Run a monitor's check now instead of waiting for its schedule. Billed like a scheduled check."
+openapi: "POST /monitor/{id}/run"
+---
+
+## Overview
+
+Queues a check outside the schedule and returns it straight away, with status `queued`. The check runs within seconds; poll [`GET /monitor/{id}/checks/{checkId}`](/api-reference/endpoint/monitor-check) until its status is no longer `queued` or `running`.
+
+Use it to take the first baseline right after creating a monitor, to check a page on demand, or to try a new goal. It works on paused monitors too, and does not move the schedule.
+
+## Example request
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.prefetch.io/monitor/mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c/run" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```javascript Node.js
+const base = "https://api.prefetch.io";
+const headers = { "X-API-Key": process.env.PREFETCH_API_KEY };
+
+const run = await fetch(`${base}/monitor/${monitorId}/run`, { method: "POST", headers });
+const { data: queued } = await run.json();
+
+// Wait for the check, then show only what changed.
+let check;
+do {
+  await new Promise((r) => setTimeout(r, 3000));
+  const res = await fetch(`${base}/monitor/${monitorId}/checks/${queued.id}?status=changed`, { headers });
+  ({ data: check } = await res.json());
+} while (check.status === "queued" || check.status === "running");
+
+for (const page of check.pages) console.log(page.url, page.diff?.text ?? page.diff?.fields);
+```
+
+```python Python
+import os, time, requests
+
+base = "https://api.prefetch.io"
+headers = {"X-API-Key": os.environ["PREFETCH_API_KEY"]}
+
+queued = requests.post(f"{base}/monitor/{monitor_id}/run", headers=headers).json()["data"]
+
+while True:
+    time.sleep(3)
+    check = requests.get(
+        f"{base}/monitor/{monitor_id}/checks/{queued['id']}",
+        params={"status": "changed"},
+        headers=headers,
+    ).json()["data"]
+    if check["status"] not in ("queued", "running"):
+        break
+
+for page in check["pages"]:
+    print(page["url"], page["diff"])
+```
+
+</CodeGroup>
+
+## Example response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "chk_8e2d4f6a1b3c4d5e6f7a8b9c0d1e2f3a",
+    "monitor_id": "mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c",
+    "status": "queued",
+    "trigger": "manual",
+    "scheduled_for": null,
+    "started_at": null,
+    "finished_at": null,
+    "estimated_credits": 104,
+    "actual_credits": 0,
+    "summary": { "total_pages": 0, "same": 0, "new": 0, "changed": 0, "removed": 0, "error": 0 },
+    "target_results": null,
+    "error": null,
+    "created_at": "2026-10-09T10:05:00.000Z",
+    "updated_at": "2026-10-09T10:05:00.000Z"
+  },
+  "meta": {
+    "requestId": "a3e6c7d8-9f0a-4b12-93c4-5e6f708192a3",
+    "durationMs": 38
+  }
+}
+```
+
+The status is `202 Accepted` — the check has been queued, not run.
+
+## One check at a time
+
+A monitor runs one check at a time. If one is already queued or running, this returns `409` and names it — wait for it to finish rather than retrying in a loop. The same rule applies to scheduled checks: one that comes due while the previous is still running is recorded as `skipped_overlap` instead of running alongside it.
+
+## Credits
+
+A manual check is billed exactly like a scheduled one: 3 credits per page fetched, plus 1 per changed page judged against the goal. `estimated_credits` is the upper bound; `actual_credits` on the finished check is what was charged.
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="GET /monitor/{id}/checks/{checkId}" icon="code-compare" href="/api-reference/endpoint/monitor-check">
+    Read the check's results.
+  </Card>
+  <Card title="POST /monitor" icon="eye" href="/api-reference/endpoint/monitor">
+    How monitors detect and report changes.
+  </Card>
+</CardGroup>

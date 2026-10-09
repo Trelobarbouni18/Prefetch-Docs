@@ -1,0 +1,41 @@
+---
+title: "monitor.check.completed webhook"
+description: "POSTed to your webhook once per check, with its status and page counts."
+openapi: "WEBHOOK monitor.check.completed"
+---
+
+## When it is sent
+
+Once for every check that ran — `completed`, `partial` or `failed` — with the check's summary counts and what it was charged.
+
+It is also sent once when a monitor **starts** being skipped for lack of credits (`skipped_no_credits`), so you hear that checks have stopped. It is not repeated for every skipped check after that, and checks skipped because the previous one was still running (`skipped_overlap`) send nothing.
+
+`success` is `true` only for a `completed` check. For a `partial` or `failed` check, `data.error` says why.
+
+To receive only this event and not one per page, set the monitor's webhook `events` to `["monitor.check.completed"]`.
+
+## Responding
+
+Answer with any `2xx` within **10 seconds**; failures are retried after 1, 5 and 15 minutes. The request is signed exactly like [`monitor.page`](/api-reference/endpoint/monitor-webhook-page#verify-the-signature) — verify it the same way.
+
+## Reading the page results
+
+The event carries counts, not pages. To see what changed, fetch the check:
+
+```bash
+curl "https://api.prefetch.io/monitor/$MONITOR_ID/checks/$CHECK_ID?status=changed" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+`monitor_id` and `check_id` are both in the event.
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="monitor.page" icon="bell" href="/api-reference/endpoint/monitor-webhook-page">
+    One event per changed page, with its diff.
+  </Card>
+  <Card title="GET /monitor/{id}/checks/{checkId}" icon="code-compare" href="/api-reference/endpoint/monitor-check">
+    Everything a check found.
+  </Card>
+</CardGroup>

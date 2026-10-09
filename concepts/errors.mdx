@@ -37,9 +37,13 @@ if (!success) {
 | Status | Category | When it occurs |
 |---|---|---|
 | `200` | Success | Request completed successfully, credits deducted |
+| `201` | Created | A monitor was created (`POST /monitor`) |
+| `202` | Accepted | Work was queued: a crawl (`POST /crawl`) or a monitor check (`POST /monitor/{id}/run`) |
 | `400` | Validation error | Invalid or missing `url`, bad parameter values |
 | `401` | Unauthorized | No `X-API-Key` header provided |
-| `403` | Forbidden | Invalid key, revoked key, expired key, credit limit exceeded, blocklisted URL |
+| `403` | Forbidden | Invalid key, revoked key, expired key, credit limit exceeded, blocklisted URL, monitor limit reached |
+| `404` | Not found | Unknown or expired crawl id, or a monitor or check that does not exist — or is not yours |
+| `409` | Conflict | A monitor check is already queued or running (`POST /monitor/{id}/run`) |
 | `422` | Unresolvable | URL hostname could not be resolved (DNS failure) |
 | `429` | Rate limited | Global (300/min per IP), per-key RPM, or concurrency limit exceeded |
 | `500` | Server error | Page not accessible, extraction failed, internal error |
@@ -68,7 +72,7 @@ if (!success) {
 | `"Invalid API key"` | Key not found in the system |
 | `"API key has been revoked"` | Key was manually revoked |
 | `"API key has expired"` | Key passed its expiry date |
-| `"Credit limit exceeded"` | Key exhausted its credit allocation |
+| `"Credit limit exceeded"` | Key used up its monthly credit allowance. Requests work again when your credits [refill](/concepts/credits#monthly-allowance) |
 | `"URL is blocklisted for this API key"` | URL is on the key's blocklist |
 
 ### DNS errors (422)

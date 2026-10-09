@@ -925,6 +925,28 @@
           "metadata"
         ]
       },
+      "ResolveResultItem": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "example": "Stripe" },
+          "domain": { "type": "string", "description": "Bare host, ready for the `url` parameter of every other endpoint.", "example": "stripe.com" },
+          "url": { "type": "string", "example": "https://stripe.com" },
+          "confidence": { "type": "number", "description": "0–1. Only `results[0]` can reach 0.8; at or above it, that result is the answer. Below it, a candidate to check.", "example": 0.97 },
+          "source": { "type": "string", "enum": ["curated", "index", "live"], "description": "`curated`: reviewed brand data. `index`: the name index. `live`: verified against the site during this request." }
+        },
+        "required": ["name", "domain", "url", "confidence", "source"]
+      },
+      "ResolveData": {
+        "type": "object",
+        "properties": {
+          "query": { "type": "string", "description": "The name, as resolved (whitespace collapsed).", "example": "Stripe" },
+          "results": { "type": "array", "items": { "$ref": "#/components/schemas/ResolveResultItem" }, "description": "Best match first; one entry per domain. Empty when nothing matched." },
+          "count": { "type": "integer" },
+          "live_used": { "type": "boolean", "description": "Whether the live lookup ran — and so whether the request was billed 3 credits." },
+          "warnings": { "type": "array", "items": { "type": "string" }, "description": "Non-fatal notes, e.g. a live lookup skipped because the service was busy." }
+        },
+        "required": ["query", "results", "count", "live_used", "warnings"]
+      },
       "MapLinkItem": {
         "type": "object",
         "properties": {
@@ -1286,6 +1308,1093 @@
             "description": "Crawled pages, in completion order."
           }
         }
+      },
+      "MonitorSchedule": {
+        "type": "object",
+        "description": "Exactly one of `cron` or `text`. A bare string is accepted too, and read as cron when it has five cron fields.",
+        "properties": {
+          "cron": {
+            "type": "string",
+            "description": "Five-field cron expression. Runs must be at least 5 minutes apart.",
+            "example": "*/30 * * * *"
+          },
+          "text": {
+            "type": "string",
+            "description": "A plain-English schedule, converted to cron: \"every 30 minutes\", \"every 15 minutes starting at :07\", \"hourly\", \"every 2 hours\", \"daily\", \"daily at 9am\", \"daily at 5:30 PM\", \"every weekday at 9am\", \"weekly\", \"every monday at 8:00\", \"monthly\".",
+            "example": "every weekday at 9am"
+          },
+          "timezone": {
+            "type": "string",
+            "default": "UTC",
+            "description": "IANA timezone the schedule runs in.",
+            "example": "Europe/Athens"
+          }
+        }
+      },
+      "MonitorScrapeOptions": {
+        "type": "object",
+        "description": "How each page is rendered before it is compared — the content-shaping options of `GET /scrape`.",
+        "properties": {
+          "only_main_content": {
+            "type": "boolean",
+            "default": true,
+            "description": "Compare the main content only, ignoring navigation, sidebars and footers."
+          },
+          "include_links": {
+            "type": "boolean",
+            "default": true,
+            "description": "Keep link URLs in the compared markdown."
+          },
+          "include_images": {
+            "type": "boolean",
+            "default": false,
+            "description": "Keep images in the compared markdown. Off by default: image URLs carry cache-busting hashes that change on every deploy."
+          },
+          "include_selectors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "CSS selectors to compare instead of the detected main content.",
+            "example": [
+              "#pricing"
+            ]
+          },
+          "exclude_selectors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "CSS selectors to leave out of the comparison — the way to silence a timestamp or a rotating banner.",
+            "example": [
+              ".last-updated",
+              ".testimonial"
+            ]
+          }
+        }
+      },
+      "MonitorChangeTracking": {
+        "type": "object",
+        "properties": {
+          "modes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "markdown",
+                "json"
+              ]
+            },
+            "default": [
+              "markdown"
+            ],
+            "description": "`markdown` diffs the page text line by line. `json` extracts the fields described by `json_prompt` or `json_schema` on every check and diffs them field by field, so a page is `changed` only when a tracked field changes. Both together report `changed` when either surface changed."
+          },
+          "json_prompt": {
+            "type": "string",
+            "description": "For the `json` mode: the fields to track, in plain English.",
+            "example": "Each plan: name, monthly price, headline features"
+          },
+          "json_schema": {
+            "type": "object",
+            "description": "For the `json` mode: a JSON Schema for the extraction."
+          }
+        }
+      },
+      "MonitorCrawlOptions": {
+        "type": "object",
+        "description": "The crawl options `POST /crawl` takes, without `allow_external_links`.",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500,
+            "default": 25,
+            "description": "Most pages each check crawls. Every page is billed on every check."
+          },
+          "max_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5,
+            "default": 2,
+            "description": "How many links deep to follow from the start URL."
+          },
+          "include_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Regular expressions matched against a URL's path and query. A URL must match at least one to be monitored.",
+            "example": [
+              "^/changelog/"
+            ]
+          },
+          "exclude_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Regular expressions. A matching URL is skipped."
+          },
+          "allow_subdomains": {
+            "type": "boolean",
+            "default": false,
+            "description": "Follow links onto subdomains of the start URL."
+          },
+          "ignore_query_params": {
+            "type": "boolean",
+            "default": true,
+            "description": "Treat URLs that differ only by query string as one page."
+          },
+          "respect_robots_txt": {
+            "type": "boolean",
+            "default": true,
+            "description": "Obey the rules in `robots.txt`."
+          },
+          "use_sitemap": {
+            "type": "boolean",
+            "default": true,
+            "description": "Seed each crawl from the site's sitemap as well as from links."
+          },
+          "delay_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 30000,
+            "default": 0,
+            "description": "Politeness delay between pages."
+          },
+          "concurrency": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "default": 2,
+            "description": "Pages fetched in parallel."
+          }
+        }
+      },
+      "MonitorScrapeTarget": {
+        "type": "object",
+        "title": "Scrape target",
+        "description": "Watches a fixed list of pages, each fetched the way `GET /scrape` would fetch it.",
+        "required": [
+          "type",
+          "urls"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable target id. Generated when omitted; on update, a target watching the same URLs keeps its id — and its snapshots — automatically.",
+            "example": "tgt_8d1e0f2a3b4c5d6e"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "scrape"
+            ]
+          },
+          "urls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "maxItems": 100,
+            "description": "The pages to watch.",
+            "example": [
+              "https://example.com/pricing"
+            ]
+          },
+          "scrape_options": {
+            "$ref": "#/components/schemas/MonitorScrapeOptions"
+          },
+          "change_tracking": {
+            "$ref": "#/components/schemas/MonitorChangeTracking"
+          }
+        }
+      },
+      "MonitorCrawlTarget": {
+        "type": "object",
+        "title": "Crawl target",
+        "description": "Re-crawls a site on every check, so pages that appear or disappear are reported as well as pages that change.",
+        "required": [
+          "type",
+          "url"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable target id. Generated when omitted.",
+            "example": "tgt_1a2b3c4d5e6f7a8b"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "crawl"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "description": "Where each crawl starts.",
+            "example": "https://example.com/changelog"
+          },
+          "crawl_options": {
+            "$ref": "#/components/schemas/MonitorCrawlOptions"
+          },
+          "scrape_options": {
+            "$ref": "#/components/schemas/MonitorScrapeOptions"
+          },
+          "change_tracking": {
+            "$ref": "#/components/schemas/MonitorChangeTracking"
+          }
+        }
+      },
+      "MonitorTarget": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/MonitorScrapeTarget"
+          },
+          {
+            "$ref": "#/components/schemas/MonitorCrawlTarget"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type",
+          "mapping": {
+            "scrape": "#/components/schemas/MonitorScrapeTarget",
+            "crawl": "#/components/schemas/MonitorCrawlTarget"
+          }
+        }
+      },
+      "MonitorWebhookRequest": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "HTTPS endpoint that receives the events.",
+            "example": "https://you.example.org/hooks/prefetch"
+          },
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Extra headers sent with every event, at most 20. `Host`, `Content-Type` and `X-Prefetch-*` are reserved.",
+            "example": {
+              "Authorization": "Bearer your-token"
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Echoed back in every event, up to 4 KB.",
+            "example": {
+              "env": "production"
+            }
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "monitor.page",
+                "monitor.check.completed"
+              ]
+            },
+            "description": "Events to receive. Default: both."
+          },
+          "secret": {
+            "type": "string",
+            "description": "Signing secret, 16–128 printable characters. Generated when omitted, and kept across updates unless you replace it."
+          },
+          "rotate_secret": {
+            "type": "boolean",
+            "description": "Update only: generate a new signing secret."
+          }
+        }
+      },
+      "MonitorRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "schedule",
+          "targets"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 256,
+            "example": "Competitor pricing"
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/MonitorSchedule"
+          },
+          "goal": {
+            "type": "string",
+            "maxLength": 2000,
+            "nullable": true,
+            "description": "What you want to be told about, in one plain sentence. With a goal, every changed page is judged against it, and only meaningful changes send a `monitor.page` webhook. 1 credit per page judged.",
+            "example": "Alert me when a plan price or its included features change"
+          },
+          "judge_enabled": {
+            "type": "boolean",
+            "description": "Judge changes against the goal. Default: `true` when a goal is set."
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonitorTarget"
+            },
+            "minItems": 1,
+            "maxItems": 50,
+            "description": "What to watch. At most 500 pages per check across all targets."
+          },
+          "webhook": {
+            "$ref": "#/components/schemas/MonitorWebhookRequest"
+          },
+          "retention_days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 365,
+            "default": 30,
+            "description": "How long check history is kept."
+          }
+        }
+      },
+      "MonitorUpdateRequest": {
+        "type": "object",
+        "description": "Any subset of the create fields, plus `status`. Fields you leave out stay as they are.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 256
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/MonitorSchedule"
+          },
+          "goal": {
+            "type": "string",
+            "maxLength": 2000,
+            "nullable": true,
+            "description": "`null` clears the goal and turns judging off."
+          },
+          "judge_enabled": {
+            "type": "boolean"
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonitorTarget"
+            },
+            "minItems": 1,
+            "maxItems": 50,
+            "description": "Replaces the whole list."
+          },
+          "webhook": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MonitorWebhookRequest"
+              }
+            ],
+            "nullable": true,
+            "description": "`null` removes the webhook."
+          },
+          "retention_days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 365
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "paused"
+            ],
+            "description": "Pause or resume. Resuming runs at the next scheduled time; runs missed while paused are not replayed."
+          }
+        }
+      },
+      "MonitorSummary": {
+        "type": "object",
+        "properties": {
+          "total_pages": {
+            "type": "integer"
+          },
+          "same": {
+            "type": "integer"
+          },
+          "new": {
+            "type": "integer"
+          },
+          "changed": {
+            "type": "integer"
+          },
+          "removed": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "integer"
+          }
+        }
+      },
+      "MonitorWebhook": {
+        "type": "object",
+        "nullable": true,
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "metadata": {
+            "type": "object"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "monitor.page",
+                "monitor.check.completed"
+              ]
+            }
+          },
+          "secret": {
+            "type": "string",
+            "description": "Verifies the `X-Prefetch-Signature` header on every event.",
+            "example": "whsec_4f1c9e2a7b3d8e6f0a5c1b9d2e7f3a8c4b6d0e1f9a2c5b7d"
+          }
+        }
+      },
+      "MonitorData": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "paused"
+            ]
+          },
+          "schedule": {
+            "type": "object",
+            "properties": {
+              "cron": {
+                "type": "string",
+                "description": "The schedule the monitor runs on — always cron, whatever you submitted.",
+                "example": "0 9 * * 1-5"
+              },
+              "timezone": {
+                "type": "string",
+                "example": "Europe/Athens"
+              },
+              "text": {
+                "type": "string",
+                "nullable": true,
+                "description": "The phrase it was created from, if any.",
+                "example": "every weekday at 9am"
+              }
+            }
+          },
+          "next_run_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "`null` while paused."
+          },
+          "last_run_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "current_check_id": {
+            "type": "string",
+            "nullable": true,
+            "description": "The check running right now, if any."
+          },
+          "goal": {
+            "type": "string",
+            "nullable": true
+          },
+          "judge_enabled": {
+            "type": "boolean"
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonitorTarget"
+            },
+            "description": "Normalised: every target has an id and every option its effective value."
+          },
+          "webhook": {
+            "$ref": "#/components/schemas/MonitorWebhook"
+          },
+          "retention_days": {
+            "type": "integer"
+          },
+          "estimated_credits_per_check": {
+            "type": "integer",
+            "description": "Upper bound: every page fetched, and judged when a goal is set. A real check costs less — only fetched pages are billed, and only changed ones judged."
+          },
+          "estimated_credits_per_month": {
+            "type": "integer",
+            "description": "`estimated_credits_per_check` times the runs in an average month."
+          },
+          "last_check_summary": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MonitorSummary"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "check_id": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "queued",
+                      "running",
+                      "completed",
+                      "failed",
+                      "partial",
+                      "skipped_overlap",
+                      "skipped_no_credits"
+                    ]
+                  },
+                  "finished_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            ],
+            "nullable": true,
+            "description": "Counts from the most recent check, or `null` before the first one."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the settings last changed. Checks do not touch it."
+          }
+        }
+      },
+      "MonitorListData": {
+        "type": "object",
+        "properties": {
+          "monitors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonitorData"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "description": "URL for the next page of monitors, or null."
+          }
+        }
+      },
+      "MonitorDeleteData": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "deleted": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        }
+      },
+      "MonitorCheckData": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "chk_8e2d4f6a1b3c4d5e6f7a8b9c0d1e2f3a"
+          },
+          "monitor_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "completed",
+              "failed",
+              "partial",
+              "skipped_overlap",
+              "skipped_no_credits"
+            ],
+            "description": "`partial`: some pages errored, or the check stopped early on credits or its time limit — its results are real but incomplete. `skipped_overlap`: the previous check was still running. `skipped_no_credits`: the owning key had no credits or was revoked. Skipped checks are never charged."
+          },
+          "trigger": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "manual"
+            ]
+          },
+          "scheduled_for": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "finished_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "estimated_credits": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Upper bound, computed when the check was queued."
+          },
+          "actual_credits": {
+            "type": "integer",
+            "description": "What the check was charged: pages fetched at the `/scrape` rate, plus pages judged."
+          },
+          "summary": {
+            "$ref": "#/components/schemas/MonitorSummary"
+          },
+          "target_results": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "object"
+            },
+            "description": "Per target: pages checked, and for crawls whether the crawl ran to completion. Only a complete crawl can report removed pages."
+          },
+          "error": {
+            "type": "string",
+            "nullable": true,
+            "description": "Why the check is partial, failed or skipped, or what it could not do."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "MonitorCheckListData": {
+        "type": "object",
+        "properties": {
+          "checks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonitorCheckData"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "description": "URL for the next page of checks, or null."
+          }
+        }
+      },
+      "MonitorJudgment": {
+        "type": "object",
+        "properties": {
+          "meaningful": {
+            "type": "boolean"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "example": "The Starter plan's price went from $19 to $24 a month."
+          },
+          "meaningful_changes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "added",
+                    "removed",
+                    "changed"
+                  ]
+                },
+                "before": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "after": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "reason": {
+                  "type": "string",
+                  "nullable": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "MonitorDiffHunk": {
+        "type": "object",
+        "properties": {
+          "old_start": {
+            "type": "integer"
+          },
+          "old_lines": {
+            "type": "integer"
+          },
+          "new_start": {
+            "type": "integer"
+          },
+          "new_lines": {
+            "type": "integer"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "added",
+                    "removed",
+                    "context"
+                  ]
+                },
+                "content": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "MonitorDiff": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "nullable": true,
+            "description": "Markdown mode: a unified diff of the page's markdown.",
+            "example": "--- previous\n+++ current\n@@ -3,3 +3,3 @@\n-Starter — $19/mo\n+Starter — $24/mo\n"
+          },
+          "hunks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonitorDiffHunk"
+            },
+            "description": "Markdown mode: the same diff as structured hunks."
+          },
+          "added_lines": {
+            "type": "integer"
+          },
+          "removed_lines": {
+            "type": "integer"
+          },
+          "truncated": {
+            "type": "boolean",
+            "description": "The diff was larger than the stored cap. The line counts still cover all of it."
+          },
+          "too_large": {
+            "type": "boolean",
+            "description": "The page changed almost entirely, so no line diff was computed."
+          },
+          "fields": {
+            "type": "object",
+            "description": "JSON mode: changed fields keyed by JSON path, each `{ previous, current, change }`.",
+            "example": {
+              "plans[0].price": {
+                "previous": "$19/mo",
+                "current": "$24/mo",
+                "change": "changed"
+              }
+            }
+          },
+          "changed_fields": {
+            "type": "integer"
+          },
+          "fields_truncated": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MonitorCheckPage": {
+        "type": "object",
+        "properties": {
+          "target_id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "same",
+              "new",
+              "changed",
+              "removed",
+              "error"
+            ]
+          },
+          "status_code": {
+            "type": "integer",
+            "nullable": true
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "previous_check_id": {
+            "type": "string",
+            "nullable": true,
+            "description": "The check the compared snapshot was taken in."
+          },
+          "is_meaningful": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "The judge's verdict, or `null` when the page was not judged."
+          },
+          "judgment": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MonitorJudgment"
+              }
+            ],
+            "nullable": true
+          },
+          "diff": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MonitorDiff"
+              }
+            ],
+            "nullable": true,
+            "description": "For changed pages, and for pages that are new since the first check."
+          },
+          "snapshot": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "json": {
+                "type": "object",
+                "nullable": true
+              }
+            },
+            "description": "JSON mode: the full current extraction."
+          }
+        }
+      },
+      "MonitorCheckDetailData": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/MonitorCheckData"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "notifications": {
+                "type": "object",
+                "properties": {
+                  "webhook": {
+                    "type": "object",
+                    "nullable": true,
+                    "description": "Webhook deliveries for this check, by outcome. `null` when the monitor has no webhook.",
+                    "properties": {
+                      "pending": {
+                        "type": "integer"
+                      },
+                      "delivered": {
+                        "type": "integer"
+                      },
+                      "failed": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              },
+              "pages": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/MonitorCheckPage"
+                }
+              },
+              "next": {
+                "type": "string",
+                "nullable": true,
+                "description": "URL for the next page of results, or null."
+              }
+            }
+          }
+        ]
+      },
+      "MonitorPageEvent": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string",
+            "description": "Delivery id, also sent as `X-Prefetch-Delivery`. Stable across retries — use it to de-duplicate.",
+            "example": "whd_5c1e9a2b7d3f4e6a8b0c2d4e6f8a1b3c"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "monitor_id": {
+            "type": "string"
+          },
+          "monitor_name": {
+            "type": "string"
+          },
+          "check_id": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "The `metadata` you set on the webhook."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "monitor.page"
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/MonitorCheckPage"
+          }
+        }
+      },
+      "MonitorCheckCompletedEvent": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "`true` only for a `completed` check."
+          },
+          "id": {
+            "type": "string",
+            "description": "Delivery id, also sent as `X-Prefetch-Delivery`. Stable across retries — use it to de-duplicate.",
+            "example": "whd_5c1e9a2b7d3f4e6a8b0c2d4e6f8a1b3c"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "monitor_id": {
+            "type": "string"
+          },
+          "monitor_name": {
+            "type": "string"
+          },
+          "check_id": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "The `metadata` you set on the webhook."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "monitor.check.completed"
+            ]
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "queued",
+                  "running",
+                  "completed",
+                  "failed",
+                  "partial",
+                  "skipped_overlap",
+                  "skipped_no_credits"
+                ]
+              },
+              "trigger": {
+                "type": "string",
+                "enum": [
+                  "scheduled",
+                  "manual"
+                ]
+              },
+              "summary": {
+                "$ref": "#/components/schemas/MonitorSummary"
+              },
+              "started_at": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              },
+              "finished_at": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              },
+              "actual_credits": {
+                "type": "integer"
+              },
+              "error": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          }
+        }
       }
     },
     "parameters": {
@@ -1534,6 +2643,106 @@
           "minimum": 1,
           "maximum": 100,
           "default": 25
+        }
+      },
+      "monitorId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "The monitor id returned by `POST /monitor`.",
+        "schema": {
+          "type": "string",
+          "example": "mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c"
+        }
+      },
+      "monitorCheckId": {
+        "name": "checkId",
+        "in": "path",
+        "required": true,
+        "description": "A check id, from `GET /monitor/{id}/checks` or `POST /monitor/{id}/run`.",
+        "schema": {
+          "type": "string",
+          "example": "chk_8e2d4f6a1b3c4d5e6f7a8b9c0d1e2f3a"
+        }
+      },
+      "monitorListLimit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "description": "Items to return per request.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 25
+        }
+      },
+      "monitorListOffset": {
+        "name": "offset",
+        "in": "query",
+        "required": false,
+        "description": "Items to skip. Use the `next` link rather than building this by hand.",
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        }
+      },
+      "monitorCheckStatus": {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "description": "Only checks with this status.",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "completed",
+            "failed",
+            "partial",
+            "skipped_overlap",
+            "skipped_no_credits"
+          ]
+        }
+      },
+      "monitorPageSkip": {
+        "name": "skip",
+        "in": "query",
+        "required": false,
+        "description": "Page results to skip. Use the `next` link rather than building this by hand.",
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        }
+      },
+      "monitorPageLimit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "description": "Page results to return per request.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 25
+        }
+      },
+      "monitorPageStatus": {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "description": "Only pages with this status — `changed` to see just what changed.",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "same",
+            "new",
+            "changed",
+            "removed",
+            "error"
+          ]
         }
       }
     }
@@ -1987,6 +3196,76 @@
           "422": { "description": "URL hostname could not be resolved.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "429": { "description": "Rate limit exceeded.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "503": { "description": "Service temporarily busy — retry shortly.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "504": { "description": "Request timed out.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/resolve": {
+      "get": {
+        "operationId": "resolveName",
+        "summary": "Find a domain from a name",
+        "description": "Resolves a company, brand or product name to the domain of its official website — `Stripe` → `stripe.com` — ready to pass to every other endpoint. Results are ranked, one per domain, each with a confidence; at 0.8 or above, `results[0]` is the answer. **Credit cost: 1** from the index, **3** when a live lookup runs, **0** when an index-only lookup finds nothing.",
+        "tags": ["Endpoints"],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "description": "The company, brand or product name (1–100 characters). Case, accents, punctuation and legal suffixes are ignored: \"The Coca-Cola Company\" and \"coca cola\" are the same query.",
+            "schema": { "type": "string", "minLength": 1, "maxLength": 100 },
+            "example": "Stripe"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum number of results.",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 10, "default": 5 }
+          },
+          {
+            "name": "live",
+            "in": "query",
+            "required": false,
+            "description": "When no answer reaches 0.8, look the name up live: candidate domains are verified against their own homepages. Takes a few seconds; billed 3 credits when the live lookup runs.",
+            "schema": { "type": "boolean", "default": false }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matches, best first. Empty when nothing matched.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": { "$ref": "#/components/schemas/ResolveData" },
+                    "meta": { "$ref": "#/components/schemas/Meta" }
+                  },
+                  "required": ["success", "data", "meta"]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "query": "Delta",
+                    "results": [
+                      { "name": "Delta Air Lines", "domain": "delta.com", "url": "https://delta.com", "confidence": 0.92, "source": "index" },
+                      { "name": "DELTA", "domain": "delta.nl", "url": "https://delta.nl", "confidence": 0.79, "source": "index" }
+                    ],
+                    "count": 2,
+                    "live_used": false,
+                    "warnings": []
+                  },
+                  "meta": { "requestId": "b4e3d2c1-8a7b-4c3d-9e2f-1a3b5c7d9e1f", "durationMs": 41 }
+                }
+              }
+            }
+          },
+          "400": { "description": "Missing, empty or over-long name.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Missing or invalid API key.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "403": { "description": "Revoked key, expired key, or credit limit.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "429": { "description": "Rate limit exceeded.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "503": { "description": "Service temporarily unavailable — retry shortly.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "504": { "description": "Request timed out.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
         }
       }
@@ -2800,6 +4079,1739 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/monitor": {
+      "post": {
+        "operationId": "createMonitor",
+        "summary": "Create a monitor",
+        "description": "Watches pages on a schedule and tells you what changed. Each check re-fetches every target — a fixed list of URLs (`scrape`) or a whole site (`crawl`) — and compares each page with the previous check: `same`, `new`, `changed`, `removed` or `error`, with a diff. Give it a `goal` and every change is judged against it, so only meaningful changes reach your webhook.\n\nThe first check records a baseline: every page is `new`, and no `monitor.page` events are sent for it.\n\n**Credit cost: none to create.** Each check bills 3 credits per page it fetches (the `/scrape` rate), plus 1 per changed page judged against the goal.",
+        "tags": [
+          "Endpoints"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonitorRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Monitor created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/MonitorData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": "mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c",
+                    "name": "Competitor pricing",
+                    "status": "active",
+                    "schedule": {
+                      "cron": "0 9 * * 1-5",
+                      "timezone": "Europe/Athens",
+                      "text": "every weekday at 9am"
+                    },
+                    "next_run_at": "2026-10-12T06:00:00.000Z",
+                    "last_run_at": null,
+                    "current_check_id": null,
+                    "goal": "Alert me when a plan price or its included features change",
+                    "judge_enabled": true,
+                    "targets": [
+                      {
+                        "id": "tgt_8d1e0f2a3b4c5d6e",
+                        "type": "scrape",
+                        "urls": [
+                          "https://example.com/pricing"
+                        ],
+                        "scrape_options": {
+                          "only_main_content": true,
+                          "include_links": true,
+                          "include_images": false,
+                          "include_selectors": [],
+                          "exclude_selectors": []
+                        },
+                        "change_tracking": {
+                          "modes": [
+                            "json"
+                          ],
+                          "json_prompt": "Each plan: name, monthly price, headline features"
+                        }
+                      },
+                      {
+                        "id": "tgt_1a2b3c4d5e6f7a8b",
+                        "type": "crawl",
+                        "url": "https://example.com/changelog",
+                        "crawl_options": {
+                          "limit": 25,
+                          "max_depth": 2,
+                          "include_paths": [
+                            "^/changelog/"
+                          ],
+                          "exclude_paths": [],
+                          "allow_subdomains": false,
+                          "ignore_query_params": true,
+                          "respect_robots_txt": true,
+                          "use_sitemap": true,
+                          "delay_ms": 0,
+                          "concurrency": 2
+                        },
+                        "scrape_options": {
+                          "only_main_content": true,
+                          "include_links": true,
+                          "include_images": false,
+                          "include_selectors": [],
+                          "exclude_selectors": []
+                        },
+                        "change_tracking": {
+                          "modes": [
+                            "markdown"
+                          ]
+                        }
+                      }
+                    ],
+                    "webhook": {
+                      "url": "https://you.example.org/hooks/prefetch",
+                      "headers": {},
+                      "metadata": {
+                        "env": "production"
+                      },
+                      "events": [
+                        "monitor.page",
+                        "monitor.check.completed"
+                      ],
+                      "secret": "whsec_4f1c9e2a7b3d8e6f0a5c1b9d2e7f3a8c4b6d0e1f9a2c5b7d"
+                    },
+                    "retention_days": 30,
+                    "estimated_credits_per_check": 104,
+                    "estimated_credits_per_month": 2184,
+                    "last_check_summary": null,
+                    "created_at": "2026-10-09T10:00:00.000Z",
+                    "updated_at": "2026-10-09T10:00:00.000Z"
+                  },
+                  "meta": {
+                    "requestId": "b8f1d2e3-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
+                    "durationMs": 61
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters. The message names the field.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, credit limit, blocklisted URL, monitor limit reached, or a RapidAPI subscription — monitors need a direct Prefetch API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Monitoring is temporarily unavailable. Retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "listMonitors",
+        "summary": "List monitors",
+        "description": "The monitors your API key owns, newest first. Free.",
+        "tags": [
+          "Endpoints"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/monitorListLimit"
+          },
+          {
+            "$ref": "#/components/parameters/monitorListOffset"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Monitors.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/MonitorListData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "monitors": [
+                      {
+                        "id": "mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c",
+                        "name": "Competitor pricing",
+                        "status": "active",
+                        "schedule": {
+                          "cron": "0 9 * * 1-5",
+                          "timezone": "Europe/Athens",
+                          "text": "every weekday at 9am"
+                        },
+                        "next_run_at": "2026-10-13T06:00:00.000Z",
+                        "last_run_at": "2026-10-12T06:00:04.112Z",
+                        "current_check_id": null,
+                        "goal": "Alert me when a plan price or its included features change",
+                        "judge_enabled": true,
+                        "targets": [
+                          {
+                            "id": "tgt_8d1e0f2a3b4c5d6e",
+                            "type": "scrape",
+                            "urls": [
+                              "https://example.com/pricing"
+                            ],
+                            "scrape_options": {
+                              "only_main_content": true,
+                              "include_links": true,
+                              "include_images": false,
+                              "include_selectors": [],
+                              "exclude_selectors": []
+                            },
+                            "change_tracking": {
+                              "modes": [
+                                "json"
+                              ],
+                              "json_prompt": "Each plan: name, monthly price, headline features"
+                            }
+                          },
+                          {
+                            "id": "tgt_1a2b3c4d5e6f7a8b",
+                            "type": "crawl",
+                            "url": "https://example.com/changelog",
+                            "crawl_options": {
+                              "limit": 25,
+                              "max_depth": 2,
+                              "include_paths": [
+                                "^/changelog/"
+                              ],
+                              "exclude_paths": [],
+                              "allow_subdomains": false,
+                              "ignore_query_params": true,
+                              "respect_robots_txt": true,
+                              "use_sitemap": true,
+                              "delay_ms": 0,
+                              "concurrency": 2
+                            },
+                            "scrape_options": {
+                              "only_main_content": true,
+                              "include_links": true,
+                              "include_images": false,
+                              "include_selectors": [],
+                              "exclude_selectors": []
+                            },
+                            "change_tracking": {
+                              "modes": [
+                                "markdown"
+                              ]
+                            }
+                          }
+                        ],
+                        "webhook": {
+                          "url": "https://you.example.org/hooks/prefetch",
+                          "headers": {},
+                          "metadata": {
+                            "env": "production"
+                          },
+                          "events": [
+                            "monitor.page",
+                            "monitor.check.completed"
+                          ],
+                          "secret": "whsec_4f1c9e2a7b3d8e6f0a5c1b9d2e7f3a8c4b6d0e1f9a2c5b7d"
+                        },
+                        "retention_days": 30,
+                        "estimated_credits_per_check": 104,
+                        "estimated_credits_per_month": 2184,
+                        "last_check_summary": {
+                          "check_id": "chk_8e2d4f6a1b3c4d5e6f7a8b9c0d1e2f3a",
+                          "status": "completed",
+                          "finished_at": "2026-10-12T06:01:27.930Z",
+                          "total_pages": 19,
+                          "same": 16,
+                          "new": 1,
+                          "changed": 1,
+                          "removed": 1,
+                          "error": 0
+                        },
+                        "created_at": "2026-10-09T10:00:00.000Z",
+                        "updated_at": "2026-10-09T10:00:00.000Z"
+                      }
+                    ],
+                    "total": 1,
+                    "next": null
+                  },
+                  "meta": {
+                    "requestId": "c9a2e3f4-5b6c-4d7e-9f80-1a2b3c4d5e6f",
+                    "durationMs": 47
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters. The message names the field.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, credit limit, blocklisted URL, monitor limit reached, or a RapidAPI subscription — monitors need a direct Prefetch API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Monitoring is temporarily unavailable. Retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/monitor/{id}": {
+      "get": {
+        "operationId": "getMonitor",
+        "summary": "Get a monitor",
+        "description": "The monitor's settings, next run, credit estimate and the summary of its last check. Free.",
+        "tags": [
+          "Endpoints"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/monitorId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Monitor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/MonitorData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": "mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c",
+                    "name": "Competitor pricing",
+                    "status": "active",
+                    "schedule": {
+                      "cron": "0 9 * * 1-5",
+                      "timezone": "Europe/Athens",
+                      "text": "every weekday at 9am"
+                    },
+                    "next_run_at": "2026-10-13T06:00:00.000Z",
+                    "last_run_at": "2026-10-12T06:00:04.112Z",
+                    "current_check_id": null,
+                    "goal": "Alert me when a plan price or its included features change",
+                    "judge_enabled": true,
+                    "targets": [
+                      {
+                        "id": "tgt_8d1e0f2a3b4c5d6e",
+                        "type": "scrape",
+                        "urls": [
+                          "https://example.com/pricing"
+                        ],
+                        "scrape_options": {
+                          "only_main_content": true,
+                          "include_links": true,
+                          "include_images": false,
+                          "include_selectors": [],
+                          "exclude_selectors": []
+                        },
+                        "change_tracking": {
+                          "modes": [
+                            "json"
+                          ],
+                          "json_prompt": "Each plan: name, monthly price, headline features"
+                        }
+                      },
+                      {
+                        "id": "tgt_1a2b3c4d5e6f7a8b",
+                        "type": "crawl",
+                        "url": "https://example.com/changelog",
+                        "crawl_options": {
+                          "limit": 25,
+                          "max_depth": 2,
+                          "include_paths": [
+                            "^/changelog/"
+                          ],
+                          "exclude_paths": [],
+                          "allow_subdomains": false,
+                          "ignore_query_params": true,
+                          "respect_robots_txt": true,
+                          "use_sitemap": true,
+                          "delay_ms": 0,
+                          "concurrency": 2
+                        },
+                        "scrape_options": {
+                          "only_main_content": true,
+                          "include_links": true,
+                          "include_images": false,
+                          "include_selectors": [],
+                          "exclude_selectors": []
+                        },
+                        "change_tracking": {
+                          "modes": [
+                            "markdown"
+                          ]
+                        }
+                      }
+                    ],
+                    "webhook": {
+                      "url": "https://you.example.org/hooks/prefetch",
+                      "headers": {},
+                      "metadata": {
+                        "env": "production"
+                      },
+                      "events": [
+                        "monitor.page",
+                        "monitor.check.completed"
+                      ],
+                      "secret": "whsec_4f1c9e2a7b3d8e6f0a5c1b9d2e7f3a8c4b6d0e1f9a2c5b7d"
+                    },
+                    "retention_days": 30,
+                    "estimated_credits_per_check": 104,
+                    "estimated_credits_per_month": 2184,
+                    "last_check_summary": {
+                      "check_id": "chk_8e2d4f6a1b3c4d5e6f7a8b9c0d1e2f3a",
+                      "status": "completed",
+                      "finished_at": "2026-10-12T06:01:27.930Z",
+                      "total_pages": 19,
+                      "same": 16,
+                      "new": 1,
+                      "changed": 1,
+                      "removed": 1,
+                      "error": 0
+                    },
+                    "created_at": "2026-10-09T10:00:00.000Z",
+                    "updated_at": "2026-10-09T10:00:00.000Z"
+                  },
+                  "meta": {
+                    "requestId": "d0b3f4a5-6c7d-4e8f-a091-2b3c4d5e6f70",
+                    "durationMs": 39
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Monitor not found — or not yours. Monitor ids are unguessable, so another key's monitor is reported as not found rather than forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters. The message names the field.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, credit limit, blocklisted URL, monitor limit reached, or a RapidAPI subscription — monitors need a direct Prefetch API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Monitoring is temporarily unavailable. Retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateMonitor",
+        "summary": "Update a monitor",
+        "description": "Changes any subset of the monitor's fields. `status: \"paused\"` stops its schedule and `\"active\"` resumes it. Replacing `targets` keeps the snapshots of targets that still watch the same URLs. Free.",
+        "tags": [
+          "Endpoints"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/monitorId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonitorUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Monitor updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/MonitorData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": "mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c",
+                    "name": "Competitor pricing",
+                    "status": "paused",
+                    "schedule": {
+                      "cron": "0 9 * * 1-5",
+                      "timezone": "Europe/Athens",
+                      "text": "every weekday at 9am"
+                    },
+                    "next_run_at": null,
+                    "last_run_at": "2026-10-12T06:00:04.112Z",
+                    "current_check_id": null,
+                    "goal": "Alert me when a plan price or its included features change",
+                    "judge_enabled": true,
+                    "targets": [
+                      {
+                        "id": "tgt_8d1e0f2a3b4c5d6e",
+                        "type": "scrape",
+                        "urls": [
+                          "https://example.com/pricing"
+                        ],
+                        "scrape_options": {
+                          "only_main_content": true,
+                          "include_links": true,
+                          "include_images": false,
+                          "include_selectors": [],
+                          "exclude_selectors": []
+                        },
+                        "change_tracking": {
+                          "modes": [
+                            "json"
+                          ],
+                          "json_prompt": "Each plan: name, monthly price, headline features"
+                        }
+                      },
+                      {
+                        "id": "tgt_1a2b3c4d5e6f7a8b",
+                        "type": "crawl",
+                        "url": "https://example.com/changelog",
+                        "crawl_options": {
+                          "limit": 25,
+                          "max_depth": 2,
+                          "include_paths": [
+                            "^/changelog/"
+                          ],
+                          "exclude_paths": [],
+                          "allow_subdomains": false,
+                          "ignore_query_params": true,
+                          "respect_robots_txt": true,
+                          "use_sitemap": true,
+                          "delay_ms": 0,
+                          "concurrency": 2
+                        },
+                        "scrape_options": {
+                          "only_main_content": true,
+                          "include_links": true,
+                          "include_images": false,
+                          "include_selectors": [],
+                          "exclude_selectors": []
+                        },
+                        "change_tracking": {
+                          "modes": [
+                            "markdown"
+                          ]
+                        }
+                      }
+                    ],
+                    "webhook": {
+                      "url": "https://you.example.org/hooks/prefetch",
+                      "headers": {},
+                      "metadata": {
+                        "env": "production"
+                      },
+                      "events": [
+                        "monitor.page",
+                        "monitor.check.completed"
+                      ],
+                      "secret": "whsec_4f1c9e2a7b3d8e6f0a5c1b9d2e7f3a8c4b6d0e1f9a2c5b7d"
+                    },
+                    "retention_days": 30,
+                    "estimated_credits_per_check": 104,
+                    "estimated_credits_per_month": 2184,
+                    "last_check_summary": {
+                      "check_id": "chk_8e2d4f6a1b3c4d5e6f7a8b9c0d1e2f3a",
+                      "status": "completed",
+                      "finished_at": "2026-10-12T06:01:27.930Z",
+                      "total_pages": 19,
+                      "same": 16,
+                      "new": 1,
+                      "changed": 1,
+                      "removed": 1,
+                      "error": 0
+                    },
+                    "created_at": "2026-10-09T10:00:00.000Z",
+                    "updated_at": "2026-10-12T08:30:00.000Z"
+                  },
+                  "meta": {
+                    "requestId": "e1c4a5b6-7d8e-4f90-b1a2-3c4d5e6f7081",
+                    "durationMs": 52
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Monitor not found — or not yours. Monitor ids are unguessable, so another key's monitor is reported as not found rather than forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters. The message names the field.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, credit limit, blocklisted URL, monitor limit reached, or a RapidAPI subscription — monitors need a direct Prefetch API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Monitoring is temporarily unavailable. Retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteMonitor",
+        "summary": "Delete a monitor",
+        "description": "Deletes the monitor with its checks, snapshots and pending webhooks, and stops all future charges. To stop it for a while, pause it instead. Free.",
+        "tags": [
+          "Endpoints"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/monitorId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Monitor deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/MonitorDeleteData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": "mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c",
+                    "deleted": true
+                  },
+                  "meta": {
+                    "requestId": "f2d5b6c7-8e9f-4a01-82b3-4d5e6f708192",
+                    "durationMs": 33
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Monitor not found — or not yours. Monitor ids are unguessable, so another key's monitor is reported as not found rather than forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters. The message names the field.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, credit limit, blocklisted URL, monitor limit reached, or a RapidAPI subscription — monitors need a direct Prefetch API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Monitoring is temporarily unavailable. Retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/monitor/{id}/run": {
+      "post": {
+        "operationId": "runMonitor",
+        "summary": "Run a check now",
+        "description": "Queues a check outside the schedule and returns it immediately. Poll `GET /monitor/{id}/checks/{checkId}` for the result. Works on paused monitors too.\n\n**Credit cost: the same as a scheduled check** — 3 per page fetched, plus 1 per changed page judged.",
+        "tags": [
+          "Endpoints"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/monitorId"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Check queued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/MonitorCheckData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": "chk_8e2d4f6a1b3c4d5e6f7a8b9c0d1e2f3a",
+                    "monitor_id": "mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c",
+                    "status": "queued",
+                    "trigger": "manual",
+                    "scheduled_for": null,
+                    "started_at": null,
+                    "finished_at": null,
+                    "estimated_credits": 104,
+                    "actual_credits": 0,
+                    "summary": {
+                      "total_pages": 0,
+                      "same": 0,
+                      "new": 0,
+                      "changed": 0,
+                      "removed": 0,
+                      "error": 0
+                    },
+                    "target_results": null,
+                    "error": null,
+                    "created_at": "2026-10-09T10:05:00.000Z",
+                    "updated_at": "2026-10-09T10:05:00.000Z"
+                  },
+                  "meta": {
+                    "requestId": "a3e6c7d8-9f0a-4b12-93c4-5e6f708192a3",
+                    "durationMs": 38
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Monitor not found — or not yours. Monitor ids are unguessable, so another key's monitor is reported as not found rather than forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A check is already queued or running for this monitor. The message names it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters. The message names the field.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, credit limit, blocklisted URL, monitor limit reached, or a RapidAPI subscription — monitors need a direct Prefetch API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Monitoring is temporarily unavailable. Retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/monitor/{id}/checks": {
+      "get": {
+        "operationId": "listMonitorChecks",
+        "summary": "List checks",
+        "description": "The monitor's checks, newest first, for as long as its `retention_days` keeps them. Free.",
+        "tags": [
+          "Endpoints"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/monitorId"
+          },
+          {
+            "$ref": "#/components/parameters/monitorListLimit"
+          },
+          {
+            "$ref": "#/components/parameters/monitorListOffset"
+          },
+          {
+            "$ref": "#/components/parameters/monitorCheckStatus"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Checks.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/MonitorCheckListData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "checks": [
+                      {
+                        "id": "chk_8e2d4f6a1b3c4d5e6f7a8b9c0d1e2f3a",
+                        "monitor_id": "mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c",
+                        "status": "completed",
+                        "trigger": "scheduled",
+                        "scheduled_for": "2026-10-12T06:00:00.000Z",
+                        "started_at": "2026-10-12T06:00:04.112Z",
+                        "finished_at": "2026-10-12T06:01:27.930Z",
+                        "estimated_credits": 104,
+                        "actual_credits": 57,
+                        "summary": {
+                          "total_pages": 19,
+                          "same": 16,
+                          "new": 1,
+                          "changed": 1,
+                          "removed": 1,
+                          "error": 0
+                        },
+                        "target_results": [
+                          {
+                            "target_id": "tgt_8d1e0f2a3b4c5d6e",
+                            "type": "scrape",
+                            "pages": 1,
+                            "checked": 1,
+                            "baseline": false
+                          },
+                          {
+                            "target_id": "tgt_1a2b3c4d5e6f7a8b",
+                            "type": "crawl",
+                            "discovered": 17,
+                            "limit": 25,
+                            "complete": true,
+                            "baseline": false
+                          }
+                        ],
+                        "error": null,
+                        "created_at": "2026-10-12T06:00:00.513Z",
+                        "updated_at": "2026-10-12T06:01:27.930Z"
+                      }
+                    ],
+                    "total": 1,
+                    "next": null
+                  },
+                  "meta": {
+                    "requestId": "b4f7d8e9-0a1b-4c23-a4d5-6f708192a3b4",
+                    "durationMs": 44
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Monitor not found — or not yours. Monitor ids are unguessable, so another key's monitor is reported as not found rather than forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters. The message names the field.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, credit limit, blocklisted URL, monitor limit reached, or a RapidAPI subscription — monitors need a direct Prefetch API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Monitoring is temporarily unavailable. Retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/monitor/{id}/checks/{checkId}": {
+      "get": {
+        "operationId": "getMonitorCheck",
+        "summary": "Get a check",
+        "description": "One check with a page of its per-page results: status, diff, the judge's verdict and, in JSON mode, the current extraction. Filter with `status=changed` to see only what changed, and follow `next` until it is null. Free.",
+        "tags": [
+          "Endpoints"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/monitorId"
+          },
+          {
+            "$ref": "#/components/parameters/monitorCheckId"
+          },
+          {
+            "$ref": "#/components/parameters/monitorPageSkip"
+          },
+          {
+            "$ref": "#/components/parameters/monitorPageLimit"
+          },
+          {
+            "$ref": "#/components/parameters/monitorPageStatus"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Check with page results.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/MonitorCheckDetailData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": "chk_8e2d4f6a1b3c4d5e6f7a8b9c0d1e2f3a",
+                    "monitor_id": "mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c",
+                    "status": "completed",
+                    "trigger": "scheduled",
+                    "scheduled_for": "2026-10-12T06:00:00.000Z",
+                    "started_at": "2026-10-12T06:00:04.112Z",
+                    "finished_at": "2026-10-12T06:01:27.930Z",
+                    "estimated_credits": 104,
+                    "actual_credits": 57,
+                    "summary": {
+                      "total_pages": 19,
+                      "same": 16,
+                      "new": 1,
+                      "changed": 1,
+                      "removed": 1,
+                      "error": 0
+                    },
+                    "target_results": [
+                      {
+                        "target_id": "tgt_8d1e0f2a3b4c5d6e",
+                        "type": "scrape",
+                        "pages": 1,
+                        "checked": 1,
+                        "baseline": false
+                      },
+                      {
+                        "target_id": "tgt_1a2b3c4d5e6f7a8b",
+                        "type": "crawl",
+                        "discovered": 17,
+                        "limit": 25,
+                        "complete": true,
+                        "baseline": false
+                      }
+                    ],
+                    "error": null,
+                    "created_at": "2026-10-12T06:00:00.513Z",
+                    "updated_at": "2026-10-12T06:01:27.930Z",
+                    "notifications": {
+                      "webhook": {
+                        "pending": 0,
+                        "delivered": 2,
+                        "failed": 0
+                      }
+                    },
+                    "pages": [
+                      {
+                        "target_id": "tgt_8d1e0f2a3b4c5d6e",
+                        "url": "https://example.com/pricing",
+                        "status": "changed",
+                        "status_code": 200,
+                        "error": null,
+                        "title": "Pricing — Example",
+                        "previous_check_id": "chk_51b0c2d3e4f5a6b7c8d9e0f1a2b3c4d5",
+                        "is_meaningful": true,
+                        "judgment": {
+                          "meaningful": true,
+                          "confidence": "high",
+                          "reason": "The Starter plan's price went from $19 to $24 a month.",
+                          "meaningful_changes": [
+                            {
+                              "type": "changed",
+                              "before": "$19/mo",
+                              "after": "$24/mo",
+                              "reason": "A plan price changed."
+                            }
+                          ]
+                        },
+                        "diff": {
+                          "fields": {
+                            "plans[0].price": {
+                              "previous": "$19/mo",
+                              "current": "$24/mo",
+                              "change": "changed"
+                            }
+                          },
+                          "changed_fields": 1
+                        },
+                        "snapshot": {
+                          "json": {
+                            "plans": [
+                              {
+                                "name": "Starter",
+                                "price": "$24/mo",
+                                "features": [
+                                  "3 seats",
+                                  "Email support"
+                                ]
+                              },
+                              {
+                                "name": "Pro",
+                                "price": "$49/mo",
+                                "features": [
+                                  "Unlimited seats",
+                                  "SSO"
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "target_id": "tgt_1a2b3c4d5e6f7a8b",
+                        "url": "https://example.com/changelog/2026-10-11",
+                        "status": "new",
+                        "status_code": 200,
+                        "error": null,
+                        "title": "October 11 release",
+                        "previous_check_id": null,
+                        "is_meaningful": false,
+                        "judgment": {
+                          "meaningful": false,
+                          "confidence": "high",
+                          "reason": "A bug-fix release; no plan or price changes.",
+                          "meaningful_changes": []
+                        },
+                        "diff": {
+                          "text": "--- previous\n+++ current\n@@ -1,0 +1,4 @@\n+# October 11 release\n+\n+- Fixed CSV export of invoices\n+- Faster dashboard loading\n",
+                          "added_lines": 4,
+                          "removed_lines": 0,
+                          "truncated": false,
+                          "hunks": [
+                            {
+                              "old_start": 1,
+                              "old_lines": 0,
+                              "new_start": 1,
+                              "new_lines": 4,
+                              "lines": [
+                                {
+                                  "type": "added",
+                                  "content": "# October 11 release"
+                                },
+                                {
+                                  "type": "added",
+                                  "content": ""
+                                },
+                                {
+                                  "type": "added",
+                                  "content": "- Fixed CSV export of invoices"
+                                },
+                                {
+                                  "type": "added",
+                                  "content": "- Faster dashboard loading"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        "snapshot": null
+                      }
+                    ],
+                    "next": "/monitor/mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c/checks/chk_8e2d4f6a1b3c4d5e6f7a8b9c0d1e2f3a?skip=2&limit=2"
+                  },
+                  "meta": {
+                    "requestId": "c5a8e9f0-1b2c-4d34-b5e6-708192a3b4c5",
+                    "durationMs": 74
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Monitor or check not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters. The message names the field.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, credit limit, blocklisted URL, monitor limit reached, or a RapidAPI subscription — monitors need a direct Prefetch API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Monitoring is temporarily unavailable. Retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {
+    "monitor.page": {
+      "post": {
+        "operationId": "monitorPageEvent",
+        "summary": "monitor.page",
+        "description": "Sent for each page that changed, appeared, was removed, or started failing. Not sent for the first check's baseline, or for changes the judge ruled not meaningful.",
+        "parameters": [
+          {
+            "name": "X-Prefetch-Event",
+            "in": "header",
+            "required": true,
+            "description": "The event type.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Prefetch-Delivery",
+            "in": "header",
+            "required": true,
+            "description": "The delivery id — the same as `id` in the body, and stable across retries.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Prefetch-Signature",
+            "in": "header",
+            "required": true,
+            "description": "`t=<unix seconds>,v1=<hex>`, where `hex` is HMAC-SHA256 of `\"<t>.<raw body>\"` keyed with the monitor's `webhook.secret`.",
+            "schema": {
+              "type": "string",
+              "example": "t=1760248862,v1=5f2b8c..."
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonitorPageEvent"
+              },
+              "example": {
+                "success": true,
+                "type": "monitor.page",
+                "id": "whd_5c1e9a2b7d3f4e6a8b0c2d4e6f8a1b3c",
+                "created_at": "2026-10-12T06:01:02.481Z",
+                "monitor_id": "mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c",
+                "monitor_name": "Competitor pricing",
+                "check_id": "chk_8e2d4f6a1b3c4d5e6f7a8b9c0d1e2f3a",
+                "data": {
+                  "target_id": "tgt_8d1e0f2a3b4c5d6e",
+                  "url": "https://example.com/pricing",
+                  "status": "changed",
+                  "status_code": 200,
+                  "error": null,
+                  "title": "Pricing — Example",
+                  "previous_check_id": "chk_51b0c2d3e4f5a6b7c8d9e0f1a2b3c4d5",
+                  "is_meaningful": true,
+                  "judgment": {
+                    "meaningful": true,
+                    "confidence": "high",
+                    "reason": "The Starter plan's price went from $19 to $24 a month.",
+                    "meaningful_changes": [
+                      {
+                        "type": "changed",
+                        "before": "$19/mo",
+                        "after": "$24/mo",
+                        "reason": "A plan price changed."
+                      }
+                    ]
+                  },
+                  "diff": {
+                    "fields": {
+                      "plans[0].price": {
+                        "previous": "$19/mo",
+                        "current": "$24/mo",
+                        "change": "changed"
+                      }
+                    },
+                    "changed_fields": 1
+                  },
+                  "snapshot": {
+                    "json": {
+                      "plans": [
+                        {
+                          "name": "Starter",
+                          "price": "$24/mo",
+                          "features": [
+                            "3 seats",
+                            "Email support"
+                          ]
+                        },
+                        {
+                          "name": "Pro",
+                          "price": "$49/mo",
+                          "features": [
+                            "Unlimited seats",
+                            "SSO"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                "metadata": {
+                  "env": "production"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Answer any 2xx within 10 seconds. Anything else, or no answer, is retried after 1, 5 and 15 minutes."
+          }
+        }
+      }
+    },
+    "monitor.check.completed": {
+      "post": {
+        "operationId": "monitorCheckCompletedEvent",
+        "summary": "monitor.check.completed",
+        "description": "Sent once per check that ran, and once when a monitor starts being skipped for lack of credits.",
+        "parameters": [
+          {
+            "name": "X-Prefetch-Event",
+            "in": "header",
+            "required": true,
+            "description": "The event type.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Prefetch-Delivery",
+            "in": "header",
+            "required": true,
+            "description": "The delivery id — the same as `id` in the body, and stable across retries.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Prefetch-Signature",
+            "in": "header",
+            "required": true,
+            "description": "`t=<unix seconds>,v1=<hex>`, where `hex` is HMAC-SHA256 of `\"<t>.<raw body>\"` keyed with the monitor's `webhook.secret`.",
+            "schema": {
+              "type": "string",
+              "example": "t=1760248862,v1=5f2b8c..."
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonitorCheckCompletedEvent"
+              },
+              "example": {
+                "success": true,
+                "type": "monitor.check.completed",
+                "id": "whd_7a9c1e3b5d7f9a2c4e6b8d0f2a4c6e8b",
+                "created_at": "2026-10-12T06:01:27.944Z",
+                "monitor_id": "mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c",
+                "monitor_name": "Competitor pricing",
+                "check_id": "chk_8e2d4f6a1b3c4d5e6f7a8b9c0d1e2f3a",
+                "data": {
+                  "status": "completed",
+                  "trigger": "scheduled",
+                  "summary": {
+                    "total_pages": 19,
+                    "same": 16,
+                    "new": 1,
+                    "changed": 1,
+                    "removed": 1,
+                    "error": 0
+                  },
+                  "started_at": "2026-10-12T06:00:04.112Z",
+                  "finished_at": "2026-10-12T06:01:27.930Z",
+                  "actual_credits": 57,
+                  "error": null
+                },
+                "metadata": {
+                  "env": "production"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Answer any 2xx within 10 seconds. Anything else, or no answer, is retried after 1, 5 and 15 minutes."
           }
         }
       }

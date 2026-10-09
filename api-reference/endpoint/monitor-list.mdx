@@ -1,0 +1,90 @@
+---
+title: "GET /monitor"
+description: "List the monitors your API key owns, newest first. Free."
+openapi: "GET /monitor"
+---
+
+## Overview
+
+Returns your monitors with their settings, next run, credit estimate and the summary of each one's last check. Results are paginated: follow `next` until it is `null`.
+
+An API key sees only the monitors it created.
+
+## Example request
+
+<CodeGroup>
+
+```bash cURL
+curl "https://api.prefetch.io/monitor?limit=25" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```javascript Node.js
+const res = await fetch("https://api.prefetch.io/monitor", {
+  headers: { "X-API-Key": process.env.PREFETCH_API_KEY },
+});
+const { data } = await res.json();
+
+for (const m of data.monitors) {
+  const last = m.last_check_summary;
+  console.log(m.name, m.status, last ? `${last.changed} changed` : "no check yet");
+}
+```
+
+```python Python
+import os, requests
+
+data = requests.get(
+    "https://api.prefetch.io/monitor",
+    headers={"X-API-Key": os.environ["PREFETCH_API_KEY"]},
+).json()["data"]
+
+for m in data["monitors"]:
+    print(m["name"], m["status"], m["next_run_at"])
+```
+
+</CodeGroup>
+
+## Example response
+
+```json
+{
+  "success": true,
+  "data": {
+    "monitors": [
+      {
+        "id": "mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c",
+        "name": "Competitor pricing",
+        "status": "active",
+        "schedule": { "cron": "0 9 * * 1-5", "timezone": "Europe/Athens", "text": "every weekday at 9am" },
+        "next_run_at": "2026-10-13T06:00:00.000Z",
+        "last_run_at": "2026-10-12T06:00:04.112Z",
+        "last_check_summary": {
+          "check_id": "chk_8e2d4f6a1b3c4d5e6f7a8b9c0d1e2f3a",
+          "status": "completed",
+          "finished_at": "2026-10-12T06:01:27.930Z",
+          "total_pages": 19, "same": 16, "new": 1, "changed": 1, "removed": 1, "error": 0
+        },
+        "...": "the rest of the monitor, as in GET /monitor/{id}"
+      }
+    ],
+    "total": 1,
+    "next": null
+  },
+  "meta": {
+    "requestId": "c9a2e3f4-5b6c-4d7e-9f80-1a2b3c4d5e6f",
+    "durationMs": 47
+  }
+}
+```
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="GET /monitor/{id}" icon="eye" href="/api-reference/endpoint/monitor-get">
+    One monitor in full.
+  </Card>
+  <Card title="POST /monitor" icon="plus" href="/api-reference/endpoint/monitor">
+    Create a monitor.
+  </Card>
+</CardGroup>

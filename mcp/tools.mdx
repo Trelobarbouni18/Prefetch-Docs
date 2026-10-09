@@ -4,11 +4,25 @@ description: "Every tool the Prefetch MCP server exposes, with its parameters an
 icon: "wrench"
 ---
 
-Ten tools, one per API capability. Your agent reads these descriptions and picks the right one — you rarely need to name a tool yourself.
+Eighteen tools: one per API capability, plus the extra verbs crawls and monitors need. Your agent reads these descriptions and picks the right one — you rarely need to name a tool yourself.
 
-All parameters are snake_case. Only `url` (or `id`, for the crawl status tools) is ever required.
+All parameters are snake_case. Most tools require only `url` — or `name` for `prefetch_resolve`, `id` for the crawl and monitor tools that act on one, and `name` plus `schedule` to create a monitor.
 
 See [MCP server](/mcp/overview) for setup.
+
+## Finding a domain
+
+### `prefetch_resolve`
+
+Turns a company, brand or product name into the domain of its official website — "Stripe" → `stripe.com`. Every other tool takes a URL, so this is where a task that starts from a name begins: resolve the name, then call `prefetch_enrich`, `prefetch_brand` or `prefetch_company` with the domain.
+
+Each result has a `confidence` from 0 to 1. Only the first can reach 0.8, and at or above it that result is the answer. Over MCP, names the index is unsure of are looked up live by default — a few seconds and 3 credits, versus 1 credit from the index.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | string | — | **Required.** The name, like `"Delta Air Lines"` or `"Figma"`. 1–100 characters. |
+| `limit` | number | `5` | How many candidates to return. 1–10. |
+| `live` | boolean | `true` | Look the name up live when the index is unsure. `false` for an instant, index-only lookup (free when nothing matches). |
 
 ## Web extraction
 
@@ -163,6 +177,95 @@ Render a page and return a hosted image URL.
 This returns a link, not image bytes. Pass the URL on to the user, or to a tool that can fetch images.
 </Note>
 
+## Monitoring
+
+A monitor re-checks pages on a schedule and records what changed — see [`POST /monitor`](/api-reference/endpoint/monitor) for how changes are detected and judged. The tools take a flatter shape than the REST body: `urls` for specific pages and `crawl_url` for a site, instead of a list of targets.
+
+An agent rarely has a webhook to receive changes at, so it reads them back: `prefetch_run_monitor` runs a check and waits for it, and `prefetch_get_monitor_check` shows the latest check by default. Both list only the pages that changed, appeared, disappeared or failed — the judge's verdict first, then any field changes, then the diff — and count the unchanged ones.
+
+### `prefetch_create_monitor`
+
+Start watching pages. Pass `urls`, `crawl_url`, or both.
+
+A monitor bills on every check for as long as it is active — 3 credits per page fetched, plus 1 per change judged — so prefer few pages and a modest schedule.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `name` | string | — | **Required.** A label, like `"Acme pricing"`. |
+| `schedule` | string | — | **Required.** A phrase — `"every 30 minutes"`, `"hourly"`, `"daily at 9am"`, `"every weekday at 17:00"`, `"weekly"` — or five-field cron. At least 5 minutes apart. |
+| `timezone` | string | `UTC` | IANA timezone for the schedule, like `"America/New_York"`. |
+| `goal` | string | — | What you want to be told about, in one sentence. Each change is judged against it, so noise is filtered out. |
+| `urls` | string[] | — | Pages to watch. 1–100. |
+| `crawl_url` | string | — | A site or section to re-crawl on every check, so new and removed pages are reported too. |
+| `crawl_limit` | number | `25` | Most pages each crawl visits. 1–500. Every page is billed on every check. |
+| `include_paths` | string[] | — | For `crawl_url`: regex patterns a page must match, like `["^/blog/"]`. |
+| `exclude_paths` | string[] | — | For `crawl_url`: regex patterns to skip. |
+| `track_fields` | string | — | Compare these facts instead of the page text, like `"each plan's monthly price"`. A page then counts as changed only when one of them changes. |
+| `include_selectors` | string[] | — | CSS selectors to compare instead of the whole main content. |
+| `exclude_selectors` | string[] | — | CSS selectors to ignore — timestamps, rotating banners. |
+| `webhook_url` | string | — | An HTTPS endpoint to POST changes to. |
+| `run_now` | boolean | `false` | Take the first check immediately. It records a baseline — every page is new — so changes show from the second check on. |
+
+### `prefetch_run_monitor`
+
+Run a check now, wait for it, and return what changed since the previous check. Billed like any check.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `id` | string | — | **Required.** The monitor id. |
+| `wait_seconds` | number | `60` | How long to wait before handing back the check id to read later. 0–120. |
+
+### `prefetch_get_monitor_check`
+
+What a check found. Leave `check_id` out for the most recent one. Free.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `monitor_id` | string | — | **Required.** |
+| `check_id` | string | latest | A check id. |
+| `status` | string | — | Only pages with this status: `same`, `new`, `changed`, `removed` or `error`. Without it, unchanged pages are counted but not listed. |
+| `skip` | number | `0` | Pages to skip, for paging. |
+| `limit` | number | `25` | Pages per response. 1–100. |
+
+### `prefetch_list_monitors`
+
+The key's monitors with each one's schedule and last check. Free.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `limit` | number | `25` | Monitors per page. 1–100. |
+| `offset` | number | `0` | Monitors to skip. |
+
+### `prefetch_get_monitor`
+
+One monitor's settings, next run, estimated cost, and its five most recent checks. Free.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `id` | string | — | **Required.** |
+
+### `prefetch_update_monitor`
+
+Change a monitor. Fields you leave out stay as they are. Free.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `id` | string | — | **Required.** |
+| `name` | string | — | A new label. |
+| `schedule`, `timezone` | string | — | A new schedule. Pass `timezone` together with `schedule`. |
+| `goal` | string \| null | — | A new goal, or `null` to stop judging and report every change. |
+| `status` | string | — | `paused` stops the schedule and its charges; `active` resumes it. |
+| `urls`, `crawl_url`, … | | — | Replace what the monitor watches. Takes the same fields as `prefetch_create_monitor`. |
+| `webhook_url` | string \| null | — | A new webhook URL, or `null` to stop sending webhooks. |
+
+### `prefetch_delete_monitor`
+
+Delete a monitor and its history, stopping all future checks. To stop it for a while, pause it with `prefetch_update_monitor` instead. Free.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `id` | string | — | **Required.** |
+
 ## Choosing a tool
 
 | You want | Use | Credits |
@@ -175,3 +278,5 @@ This returns a link, not image bytes. Pass the URL on to the user, or to a tool 
 | Just the brand colors | `prefetch_brand` | 10 |
 | Just the industry | `prefetch_classify` | 5 |
 | A picture of the page | `prefetch_screenshot` | 2 |
+| To know when a page changes | `prefetch_create_monitor` | 3 per page, every check |
+| What changed, right now | `prefetch_run_monitor` | 3 per page, plus 1 per change judged |

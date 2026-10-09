@@ -1,0 +1,149 @@
+---
+title: "GET /monitor/{id}/checks/{checkId}"
+description: "What one check found, page by page: status, diff, and the judge's verdict. Free."
+openapi: "GET /monitor/{id}/checks/{checkId}"
+---
+
+## Overview
+
+Returns one check with a page of its per-page results. Each page carries its status, a diff when it changed, the judge's verdict when the monitor has a goal, and — in json mode — the full current extraction.
+
+Pass `status=changed` to see only the pages that changed. Results are paginated: follow `next` until it is `null`.
+
+## Example request
+
+<CodeGroup>
+
+```bash cURL
+curl "https://api.prefetch.io/monitor/mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c/checks/chk_8e2d4f6a1b3c4d5e6f7a8b9c0d1e2f3a?status=changed" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```javascript Node.js
+const url = `https://api.prefetch.io/monitor/${monitorId}/checks/${checkId}?status=changed`;
+const res = await fetch(url, { headers: { "X-API-Key": process.env.PREFETCH_API_KEY } });
+const { data: check } = await res.json();
+
+for (const page of check.pages) {
+  if (page.is_meaningful === false) continue; // the judge ruled it noise
+  console.log(page.url, page.judgment?.reason);
+  console.log(page.diff?.text ?? JSON.stringify(page.diff?.fields, null, 2));
+}
+```
+
+```python Python
+import os, requests
+
+check = requests.get(
+    f"https://api.prefetch.io/monitor/{monitor_id}/checks/{check_id}",
+    params={"status": "changed"},
+    headers={"X-API-Key": os.environ["PREFETCH_API_KEY"]},
+).json()["data"]
+
+for page in check["pages"]:
+    if page["is_meaningful"] is False:
+        continue
+    print(page["url"], (page["judgment"] or {}).get("reason"))
+```
+
+</CodeGroup>
+
+## Example response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "chk_8e2d4f6a1b3c4d5e6f7a8b9c0d1e2f3a",
+    "monitor_id": "mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c",
+    "status": "completed",
+    "trigger": "scheduled",
+    "scheduled_for": "2026-10-12T06:00:00.000Z",
+    "started_at": "2026-10-12T06:00:04.112Z",
+    "finished_at": "2026-10-12T06:01:27.930Z",
+    "estimated_credits": 104,
+    "actual_credits": 57,
+    "summary": { "total_pages": 19, "same": 16, "new": 1, "changed": 1, "removed": 1, "error": 0 },
+    "target_results": [
+      { "target_id": "tgt_8d1e0f2a3b4c5d6e", "type": "scrape", "pages": 1, "checked": 1, "baseline": false },
+      { "target_id": "tgt_1a2b3c4d5e6f7a8b", "type": "crawl", "discovered": 17, "limit": 25, "complete": true, "baseline": false }
+    ],
+    "error": null,
+    "notifications": { "webhook": { "pending": 0, "delivered": 2, "failed": 0 } },
+    "pages": [
+      {
+        "target_id": "tgt_8d1e0f2a3b4c5d6e",
+        "url": "https://example.com/pricing",
+        "status": "changed",
+        "status_code": 200,
+        "error": null,
+        "title": "Pricing — Example",
+        "previous_check_id": "chk_51b0c2d3e4f5a6b7c8d9e0f1a2b3c4d5",
+        "is_meaningful": true,
+        "judgment": {
+          "meaningful": true,
+          "confidence": "high",
+          "reason": "The Starter plan's price went from $19 to $24 a month.",
+          "meaningful_changes": [
+            { "type": "changed", "before": "$19/mo", "after": "$24/mo", "reason": "A plan price changed." }
+          ]
+        },
+        "diff": {
+          "fields": { "plans[0].price": { "previous": "$19/mo", "current": "$24/mo", "change": "changed" } },
+          "changed_fields": 1
+        },
+        "snapshot": {
+          "json": {
+            "plans": [
+              { "name": "Starter", "price": "$24/mo", "features": ["3 seats", "Email support"] },
+              { "name": "Pro", "price": "$49/mo", "features": ["Unlimited seats", "SSO"] }
+            ]
+          }
+        }
+      }
+    ],
+    "next": null
+  },
+  "meta": {
+    "requestId": "c5a8e9f0-1b2c-4d34-b5e6-708192a3b4c5",
+    "durationMs": 74
+  }
+}
+```
+
+## Check statuses
+
+| Status | Meaning |
+|---|---|
+| `queued` | Waiting for a worker. |
+| `running` | In progress — `pages` already holds what it has recorded. |
+| `completed` | Every page was checked. |
+| `partial` | Some pages errored, or the check stopped early on credits or its 30-minute limit. Its results are real but incomplete — `error` says why. |
+| `failed` | No page could be checked. |
+| `skipped_overlap` | The previous check was still running when this one came due. |
+| `skipped_no_credits` | The key that owns the monitor had no credits left, or was revoked. Never charged. |
+
+## Reading a page
+
+| Field | Meaning |
+|---|---|
+| `status` | `same`, `new`, `changed`, `removed` or `error` — see [detecting changes](/api-reference/endpoint/monitor#detecting-changes). |
+| `diff.text`, `diff.hunks` | Markdown mode: the unified diff, and the same hunks as structured lines. |
+| `diff.fields` | Json mode: each changed field by JSON path, with `previous`, `current` and `change` (`added`, `removed` or `changed`). |
+| `diff.truncated` | The diff was larger than the stored cap. `added_lines` and `removed_lines` still count all of it. |
+| `is_meaningful`, `judgment` | The judge's verdict and its reasoning. `null` when the page was not judged. |
+| `snapshot.json` | Json mode: the full current extraction, so you never need to re-fetch the page. |
+| `previous_check_id` | The check whose snapshot this one was compared with. |
+
+A page that is new since the first check carries its whole content as an all-added diff. Removed pages carry no diff.
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="GET /monitor/{id}/checks" icon="list" href="/api-reference/endpoint/monitor-checks">
+    Find a check id.
+  </Card>
+  <Card title="monitor.page webhook" icon="bell" href="/api-reference/endpoint/monitor-webhook-page">
+    Get the same page objects pushed to you.
+  </Card>
+</CardGroup>

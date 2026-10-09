@@ -61,15 +61,19 @@ On error, `success` is `false` and `data` is replaced by `error`:
 | `POST /crawl` | 3, plus 3 per page returned |
 | `GET /crawl/{id}` | Charged per page as pages complete |
 | `DELETE /crawl/{id}` | — |
+| `POST /monitor` and the other monitor calls | — |
+| Each monitor check | 3 per page fetched, plus 1 per change judged |
 | `GET /screenshot` | 2 |
 | `GET /health` | — |
 | `GET /ready` | — |
 
-Credits are deducted only on successful responses. See [Credits](/concepts/credits).
+Credits are deducted only on successful responses. Every plan's allowance refills monthly, including the Free plan's 1,000 credits. See [Credits](/concepts/credits).
 
 ## Asynchronous endpoints
 
 Every endpoint answers in one round trip except `/crawl`. A crawl runs for minutes, so `POST /crawl` returns `202` with a job id and you poll `GET /crawl/{id}` for results. See [POST /crawl](/api-reference/endpoint/crawl).
+
+Monitors run on their own schedule. `POST /monitor` sets one up, and each check's results arrive at your webhook or are read with `GET /monitor/{id}/checks/{checkId}`. See [POST /monitor](/api-reference/endpoint/monitor).
 
 ## Rate limits
 
@@ -101,6 +105,9 @@ Exceeding either limit returns HTTP 429. See [Rate limits](/concepts/rate-limits
   </Card>
   <Card title="POST /crawl" icon="spider" href="/api-reference/endpoint/crawl">
     Crawl a whole site. **3 credits + 3 per page.**
+  </Card>
+  <Card title="POST /monitor" icon="eye" href="/api-reference/endpoint/monitor">
+    Watch pages on a schedule and get told what changed. **3 credits per page checked.**
   </Card>
   <Card title="GET /screenshot" icon="camera" href="/api-reference/endpoint/screenshot">
     Webpage screenshot URL. **2 credits.**

@@ -78,6 +78,12 @@
             ]
           },
           {
+            "group": "Discovery",
+            "pages": [
+              "api-reference/endpoint/resolve"
+            ]
+          },
+          {
             "group": "Endpoints",
             "pages": [
               "api-reference/endpoint/brand",
@@ -95,6 +101,26 @@
               "api-reference/endpoint/crawl",
               "api-reference/endpoint/crawl-status",
               "api-reference/endpoint/crawl-cancel"
+            ]
+          },
+          {
+            "group": "Monitoring",
+            "pages": [
+              "api-reference/endpoint/monitor",
+              "api-reference/endpoint/monitor-list",
+              "api-reference/endpoint/monitor-get",
+              "api-reference/endpoint/monitor-update",
+              "api-reference/endpoint/monitor-delete",
+              "api-reference/endpoint/monitor-run",
+              "api-reference/endpoint/monitor-checks",
+              "api-reference/endpoint/monitor-check",
+              {
+                "group": "Webhooks",
+                "pages": [
+                  "api-reference/endpoint/monitor-webhook-page",
+                  "api-reference/endpoint/monitor-webhook-check"
+                ]
+              }
             ]
           }
         ]

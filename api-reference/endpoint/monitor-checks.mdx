@@ -1,0 +1,96 @@
+---
+title: "GET /monitor/{id}/checks"
+description: "A monitor's check history, newest first. Free."
+openapi: "GET /monitor/{id}/checks"
+---
+
+## Overview
+
+Lists the monitor's checks, newest first, with each one's status, page counts and credits. Pass `status` to filter — `status=skipped_no_credits`, say, to see when a key ran dry. Open any check with [`GET /monitor/{id}/checks/{checkId}`](/api-reference/endpoint/monitor-check) to see its pages.
+
+Checks are kept for the monitor's `retention_days` (30 by default) and deleted after that.
+
+## Example request
+
+<CodeGroup>
+
+```bash cURL
+curl "https://api.prefetch.io/monitor/mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c/checks?limit=10" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```javascript Node.js
+const res = await fetch(`https://api.prefetch.io/monitor/${monitorId}/checks?limit=10`, {
+  headers: { "X-API-Key": process.env.PREFETCH_API_KEY },
+});
+const { data } = await res.json();
+for (const c of data.checks) console.log(c.finished_at, c.status, c.summary.changed);
+```
+
+```python Python
+import os, requests
+
+data = requests.get(
+    f"https://api.prefetch.io/monitor/{monitor_id}/checks",
+    params={"limit": 10},
+    headers={"X-API-Key": os.environ["PREFETCH_API_KEY"]},
+).json()["data"]
+for c in data["checks"]:
+    print(c["finished_at"], c["status"], c["summary"]["changed"])
+```
+
+</CodeGroup>
+
+## Example response
+
+```json
+{
+  "success": true,
+  "data": {
+    "checks": [
+      {
+        "id": "chk_8e2d4f6a1b3c4d5e6f7a8b9c0d1e2f3a",
+        "monitor_id": "mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c",
+        "status": "completed",
+        "trigger": "scheduled",
+        "scheduled_for": "2026-10-12T06:00:00.000Z",
+        "started_at": "2026-10-12T06:00:04.112Z",
+        "finished_at": "2026-10-12T06:01:27.930Z",
+        "estimated_credits": 104,
+        "actual_credits": 57,
+        "summary": { "total_pages": 19, "same": 16, "new": 1, "changed": 1, "removed": 1, "error": 0 },
+        "target_results": [
+          { "target_id": "tgt_8d1e0f2a3b4c5d6e", "type": "scrape", "pages": 1, "checked": 1, "baseline": false },
+          { "target_id": "tgt_1a2b3c4d5e6f7a8b", "type": "crawl", "discovered": 17, "limit": 25, "complete": true, "baseline": false }
+        ],
+        "error": null,
+        "created_at": "2026-10-12T06:00:00.513Z",
+        "updated_at": "2026-10-12T06:01:27.930Z"
+      }
+    ],
+    "total": 1,
+    "next": null
+  },
+  "meta": {
+    "requestId": "b4f7d8e9-0a1b-4c23-a4d5-6f708192a3b4",
+    "durationMs": 44
+  }
+}
+```
+
+## Streaks
+
+Monitors keep no failure counter. To find out how long something has been going on, count the leading run of a status: the list is newest first, so the checks at the top that share a status are the current streak, and the first check with a different status ends it.
+
+`actual_credits` is what each check was charged — 57 here: 18 pages fetched at 3 credits, plus 3 pages judged at 1. Skipped checks are never charged.
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="GET /monitor/{id}/checks/{checkId}" icon="code-compare" href="/api-reference/endpoint/monitor-check">
+    What one check found, page by page.
+  </Card>
+  <Card title="POST /monitor/{id}/run" icon="play" href="/api-reference/endpoint/monitor-run">
+    Run a check now.
+  </Card>
+</CardGroup>

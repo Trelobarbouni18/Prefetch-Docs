@@ -1,0 +1,64 @@
+---
+title: "DELETE /monitor/{id}"
+description: "Delete a monitor, its check history and its pending webhooks. Stops all future charges. Free."
+openapi: "DELETE /monitor/{id}"
+---
+
+## Overview
+
+Deletes the monitor together with its checks, page snapshots and any webhook deliveries still pending. Nothing more is fetched or billed.
+
+To stop a monitor for a while instead, pause it with [`PATCH /monitor/{id}`](/api-reference/endpoint/monitor-update) — a paused monitor costs nothing and keeps its history.
+
+## Example request
+
+<CodeGroup>
+
+```bash cURL
+curl -X DELETE "https://api.prefetch.io/monitor/mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```javascript Node.js
+await fetch(`https://api.prefetch.io/monitor/${monitorId}`, {
+  method: "DELETE",
+  headers: { "X-API-Key": process.env.PREFETCH_API_KEY },
+});
+```
+
+```python Python
+import os, requests
+
+requests.delete(
+    f"https://api.prefetch.io/monitor/{monitor_id}",
+    headers={"X-API-Key": os.environ["PREFETCH_API_KEY"]},
+)
+```
+
+</CodeGroup>
+
+## Example response
+
+```json
+{
+  "success": true,
+  "data": { "id": "mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c", "deleted": true },
+  "meta": {
+    "requestId": "f2d5b6c7-8e9f-4a01-82b3-4d5e6f708192",
+    "durationMs": 33
+  }
+}
+```
+
+A check that is running when you delete the monitor stops at its next step and is not billed. Deletion cannot be undone.
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="PATCH /monitor/{id}" icon="pause" href="/api-reference/endpoint/monitor-update">
+    Pause instead, and keep the history.
+  </Card>
+  <Card title="GET /monitor" icon="list" href="/api-reference/endpoint/monitor-list">
+    Your remaining monitors.
+  </Card>
+</CardGroup>

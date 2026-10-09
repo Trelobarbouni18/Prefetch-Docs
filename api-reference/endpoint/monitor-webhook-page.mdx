@@ -1,0 +1,117 @@
+---
+title: "monitor.page webhook"
+description: "POSTed to your webhook for each page that changed, appeared, was removed, or started failing."
+openapi: "WEBHOOK monitor.page"
+---
+
+## When it is sent
+
+One event per page that, in a check:
+
+- **changed** since the previous check,
+- is **new** — a page that appeared since the monitor's first check,
+- was **removed** — it answers 404 or 410, or a complete crawl no longer finds it,
+- or **started failing**. A page that stays down sends one event, not one per check.
+
+Two things are never sent: the first check's baseline, where every page is new by definition, and changes the [judge](/api-reference/endpoint/monitor#goals-and-judging) ruled not meaningful. Both are still recorded on the check.
+
+`data` is the same page object [`GET /monitor/{id}/checks/{checkId}`](/api-reference/endpoint/monitor-check) returns — status, diff, judgment and, in json mode, the current extraction.
+
+## Responding
+
+Answer with any `2xx` within **10 seconds**. Anything else — a timeout, a `4xx` or `5xx`, a redirect — is retried after **1, 5 and 15 minutes**, then marked failed. Do slow work after you respond.
+
+Retries carry the same `id`, also sent as `X-Prefetch-Delivery`. Store the ids you have processed and skip repeats.
+
+## Verify the signature
+
+Every request carries an `X-Prefetch-Signature` header:
+
+```
+X-Prefetch-Signature: t=1760248862,v1=5f2b8c1e...
+```
+
+`v1` is the hex HMAC-SHA256 of `<t>.<raw request body>`, keyed with the monitor's `webhook.secret`. The timestamp is signed too, so a captured request cannot be replayed with a fresh header — reject anything older than five minutes.
+
+Verify against the **raw** body, before any JSON parsing: re-serialising changes the bytes and breaks the signature.
+
+<CodeGroup>
+
+```javascript Node.js (Express)
+import crypto from "node:crypto";
+import express from "express";
+
+const app = express();
+
+app.post("/hooks/prefetch", express.raw({ type: "application/json" }), (req, res) => {
+  const header = req.get("X-Prefetch-Signature") || "";
+  const { t, v1 } = Object.fromEntries(header.split(",").map((kv) => kv.split("=")));
+
+  const fresh = Math.abs(Date.now() / 1000 - Number(t)) <= 300;
+  const expected = crypto
+    .createHmac("sha256", process.env.PREFETCH_WEBHOOK_SECRET)
+    .update(`${t}.${req.body}`)
+    .digest();
+  const given = Buffer.from(v1 || "", "hex");
+
+  if (!fresh || given.length !== expected.length || !crypto.timingSafeEqual(given, expected)) {
+    return res.status(401).send("invalid signature");
+  }
+
+  const event = JSON.parse(req.body);
+  res.sendStatus(200); // acknowledge first, then do the work
+  handle(event);
+});
+```
+
+```python Python (Flask)
+import hashlib, hmac, os, time
+from flask import Flask, request, abort
+
+app = Flask(__name__)
+
+@app.post("/hooks/prefetch")
+def prefetch_webhook():
+    header = request.headers.get("X-Prefetch-Signature", "")
+    parts = dict(kv.split("=", 1) for kv in header.split(",") if "=" in kv)
+    t, v1 = parts.get("t", "0"), parts.get("v1", "")
+
+    expected = hmac.new(
+        os.environ["PREFETCH_WEBHOOK_SECRET"].encode(),
+        f"{t}.".encode() + request.get_data(),
+        hashlib.sha256,
+    ).hexdigest()
+
+    if abs(time.time() - int(t)) > 300 or not hmac.compare_digest(v1, expected):
+        abort(401)
+
+    event = request.get_json()
+    # ... handle the event
+    return "", 200
+```
+
+</CodeGroup>
+
+The secret is in the monitor's `webhook.secret`. To change it, update the monitor with `"rotate_secret": true` — see [`PATCH /monitor/{id}`](/api-reference/endpoint/monitor-update#rotating-the-signing-secret).
+
+## Headers
+
+| Header | Value |
+|---|---|
+| `X-Prefetch-Event` | `monitor.page` |
+| `X-Prefetch-Delivery` | The delivery id — the same as `id` in the body |
+| `X-Prefetch-Signature` | `t=<unix seconds>,v1=<hex HMAC-SHA256>` |
+| `User-Agent` | `Prefetch-Webhooks/1.0` |
+
+Any `headers` you set on the monitor's webhook are sent as well.
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="monitor.check.completed" icon="flag-checkered" href="/api-reference/endpoint/monitor-webhook-check">
+    One event per check, with its counts.
+  </Card>
+  <Card title="POST /monitor" icon="eye" href="/api-reference/endpoint/monitor">
+    Configure the webhook and the goal.
+  </Card>
+</CardGroup>

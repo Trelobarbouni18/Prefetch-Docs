@@ -1,0 +1,301 @@
+---
+title: "POST /monitor"
+description: "Watch pages on a schedule and get told what changed. Free to create; each check costs 3 credits per page it fetches, plus 1 per change judged against your goal."
+openapi: "POST /monitor"
+---
+
+## Overview
+
+A monitor re-checks pages on a schedule and compares each one with the previous check. Instead of polling a pricing page, a changelog or a policy page yourself, you get a webhook with just the diff when something changes.
+
+<Steps>
+  <Step title="Create">
+    `POST /monitor` with what to watch, how often, and — optionally — a goal describing which changes matter.
+  </Step>
+  <Step title="Baseline">
+    The first check records every page. Nothing is announced: every page is new by definition.
+  </Step>
+  <Step title="Check">
+    Each scheduled check fetches every page again and marks it `same`, `new`, `changed`, `removed` or `error`, with a diff.
+  </Step>
+  <Step title="Get told">
+    Changes that match your goal are POSTed to your webhook. You can also read any check with [`GET /monitor/{id}/checks/{checkId}`](/api-reference/endpoint/monitor-check).
+  </Step>
+</Steps>
+
+## Example request
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.prefetch.io/monitor" \
+  -H "X-API-Key: $PREFETCH_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Competitor pricing",
+    "schedule": { "text": "every weekday at 9am", "timezone": "Europe/Athens" },
+    "goal": "Alert me when a plan price or its included features change",
+    "targets": [
+      {
+        "type": "scrape",
+        "urls": ["https://example.com/pricing"],
+        "change_tracking": { "modes": ["json"], "json_prompt": "Each plan: name, monthly price, headline features" }
+      },
+      {
+        "type": "crawl",
+        "url": "https://example.com/changelog",
+        "crawl_options": { "limit": 25, "include_paths": ["^/changelog/"] }
+      }
+    ],
+    "webhook": { "url": "https://you.example.org/hooks/prefetch" }
+  }'
+```
+
+```javascript Node.js
+const res = await fetch("https://api.prefetch.io/monitor", {
+  method: "POST",
+  headers: {
+    "X-API-Key": process.env.PREFETCH_API_KEY,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    name: "Competitor pricing",
+    schedule: { text: "every weekday at 9am", timezone: "Europe/Athens" },
+    goal: "Alert me when a plan price or its included features change",
+    targets: [
+      {
+        type: "scrape",
+        urls: ["https://example.com/pricing"],
+        change_tracking: { modes: ["json"], json_prompt: "Each plan: name, monthly price, headline features" },
+      },
+      {
+        type: "crawl",
+        url: "https://example.com/changelog",
+        crawl_options: { limit: 25, include_paths: ["^/changelog/"] },
+      },
+    ],
+    webhook: { url: "https://you.example.org/hooks/prefetch" },
+  }),
+});
+
+const { data } = await res.json();
+console.log(data.id, data.schedule.cron, data.webhook.secret);
+```
+
+```python Python
+import os, requests
+
+r = requests.post(
+    "https://api.prefetch.io/monitor",
+    headers={"X-API-Key": os.environ["PREFETCH_API_KEY"]},
+    json={
+        "name": "Competitor pricing",
+        "schedule": {"text": "every weekday at 9am", "timezone": "Europe/Athens"},
+        "goal": "Alert me when a plan price or its included features change",
+        "targets": [
+            {
+                "type": "scrape",
+                "urls": ["https://example.com/pricing"],
+                "change_tracking": {"modes": ["json"], "json_prompt": "Each plan: name, monthly price, headline features"},
+            },
+            {
+                "type": "crawl",
+                "url": "https://example.com/changelog",
+                "crawl_options": {"limit": 25, "include_paths": ["^/changelog/"]},
+            },
+        ],
+        "webhook": {"url": "https://you.example.org/hooks/prefetch"},
+    },
+)
+monitor = r.json()["data"]
+print(monitor["id"], monitor["webhook"]["secret"])
+```
+
+</CodeGroup>
+
+## Example response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c",
+    "name": "Competitor pricing",
+    "status": "active",
+    "schedule": { "cron": "0 9 * * 1-5", "timezone": "Europe/Athens", "text": "every weekday at 9am" },
+    "next_run_at": "2026-10-12T06:00:00.000Z",
+    "last_run_at": null,
+    "current_check_id": null,
+    "goal": "Alert me when a plan price or its included features change",
+    "judge_enabled": true,
+    "targets": [
+      { "id": "tgt_8d1e0f2a3b4c5d6e", "type": "scrape", "urls": ["https://example.com/pricing"], "...": "every option, with its effective value" },
+      { "id": "tgt_1a2b3c4d5e6f7a8b", "type": "crawl", "url": "https://example.com/changelog", "...": "..." }
+    ],
+    "webhook": {
+      "url": "https://you.example.org/hooks/prefetch",
+      "headers": {},
+      "metadata": {},
+      "events": ["monitor.page", "monitor.check.completed"],
+      "secret": "whsec_4f1c9e2a7b3d8e6f0a5c1b9d2e7f3a8c4b6d0e1f9a2c5b7d"
+    },
+    "retention_days": 30,
+    "estimated_credits_per_check": 104,
+    "estimated_credits_per_month": 2184,
+    "last_check_summary": null,
+    "created_at": "2026-10-09T10:00:00.000Z",
+    "updated_at": "2026-10-09T10:00:00.000Z"
+  },
+  "meta": {
+    "requestId": "b8f1d2e3-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
+    "durationMs": 61
+  }
+}
+```
+
+The status is `201 Created`. Keep the `webhook.secret` — you need it to [verify each webhook](/api-reference/endpoint/monitor-webhook-page#verify-the-signature). You can read it again with [`GET /monitor/{id}`](/api-reference/endpoint/monitor-get).
+
+## What to watch
+
+A monitor has up to 50 **targets**, of two kinds. You can mix them.
+
+| Target | Watches | Each check |
+|---|---|---|
+| `scrape` | A fixed list of up to 100 URLs | Fetches each page the way [`GET /scrape`](/api-reference/endpoint/scrape) would, rendering JavaScript and getting past bot protection |
+| `crawl` | A site, or a section of one | Re-crawls it with the same options as [`POST /crawl`](/api-reference/endpoint/crawl), so pages that appear or disappear are reported too |
+
+One check fetches at most **500 pages** across all targets — every scrape URL plus every crawl's `limit`.
+
+<Note>
+  A crawl can only report a page as `removed` when it runs out of pages to visit. A crawl that stops at its `limit` cannot tell a page that was taken down from one it never reached, so it reports no removals. Give a crawl target a `limit` comfortably above the section's size if removals matter to you.
+</Note>
+
+## Schedules
+
+Write the schedule as a phrase or as five-field cron, in any IANA timezone:
+
+```json
+{ "schedule": { "text": "every weekday at 9am", "timezone": "America/New_York" } }
+```
+
+```json
+{ "schedule": { "cron": "*/30 * * * *" } }
+```
+
+Phrases you can use include `every 30 minutes`, `every 15 minutes starting at :07`, `hourly`, `every 2 hours`, `daily`, `daily at 9am`, `daily at 5:30 PM`, `every weekday at 9am`, `weekly`, `every monday at 8:00` and `monthly`.
+
+- Runs must be **at least 5 minutes apart** — every gap, not just the first.
+- Phrases that leave the minute open (`hourly`, `daily`) get a fixed minute of their own, so monitors created at the same time do not all fire at once.
+- The response always shows the cron the monitor actually runs on.
+- Times follow the timezone across daylight-saving changes.
+
+## Detecting changes
+
+Each page of each check gets one status:
+
+| Status | Meaning |
+|---|---|
+| `same` | Fetched again; nothing changed. |
+| `new` | Seen for the first time — on the first check, or a page that appeared since. |
+| `changed` | Fetched again; the content differs. The page carries a `diff`. |
+| `removed` | A page the monitor knew answered 404 or 410, or a crawl that ran to completion no longer finds it. Reported once. |
+| `error` | Could not be checked. The last good snapshot is kept, so the next good check compares against it. |
+
+By default the page's **markdown** is compared, and `diff.text` holds a unified diff with the same hunks structured in `diff.hunks`. Whitespace and line-ending churn never counts as a change.
+
+To watch specific facts instead of the whole text, use the **json** mode. Describe the fields, and each check extracts them and compares them field by field:
+
+```json
+{
+  "type": "scrape",
+  "urls": ["https://example.com/pricing"],
+  "change_tracking": { "modes": ["json"], "json_prompt": "Each plan: name, monthly price, headline features" }
+}
+```
+
+A page is then `changed` only when a tracked field changes, and `diff.fields` says exactly which one: `plans[0].price: "$19/mo" → "$24/mo"`. Pass `json_schema` instead of, or as well as, `json_prompt` to fix the shape. Use `"modes": ["json", "markdown"]` to get both diffs.
+
+<Tip>
+  Most false alarms come from page furniture: a "last updated" date, a rotating testimonial, a visitor counter. Leave them out with `scrape_options.exclude_selectors`, or switch to the json mode and track only what you care about. Images are left out of the comparison by default, because their URLs change with every deploy.
+</Tip>
+
+## Goals and judging
+
+Add a `goal` — one plain sentence about what you want to be told — and every changed, new or removed page is judged against it:
+
+```json
+{ "goal": "Alert me when a plan price or its included features change" }
+```
+
+Each judged page gets `is_meaningful` and a `judgment` with a `reason`. Pages ruled **not meaningful** are still recorded on the check, but don't send a webhook. Good goals restate their scope ("the Pro plan", "the top 10", "API changes") and name exclusions only when they matter.
+
+Judging is on whenever a goal is set; pass `judge_enabled: false` to keep a goal without judging. The first check's baseline is never judged.
+
+## Webhooks
+
+With a `webhook`, two events are POSTed to you:
+
+| Event | When |
+|---|---|
+| [`monitor.page`](/api-reference/endpoint/monitor-webhook-page) | A page changed, appeared, was removed, or started failing — and, with a goal, the judge ruled it meaningful |
+| [`monitor.check.completed`](/api-reference/endpoint/monitor-webhook-check) | A check finished, with its summary counts |
+
+Every request is signed with the monitor's `webhook.secret`. Answer `2xx` within 10 seconds; failures are retried after 1, 5 and 15 minutes. The webhook URL must use `https://`.
+
+```json
+{
+  "webhook": {
+    "url": "https://you.example.org/hooks/prefetch",
+    "headers": { "Authorization": "Bearer your-token" },
+    "metadata": { "env": "production" },
+    "events": ["monitor.page"]
+  }
+}
+```
+
+## Credits
+
+Creating, reading and changing a monitor is free. **Each check** is billed to the API key that created the monitor:
+
+- **3 credits per page fetched** — the [`/scrape`](/api-reference/endpoint/scrape) rate.
+- **1 credit per page judged** against your goal — changed, new or removed pages only.
+
+Pages that fail to load are never charged, and neither are skipped checks. `estimated_credits_per_month` is an upper bound: it assumes every page is fetched and judged on every check.
+
+A check never spends more than the key has left. When credits run out partway, it stops and reports `partial`; when the key has none at all, the check is recorded as `skipped_no_credits` and the monitor keeps its schedule, resuming as soon as credits refill.
+
+<Warning>
+  A monitor bills on every check for as long as it is active. A crawl target with `limit: 100` on a 5-minute schedule fetches 28,800 pages a day. Start small, and pause monitors you are not using.
+</Warning>
+
+## Limits
+
+| Limit | Value |
+|---|---|
+| Targets per monitor | 50 |
+| URLs per scrape target | 100 |
+| Pages per check | 500 |
+| Monitors per API key | 50 |
+| Shortest schedule | Every 5 minutes |
+| Check history | `retention_days`, 30 by default, up to 365 |
+
+<Note>
+  Monitors need a direct Prefetch API key. They are not available through RapidAPI, which meters usage from a response header — and a scheduled check runs when there is no response to carry one.
+</Note>
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="GET /monitor/{id}/checks/{checkId}" icon="code-compare" href="/api-reference/endpoint/monitor-check">
+    Read what a check found, page by page.
+  </Card>
+  <Card title="monitor.page webhook" icon="bell" href="/api-reference/endpoint/monitor-webhook-page">
+    The event you receive, and how to verify it.
+  </Card>
+  <Card title="POST /monitor/{id}/run" icon="play" href="/api-reference/endpoint/monitor-run">
+    Run a check now instead of waiting for the schedule.
+  </Card>
+  <Card title="PATCH /monitor/{id}" icon="pen" href="/api-reference/endpoint/monitor-update">
+    Pause, resume, or change what a monitor watches.
+  </Card>
+</CardGroup>

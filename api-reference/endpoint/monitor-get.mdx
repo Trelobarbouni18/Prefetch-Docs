@@ -1,0 +1,66 @@
+---
+title: "GET /monitor/{id}"
+description: "One monitor's settings, next run, credit estimate and last check. Free."
+openapi: "GET /monitor/{id}"
+---
+
+## Overview
+
+Returns the monitor exactly as it runs: every target with its effective options, the schedule as cron, the next run, the webhook — including its signing `secret` — and the summary of the most recent check.
+
+A monitor you do not own returns `404` rather than `403`. Monitor ids are unguessable, and confirming that some id exists is the only thing an enumeration attempt is after.
+
+## Example request
+
+<CodeGroup>
+
+```bash cURL
+curl "https://api.prefetch.io/monitor/mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```javascript Node.js
+const res = await fetch(`https://api.prefetch.io/monitor/${monitorId}`, {
+  headers: { "X-API-Key": process.env.PREFETCH_API_KEY },
+});
+const { data: monitor } = await res.json();
+console.log(monitor.next_run_at, monitor.estimated_credits_per_month);
+```
+
+```python Python
+import os, requests
+
+monitor = requests.get(
+    f"https://api.prefetch.io/monitor/{monitor_id}",
+    headers={"X-API-Key": os.environ["PREFETCH_API_KEY"]},
+).json()["data"]
+print(monitor["next_run_at"], monitor["estimated_credits_per_month"])
+```
+
+</CodeGroup>
+
+## Reading the monitor
+
+| Field | Meaning |
+|---|---|
+| `schedule.cron` | The schedule the monitor runs on. A phrase you submitted is kept in `schedule.text`. |
+| `next_run_at` | When the next check starts. `null` while the monitor is paused. |
+| `current_check_id` | The check running right now, if one is. |
+| `targets` | What it watches. Every target has an `id` and every option its effective value. |
+| `webhook.secret` | The key to [verify webhook signatures](/api-reference/endpoint/monitor-webhook-page#verify-the-signature) with. Treat it like a password. |
+| `estimated_credits_per_check` | Upper bound: every page fetched, and judged if there is a goal. |
+| `estimated_credits_per_month` | The per-check estimate times the runs in an average month. |
+| `last_check_summary` | Page counts from the most recent check, with its id and status. |
+
+For a monitor's history, list its checks with [`GET /monitor/{id}/checks`](/api-reference/endpoint/monitor-checks).
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="PATCH /monitor/{id}" icon="pen" href="/api-reference/endpoint/monitor-update">
+    Change it, pause it or resume it.
+  </Card>
+  <Card title="GET /monitor/{id}/checks" icon="list" href="/api-reference/endpoint/monitor-checks">
+    Its check history.
+  </Card>
+</CardGroup>
