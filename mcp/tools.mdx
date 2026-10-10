@@ -4,9 +4,9 @@ description: "Every tool the Prefetch MCP server exposes, with its parameters an
 icon: "wrench"
 ---
 
-Eighteen tools: one per API capability, plus the extra verbs crawls and monitors need. Your agent reads these descriptions and picks the right one — you rarely need to name a tool yourself.
+Nineteen tools: one per API capability, plus the extra verbs crawls and monitors need. Your agent reads these descriptions and picks the right one — you rarely need to name a tool yourself.
 
-All parameters are snake_case. Most tools require only `url` — or `name` for `prefetch_resolve`, `id` for the crawl and monitor tools that act on one, and `name` plus `schedule` to create a monitor.
+All parameters are snake_case. Most tools require only `url` — or `name` for `prefetch_resolve`, `task` for `prefetch_answer`, `id` for the crawl and monitor tools that act on one, and `name` plus `schedule` to create a monitor.
 
 See [MCP server](/mcp/overview) for setup.
 
@@ -177,6 +177,26 @@ Render a page and return a hosted image URL.
 This returns a link, not image bytes. Pass the URL on to the user, or to a tool that can fetch images.
 </Note>
 
+## Research
+
+### `prefetch_answer`
+
+Research a question on the live web and get a sourced answer as JSON in the shape you describe. It searches the web, reads pages, and looks up company records as the task needs, then returns `json_content` in the shape of `json_format` plus the `sources` it read. Facts it could not establish come back `null`.
+
+Use it when the answer needs searching or several sources. When you already know the page, `prefetch_scrape` with `formats: ["json"]` is cheaper; for a company's profile from its URL, use `prefetch_enrich`.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `task` | string | — | **Required.** The research question. Name a domain or URL to focus it — named pages are read first. Up to 2,000 characters. |
+| `mode` | string | `fast` | `fast`: up to 30 s, 10 credits. `ultra`: deeper research across several sources, up to 50 s, 100 credits. |
+| `json_format` | object | `{"result": ""}` | An example of the answer object, not a JSON Schema — like `{"ceo": "", "founded_year": 0}`. Keys and value types are kept; unknowns come back `null`. |
+| `timeout_opts` | object | — | `{ milliseconds, behavior }`. Shortens the mode's deadline (1,000–300,000 ms). With `behavior: "return-partial"`, what was found so far is returned with `partial: true`. |
+| `tags` | string[] | — | Labels stored on the request log, for filtering usage. Up to 20. |
+
+<Note>
+Over MCP the default mode is `fast`; over REST it is `ultra`. Failures and timeouts are never charged.
+</Note>
+
 ## Monitoring
 
 A monitor re-checks pages on a schedule and records what changed — see [`POST /monitor`](/api-reference/endpoint/monitor) for how changes are detected and judged. The tools take a flatter shape than the REST body: `urls` for specific pages and `crawl_url` for a site, instead of a list of targets.
@@ -278,5 +298,6 @@ Delete a monitor and its history, stopping all future checks. To stop it for a w
 | Just the brand colors | `prefetch_brand` | 10 |
 | Just the industry | `prefetch_classify` | 5 |
 | A picture of the page | `prefetch_screenshot` | 2 |
+| An answer that needs searching | `prefetch_answer` | 10, or 100 in `ultra` mode |
 | To know when a page changes | `prefetch_create_monitor` | 3 per page, every check |
 | What changed, right now | `prefetch_run_monitor` | 3 per page, plus 1 per change judged |
