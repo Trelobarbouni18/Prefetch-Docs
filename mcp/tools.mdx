@@ -207,7 +207,7 @@ An agent rarely has a webhook to receive changes at, so it reads them back: `pre
 
 Start watching pages. Pass `urls`, `crawl_url`, or both.
 
-A monitor bills on every check for as long as it is active — 3 credits per page fetched, plus 1 per change judged — so prefer few pages and a modest schedule.
+A monitor bills on every check for as long as it is active — 1 credit per page fetched (4 when tracking JSON), plus 1 per change judged — so prefer few pages and a modest schedule.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
@@ -290,14 +290,14 @@ Delete a monitor and its history, stopping all future checks. To stop it for a w
 
 | You want | Use | Credits |
 |---|---|---|
-| One page's content | `prefetch_scrape` | 3 |
-| To know which pages exist | `prefetch_map` | 3 |
+| One page's content | `prefetch_scrape` | 1 |
+| To know which pages exist | `prefetch_map` | 1 |
 | A few specific pages | `prefetch_map`, then `prefetch_scrape` on each | 3 + 3 each |
 | A whole section of a site | `prefetch_crawl` with `include_paths` | 3 + 3/page |
-| Brand, company, and industry | `prefetch_enrich` | 20 |
+| Brand, company, and industry | `prefetch_enrich` | 12 |
 | Just the brand colors | `prefetch_brand` | 10 |
 | Just the industry | `prefetch_classify` | 5 |
-| A picture of the page | `prefetch_screenshot` | 2 |
+| A picture of the page | `prefetch_screenshot` | 1 |
 | An answer that needs searching | `prefetch_answer` | 10, or 100 in `ultra` mode |
-| To know when a page changes | `prefetch_create_monitor` | 3 per page, every check |
-| What changed, right now | `prefetch_run_monitor` | 3 per page, plus 1 per change judged |
+| To know when a page changes | `prefetch_create_monitor` | 1 per page, every check |
+| What changed, right now | `prefetch_run_monitor` | 1 per page, plus 1 per change judged |

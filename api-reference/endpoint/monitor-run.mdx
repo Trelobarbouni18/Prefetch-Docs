@@ -74,7 +74,7 @@ for page in check["pages"]:
     "scheduled_for": null,
     "started_at": null,
     "finished_at": null,
-    "estimated_credits": 104,
+    "estimated_credits": 55,
     "actual_credits": 0,
     "summary": { "total_pages": 0, "same": 0, "new": 0, "changed": 0, "removed": 0, "error": 0 },
     "target_results": null,
@@ -97,7 +97,7 @@ A monitor runs one check at a time. If one is already queued or running, this re
 
 ## Credits
 
-A manual check is billed exactly like a scheduled one: 3 credits per page fetched, plus 1 per changed page judged against the goal. `estimated_credits` is the upper bound; `actual_credits` on the finished check is what was charged.
+A manual check is billed exactly like a scheduled one: 1 credit per page fetched (4 on targets tracking `json`), plus 1 per changed page judged against the goal. `estimated_credits` is the upper bound; `actual_credits` on the finished check is what was charged.
 
 ## Related
 

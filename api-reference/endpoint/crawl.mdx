@@ -1,6 +1,6 @@
 ---
 title: "POST /crawl"
-description: "Crawl a whole site and get every page back as clean markdown. Costs 3 credits to submit, plus 3 per page returned."
+description: "Crawl a whole site and get every page back as clean markdown. Free to submit, then 1 credit per page returned."
 openapi: "POST /crawl"
 ---
 
@@ -168,7 +168,7 @@ Crawls obey `robots.txt` by default — both `Disallow` rules and `Crawl-delay`.
 
 ## Credits
 
-You are charged **3 credits to submit**, plus **3 credits per page the crawl returns**.
+Submitting is free. You are charged **1 credit per page the crawl returns**, or **4** when `scrape_options.formats` asks for `summary` or `json`.
 
 Pages are billed as they complete, on the status endpoint, so:
 

@@ -1,6 +1,6 @@
 ---
 title: "POST /monitor"
-description: "Watch pages on a schedule and get told what changed. Free to create; each check costs 3 credits per page it fetches, plus 1 per change judged against your goal."
+description: "Watch pages on a schedule and get told what changed. Free to create; each check costs 1 credit per page it fetches, plus 1 per change judged against your goal."
 openapi: "POST /monitor"
 ---
 
@@ -140,8 +140,8 @@ print(monitor["id"], monitor["webhook"]["secret"])
       "secret": "whsec_4f1c9e2a7b3d8e6f0a5c1b9d2e7f3a8c4b6d0e1f9a2c5b7d"
     },
     "retention_days": 30,
-    "estimated_credits_per_check": 104,
-    "estimated_credits_per_month": 2184,
+    "estimated_credits_per_check": 55,
+    "estimated_credits_per_month": 1155,
     "last_check_summary": null,
     "created_at": "2026-10-09T10:00:00.000Z",
     "updated_at": "2026-10-09T10:00:00.000Z"
@@ -257,7 +257,7 @@ Every request is signed with the monitor's `webhook.secret`. Answer `2xx` within
 
 Creating, reading and changing a monitor is free. **Each check** is billed to the API key that created the monitor:
 
-- **3 credits per page fetched** — the [`/scrape`](/api-reference/endpoint/scrape) rate.
+- **1 credit per page fetched** — the [`/scrape`](/api-reference/endpoint/scrape) rate, or 4 on targets tracking `json`.
 - **1 credit per page judged** against your goal — changed, new or removed pages only.
 
 Pages that fail to load are never charged, and neither are skipped checks. `estimated_credits_per_month` is an upper bound: it assumes every page is fetched and judged on every check.

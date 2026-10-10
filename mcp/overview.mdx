@@ -98,16 +98,16 @@ Your agent picks the right tool, calls it, and reads the result.
 | Tool | What it does | Credits |
 |---|---|---|
 | `prefetch_resolve` | A company, brand or product name → its domain | 1 (3 with a live lookup) |
-| `prefetch_scrape` | One page as markdown, summary, HTML, links, images, or extracted JSON | 3 |
-| `prefetch_map` | Every URL a site exposes, without fetching page content | 3 |
+| `prefetch_scrape` | One page as markdown, summary, HTML, links, images, or extracted JSON | 1 (4 with summary or JSON) |
+| `prefetch_map` | Every URL a site exposes, without fetching page content | 1 |
 | `prefetch_crawl` | Many pages as markdown | 3 + 3/page |
 | `prefetch_check_crawl_status` | Status and results for a crawl | — |
 | `prefetch_cancel_crawl` | Stop a crawl early | — |
-| `prefetch_enrich` | Brand + company + classification in one call | 20 |
+| `prefetch_enrich` | Brand + company + classification in one call | 12 |
 | `prefetch_brand` | Colors, fonts, logos, favicon, OG images | 10 |
 | `prefetch_company` | Name, emails, addresses, social profiles | 5 |
 | `prefetch_classify` | IAB category, description, stock tickers | 5 |
-| `prefetch_screenshot` | Render a page, return a hosted image URL | 2 |
+| `prefetch_screenshot` | Render a page, return a hosted image URL | 1 |
 | `prefetch_create_monitor` | Watch pages on a schedule, optionally against a goal | — (each check is billed) |
 | `prefetch_run_monitor` | Run a monitor's check now and see what changed | 3/page + 1/change judged |
 | `prefetch_get_monitor_check` | What a monitor's check found | — |

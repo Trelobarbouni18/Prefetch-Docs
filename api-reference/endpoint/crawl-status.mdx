@@ -1,6 +1,6 @@
 ---
 title: "GET /crawl/{id}"
-description: "Poll a crawl for progress and read its pages. Charges 3 credits for each page completed since your last call."
+description: "Poll a crawl for progress and read its pages. Charges 1 credit for each page completed since your last call."
 openapi: "GET /crawl/{id}"
 ---
 
@@ -146,7 +146,7 @@ Failed pages are listed rather than silently dropped, so you can see what a craw
 
 ## Billing
 
-This endpoint is where crawled pages are charged: each call bills for the pages that completed **since your previous call**, at 3 credits each.
+This endpoint is where crawled pages are charged: each call bills for the pages that completed **since your previous call**, at 1 credit each (4 when the crawl asked for `summary` or `json`).
 
 That makes polling safe — calling it ten times while a crawl runs costs exactly the same as calling it once at the end. `credits_used` on the response shows the running total for the crawl.
 

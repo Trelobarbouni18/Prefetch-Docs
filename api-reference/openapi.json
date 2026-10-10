@@ -2937,7 +2937,7 @@
       "get": {
         "operationId": "takeScreenshot",
         "summary": "Take a screenshot",
-        "description": "Captures a screenshot of a webpage and returns a public URL to the image stored in cloud storage. **Credit cost: 2.**",
+        "description": "Captures a screenshot of a webpage and returns a public URL to the image stored in cloud storage. **Credit cost: 1.**",
         "tags": ["Endpoints"],
         "parameters": [
           { "$ref": "#/components/parameters/url" },
@@ -3098,7 +3098,7 @@
       "get": {
         "operationId": "enrichUrl",
         "summary": "Enrich a URL",
-        "description": "Runs brand extraction, company info extraction, and website classification in parallel and returns all results in a single response. **Credit cost: 20.**\n\nThis is the most comprehensive endpoint — equivalent to calling `/brand`, `/company`, and `/classify` together but more efficient because the page is only loaded once.",
+        "description": "Runs brand extraction, company info extraction, and website classification in parallel and returns all results in a single response. **Credit cost: 12.**\n\nThis is the most comprehensive endpoint — equivalent to calling `/brand`, `/company`, and `/classify` together but more efficient because the page is only loaded once.",
         "tags": ["Endpoints"],
         "parameters": [
           { "$ref": "#/components/parameters/url" },
@@ -3274,7 +3274,7 @@
       "get": {
         "operationId": "scrapeUrl",
         "summary": "Scrape a page",
-        "description": "Fetches one URL and returns it in the formats you request: clean markdown, an LLM summary, cleaned or raw HTML, links, images, or JSON matching your own schema. Pages that need JavaScript are rendered in a real browser automatically. **Credit cost: 3.**",
+        "description": "Fetches one URL and returns it in the formats you request: clean markdown, an LLM summary, cleaned or raw HTML, links, images, or JSON matching your own schema. Pages that need JavaScript are rendered in a real browser automatically. **Credit cost: 1**, plus 3 when `summary` or `json` is requested.",
         "tags": [
           "Endpoints"
         ],
@@ -3482,7 +3482,7 @@
       "get": {
         "operationId": "mapSite",
         "summary": "Map a site's URLs",
-        "description": "Discovers the URLs a site exposes without fetching them: its sitemaps, found through `robots.txt` and the conventional locations, merged with the links on the page itself. **Credit cost: 3.**",
+        "description": "Discovers the URLs a site exposes without fetching them: its sitemaps, found through `robots.txt` and the conventional locations, merged with the links on the page itself. **Credit cost: 1.**",
         "tags": [
           "Endpoints"
         ],
@@ -3649,7 +3649,7 @@
       "post": {
         "operationId": "startCrawl",
         "summary": "Start a crawl",
-        "description": "Queues a breadth-first crawl and returns its id immediately. Crawls run for minutes, so nothing waits on this request — poll `GET /crawl/{id}` for progress and results.\n\n**Credit cost: 3 to submit, plus 3 per page the crawl returns.** Pages are charged as they complete, so you pay for what was fetched rather than for the `limit` you asked for.",
+        "description": "Queues a breadth-first crawl and returns its id immediately. Crawls run for minutes, so nothing waits on this request — poll `GET /crawl/{id}` for progress and results.\n\n**Credit cost: nothing to submit, 1 per page the crawl returns (4 when `scrape_options.formats` asks for `summary` or `json`).** Pages are charged as they complete, so you pay for what was fetched rather than for the `limit` you asked for.",
         "tags": [
           "Endpoints"
         ],
@@ -4087,7 +4087,7 @@
       "post": {
         "operationId": "createMonitor",
         "summary": "Create a monitor",
-        "description": "Watches pages on a schedule and tells you what changed. Each check re-fetches every target — a fixed list of URLs (`scrape`) or a whole site (`crawl`) — and compares each page with the previous check: `same`, `new`, `changed`, `removed` or `error`, with a diff. Give it a `goal` and every change is judged against it, so only meaningful changes reach your webhook.\n\nThe first check records a baseline: every page is `new`, and no `monitor.page` events are sent for it.\n\n**Credit cost: none to create.** Each check bills 3 credits per page it fetches (the `/scrape` rate), plus 1 per changed page judged against the goal.",
+        "description": "Watches pages on a schedule and tells you what changed. Each check re-fetches every target — a fixed list of URLs (`scrape`) or a whole site (`crawl`) — and compares each page with the previous check: `same`, `new`, `changed`, `removed` or `error`, with a diff. Give it a `goal` and every change is judged against it, so only meaningful changes reach your webhook.\n\nThe first check records a baseline: every page is `new`, and no `monitor.page` events are sent for it.\n\n**Credit cost: none to create.** Each check bills 1 credit per page it fetches (the `/scrape` rate, 4 on targets tracking `json`), plus 1 per changed page judged against the goal.",
         "tags": [
           "Endpoints"
         ],
@@ -4210,8 +4210,8 @@
                       "secret": "whsec_4f1c9e2a7b3d8e6f0a5c1b9d2e7f3a8c4b6d0e1f9a2c5b7d"
                     },
                     "retention_days": 30,
-                    "estimated_credits_per_check": 104,
-                    "estimated_credits_per_month": 2184,
+                    "estimated_credits_per_check": 55,
+                    "estimated_credits_per_month": 1155,
                     "last_check_summary": null,
                     "created_at": "2026-10-09T10:00:00.000Z",
                     "updated_at": "2026-10-09T10:00:00.000Z"
@@ -4402,8 +4402,8 @@
                           "secret": "whsec_4f1c9e2a7b3d8e6f0a5c1b9d2e7f3a8c4b6d0e1f9a2c5b7d"
                         },
                         "retention_days": 30,
-                        "estimated_credits_per_check": 104,
-                        "estimated_credits_per_month": 2184,
+                        "estimated_credits_per_check": 55,
+                        "estimated_credits_per_month": 1155,
                         "last_check_summary": {
                           "check_id": "chk_8e2d4f6a1b3c4d5e6f7a8b9c0d1e2f3a",
                           "status": "completed",
@@ -4605,8 +4605,8 @@
                       "secret": "whsec_4f1c9e2a7b3d8e6f0a5c1b9d2e7f3a8c4b6d0e1f9a2c5b7d"
                     },
                     "retention_days": 30,
-                    "estimated_credits_per_check": 104,
-                    "estimated_credits_per_month": 2184,
+                    "estimated_credits_per_check": 55,
+                    "estimated_credits_per_month": 1155,
                     "last_check_summary": {
                       "check_id": "chk_8e2d4f6a1b3c4d5e6f7a8b9c0d1e2f3a",
                       "status": "completed",
@@ -4822,8 +4822,8 @@
                       "secret": "whsec_4f1c9e2a7b3d8e6f0a5c1b9d2e7f3a8c4b6d0e1f9a2c5b7d"
                     },
                     "retention_days": 30,
-                    "estimated_credits_per_check": 104,
-                    "estimated_credits_per_month": 2184,
+                    "estimated_credits_per_check": 55,
+                    "estimated_credits_per_month": 1155,
                     "last_check_summary": {
                       "check_id": "chk_8e2d4f6a1b3c4d5e6f7a8b9c0d1e2f3a",
                       "status": "completed",
@@ -5028,7 +5028,7 @@
       "post": {
         "operationId": "runMonitor",
         "summary": "Run a check now",
-        "description": "Queues a check outside the schedule and returns it immediately. Poll `GET /monitor/{id}/checks/{checkId}` for the result. Works on paused monitors too.\n\n**Credit cost: the same as a scheduled check** — 3 per page fetched, plus 1 per changed page judged.",
+        "description": "Queues a check outside the schedule and returns it immediately. Poll `GET /monitor/{id}/checks/{checkId}` for the result. Works on paused monitors too.\n\n**Credit cost: the same as a scheduled check** — 1 per page fetched (4 in `json` mode), plus 1 per changed page judged.",
         "tags": [
           "Endpoints"
         ],
@@ -5074,7 +5074,7 @@
                     "scheduled_for": null,
                     "started_at": null,
                     "finished_at": null,
-                    "estimated_credits": 104,
+                    "estimated_credits": 55,
                     "actual_credits": 0,
                     "summary": {
                       "total_pages": 0,
@@ -5231,8 +5231,8 @@
                         "scheduled_for": "2026-10-12T06:00:00.000Z",
                         "started_at": "2026-10-12T06:00:04.112Z",
                         "finished_at": "2026-10-12T06:01:27.930Z",
-                        "estimated_credits": 104,
-                        "actual_credits": 57,
+                        "estimated_credits": 55,
+                        "actual_credits": 24,
                         "summary": {
                           "total_pages": 19,
                           "same": 16,
@@ -5399,8 +5399,8 @@
                     "scheduled_for": "2026-10-12T06:00:00.000Z",
                     "started_at": "2026-10-12T06:00:04.112Z",
                     "finished_at": "2026-10-12T06:01:27.930Z",
-                    "estimated_credits": 104,
-                    "actual_credits": 57,
+                    "estimated_credits": 55,
+                    "actual_credits": 24,
                     "summary": {
                       "total_pages": 19,
                       "same": 16,
@@ -5799,7 +5799,7 @@
                   },
                   "started_at": "2026-10-12T06:00:04.112Z",
                   "finished_at": "2026-10-12T06:01:27.930Z",
-                  "actual_credits": 57,
+                  "actual_credits": 24,
                   "error": null
                 },
                 "metadata": {
