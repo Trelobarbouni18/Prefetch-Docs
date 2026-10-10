@@ -1,6 +1,6 @@
 ---
 title: "Authentication"
-description: "How to authenticate requests to the Prefetch API using API keys."
+description: "How to authenticate requests to the Prefetch API: API keys for your own code, OAuth sign-in for apps like Claude and ChatGPT."
 icon: "key"
 ---
 
@@ -26,6 +26,21 @@ curl -X POST https://api.prefetch.io/mcp \
 
 `X-API-Key` takes precedence if you send both. This applies to `/mcp` only — REST endpoints require `X-API-Key`. See [MCP server](/mcp/overview) for client setup.
 
+## OAuth for apps
+
+Apps that can't hold an API key, such as Claude, ChatGPT, and Claude Desktop, sign you in instead. You approve the app on prefetch.io, and it receives an access token that it sends as a bearer token:
+
+```bash
+curl -X POST https://api.prefetch.io/mcp \
+  -H "Authorization: Bearer <access token>"
+```
+
+You never handle the token yourself: the app gets it, refreshes it, and stores it. Its calls bill the newest active API key on your account (the one on your dashboard) and go through the same key checks below. Access tokens are accepted on the REST endpoints too.
+
+A request with no credentials gets a `401` whose `WWW-Authenticate` header points at `/.well-known/oauth-protected-resource` (or `/.well-known/oauth-protected-resource/mcp` for the MCP server). That's how an app finds where to sign you in.
+
+To remove an app's access, select **Disconnect** under **Connected Apps** on the [dashboard](https://prefetch.io/dashboard). Its next call fails, even if its current token hasn't expired yet.
+
 ## Key validation
 
 Every request validates your API key against the following checks, in order:
@@ -35,7 +50,7 @@ Every request validates your API key against the following checks, in order:
 3. **Not expired** — key has not passed its expiry date
 4. **Within credit limit** — key has not exceeded its configured credit limit
 
-A missing `X-API-Key` header returns `401 Unauthorized`. All other failures (invalid, revoked, expired, or over-limit key) return `403 Forbidden`.
+A request with neither an `X-API-Key` header nor an access token returns `401 Unauthorized`, and so does an expired or disconnected access token. All other failures (invalid, revoked, expired, or over-limit key) return `403 Forbidden`.
 
 <Warning>
 Never expose your API key in client-side JavaScript. Proxy requests through your own backend instead.
@@ -52,7 +67,9 @@ Never expose your API key in client-side JavaScript. Proxy requests through your
 
 | Status | Error message | Cause |
 |---|---|---|
-| `401` | `"Missing API key"` | No `X-API-Key` header provided |
+| `401` | `"API key required"` | No `X-API-Key` header or access token provided |
+| `401` | `"The access token has expired"` | A connected app's token expired; the app refreshes it |
+| `401` | `"This connection to Prefetch was disconnected. Reconnect to continue."` | The app was disconnected from the dashboard |
 | `403` | `"Invalid API key"` | Key not found in the system |
 | `403` | `"API key has been revoked"` | Key was manually revoked |
 | `403` | `"API key has expired"` | Key passed its expiry date |

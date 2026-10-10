@@ -1,12 +1,12 @@
 ---
 title: "MCP server"
-description: "Connect Claude, Cursor, or any MCP client to the Prefetch API so your agent can scrape, map, crawl, and enrich on its own."
+description: "Connect Claude, ChatGPT, Cursor, or any MCP client to the Prefetch API so your agent can scrape, map, crawl, and enrich on its own."
 icon: "plug"
 ---
 
 Prefetch speaks the [Model Context Protocol](https://modelcontextprotocol.io), so an AI agent can call the API directly instead of you writing HTTP glue for it.
 
-There is nothing to install. The MCP server *is* the API — one endpoint, `POST /mcp`, authenticated with the same key you already use.
+There is nothing to install. The MCP server *is* the API — one endpoint, `POST /mcp`. Apps sign you in with your Prefetch account, so there's no key to copy; clients you configure yourself can use the API key you already have.
 
 ```
 https://api.prefetch.io/mcp
@@ -15,35 +15,35 @@ https://api.prefetch.io/mcp
 ## Connect
 
 <Tabs>
+  <Tab title="Claude">
+    Works on claude.ai, Claude Desktop, and Claude mobile.
+
+    1. Go to **Customize → Connectors** and select **Add custom connector**.
+    2. Paste `https://api.prefetch.io/mcp` and select **Add**.
+    3. Select **Connect**, sign in to Prefetch, and select **Allow access**.
+
+    On Team and Enterprise plans, an Owner adds the connector under **Organization settings → Connectors**. Members then connect with their own Prefetch account.
+  </Tab>
+
+  <Tab title="ChatGPT">
+    1. Open [chatgpt.com/plugins](https://chatgpt.com/plugins), select **+**, then **Add custom MCP server**.
+    2. Enter a name, paste `https://api.prefetch.io/mcp`, and choose **OAuth** for authentication.
+    3. Create it, sign in to Prefetch, and select **Allow access**.
+  </Tab>
+
   <Tab title="Claude Code">
+    ```bash
+    claude mcp add --transport http prefetch https://api.prefetch.io/mcp
+    ```
+
+    Then run `/mcp`, choose **prefetch**, and select **Authenticate** to sign in from your browser.
+
+    To use an API key instead, for CI or a machine without a browser:
+
     ```bash
     claude mcp add --transport http prefetch https://api.prefetch.io/mcp \
       --header "X-API-Key: $PREFETCH_API_KEY"
     ```
-
-    Verify it connected:
-
-    ```bash
-    claude mcp list
-    ```
-  </Tab>
-
-  <Tab title="Claude Desktop">
-    Add this to your `claude_desktop_config.json`:
-
-    ```json
-    {
-      "mcpServers": {
-        "prefetch": {
-          "type": "http",
-          "url": "https://api.prefetch.io/mcp",
-          "headers": { "X-API-Key": "your_api_key_here" }
-        }
-      }
-    }
-    ```
-
-    Restart Claude Desktop to pick up the change.
   </Tab>
 
   <Tab title="Cursor">
@@ -53,13 +53,13 @@ https://api.prefetch.io/mcp
     {
       "mcpServers": {
         "prefetch": {
-          "type": "http",
-          "url": "https://api.prefetch.io/mcp",
-          "headers": { "X-API-Key": "your_api_key_here" }
+          "url": "https://api.prefetch.io/mcp"
         }
       }
     }
     ```
+
+    Cursor opens the Prefetch sign-in when it first connects. To use an API key instead, add `"headers": { "X-API-Key": "your_api_key_here" }`.
   </Tab>
 
   <Tab title="Other clients">
@@ -69,12 +69,14 @@ https://api.prefetch.io/mcp
     https://api.prefetch.io/mcp
     ```
 
-    and send your key as either an `X-API-Key` or an `Authorization: Bearer` header.
+    Clients that support MCP authorization sign you in on their own. Otherwise, send your key as either an `X-API-Key` or an `Authorization: Bearer` header.
   </Tab>
 </Tabs>
 
+When you sign in, the consent screen shows which app is asking and where it will send you back. A connected app's calls use your account's credits, exactly like API requests. You can see and disconnect your apps under **Connected Apps** on the [dashboard](https://prefetch.io/dashboard); a disconnected app loses access on its next call.
+
 <Warning>
-Put your key in your client's secret storage or an environment variable — never in the URL. URLs end up in logs, shell history, and shared config files.
+If you use an API key, put it in your client's secret storage or an environment variable — never in the URL. URLs end up in logs, shell history, and shared config files.
 </Warning>
 
 ## Try it
@@ -181,11 +183,17 @@ The target URL could not be resolved. Please check the domain name. (HTTP 422)
 Private or reserved IP ranges are not allowed (HTTP 400)
 ```
 
-Authentication is the exception and fails at the HTTP layer: `401` with no key, `403` with an invalid one. See [Error handling](/concepts/errors) for the full list.
+Authentication is the exception and fails at the HTTP layer. A `401` means no credentials, or an access token that expired or was disconnected; apps react by refreshing the token or asking you to sign in again. A `403` means an invalid key or an account out of credits, which signing in again won't fix. See [Authentication](/concepts/authentication) and [Error handling](/concepts/errors).
 
 ## Good to know
 
 <AccordionGroup>
+  <Accordion title="What a connected app can do">
+    A connected app can call every tool on this page as you, and its calls use your credits. It can't see your password, payment details, or API keys, and it can't change your plan.
+
+    Each tool tells the app whether it only reads or changes something. Claude runs the read-only tools (scraping, mapping, brand and company lookups, reading monitors) without asking, and asks before anything that starts a crawl or creates, changes, runs, or deletes a monitor.
+  </Accordion>
+
   <Accordion title="MCP and REST are the same API">
     Both run the identical pipeline, so credits, caching, rate limits, and the blocklist behave the same either way. An MCP scrape even hits the cache a REST scrape warmed, because both build the same cache key.
   </Accordion>
@@ -197,7 +205,7 @@ Authentication is the exception and fails at the HTTP layer: `401` with no key, 
   <Accordion title="RapidAPI subscriptions cannot use MCP">
     RapidAPI meters usage from a response header that has to be set before the response body is written, and over MCP the cost of a call is not known until after the tool has run. Rather than under-bill silently, `/mcp` returns `400` for RapidAPI traffic.
 
-    Everything is available over REST through RapidAPI exactly as documented. MCP needs a direct Prefetch key from the [dashboard](https://prefetch.io/dashboard).
+    Everything is available over REST through RapidAPI exactly as documented. MCP needs a Prefetch account: sign in when your app asks, or use a key from the [dashboard](https://prefetch.io/dashboard).
   </Accordion>
 
   <Accordion title="Which tool should my agent use?">
