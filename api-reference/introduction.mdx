@@ -77,10 +77,10 @@ Monitors run on their own schedule. `POST /monitor` sets one up, and each check'
 
 ## Rate limits
 
-- **Global:** 300 requests per minute per IP
-- **Per key:** Configurable sliding window (1-minute) set on your API key
+- **Concurrency:** how many requests your key can run at once, from 1 on Free to 500 on Scale
+- **Per minute:** 30 requests on Free; paid plans have no per-minute cap
 
-Exceeding either limit returns HTTP 429. See [Rate limits](/concepts/rate-limits).
+Exceeding a limit returns HTTP 429. See [Rate limits](/concepts/rate-limits).
 
 ## Endpoints
 

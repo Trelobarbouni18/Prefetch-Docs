@@ -45,7 +45,7 @@ if (!success) {
 | `404` | Not found | Unknown or expired crawl id, or a monitor or check that does not exist — or is not yours |
 | `409` | Conflict | A monitor check is already queued or running (`POST /monitor/{id}/run`) |
 | `422` | Unresolvable | URL hostname could not be resolved (DNS failure) |
-| `429` | Rate limited | Global (300/min per IP), per-key RPM, or concurrency limit exceeded |
+| `429` | Rate limited | Concurrency limit or per-minute limit exceeded, or too many failed authentication attempts from one IP |
 | `500` | Server error | Page not accessible, extraction failed, internal error |
 | `502` | Bad gateway | Connection refused to target URL, or SSL certificate invalid |
 | `503` | Unavailable | Queue is backed up, service temporarily overloaded |
@@ -85,9 +85,10 @@ if (!success) {
 
 | Message | Cause |
 |---|---|
-| `"Too many requests"` | Global IP rate limit (300/min) exceeded |
-| `"Rate limit exceeded for this API key"` | Per-key RPM limit exceeded |
-| `"Concurrency limit exceeded for this API key"` | Too many in-flight requests for this key |
+| `"Concurrency limit exceeded — too many requests in flight"` | Your key already has as many requests running as its plan allows |
+| `"Rate limit exceeded"` | Per-minute limit exceeded (30 a minute on Free) |
+| `"Too many failed authentication attempts, please try again later"` | Too many unknown API keys or invalid tokens from your IP address this minute |
+| `"Too many requests, please try again later"` | Over 300 requests a minute from one IP address without an API key |
 
 ### Gateway errors (502 / 503)
 

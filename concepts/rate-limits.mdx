@@ -1,55 +1,60 @@
 ---
 title: "Rate limits"
-description: "Understanding global and per-key rate limits in the Prefetch API."
+description: "How many requests each Prefetch plan can run at once, and how to handle 429 responses."
 icon: "gauge-high"
 ---
 
 ## Overview
 
-Prefetch API enforces three independent limits:
+Prefetch limits how many requests your API key can have **running at the same time**. Paid plans have no per-minute cap: as soon as one request finishes, the next can start.
 
-1. **Global rate limit** — per IP address, fixed 1-minute window
-2. **Per-key rate limit** — per API key, sliding 1-minute window
-3. **Per-key concurrency limit** — max in-flight requests per key at once
+| Plan | Concurrent requests | Requests per minute |
+|---|---|---|
+| Free | 1 | 30 |
+| Starter | 10 | No limit |
+| Pro | 50 | No limit |
+| Growth | 150 | No limit |
+| Scale | 500 | No limit |
+| Enterprise | Custom | No limit |
 
-When any limit is exceeded, you receive HTTP `429 Too Many Requests`.
+Going over a limit returns HTTP `429 Too Many Requests`. A refused request costs no credits.
 
-## Global rate limit
+## Concurrency limit
 
-**300 requests per minute per IP address**, using a fixed 1-minute window.
-
-This limit applies before authentication and cannot be configured. It protects the infrastructure from abuse.
-
-## Per-key rate limit
-
-Each API key has a `rate_limit_rpm` (requests per minute) field, enforced with a sliding 60-second window. When a key's request rate exceeds this value, requests fail with:
+Each key can have a fixed number of requests in flight at once. A request that would go over it is refused straight away with `429`, rather than queued:
 
 ```json
 {
-  "success": false,
-  "error": "Rate limit exceeded for this API key",
-  "meta": { ... }
+  "error": "Concurrency limit exceeded — too many requests in flight",
+  "limit": 50
 }
 ```
 
-Contact support or manage your key's rate limit from the [dashboard](https://prefetch.io/dashboard).
-
-## Per-key concurrency limit
-
-Separate from the RPM limit, each key has a maximum number of requests that can be in-flight simultaneously. Exceeding it returns `429` immediately (no queueing). Two headers indicate your current usage:
+Every response that counts toward the limit carries two headers, so you can pace yourself:
 
 | Header | Description |
 |---|---|
 | `X-Concurrency-Limit` | Maximum concurrent requests allowed for this key |
-| `X-Concurrency-Running` | Number of requests currently in-flight |
+| `X-Concurrency-Running` | Number of requests currently in flight, including this one |
+
+The simplest way to stay under it is a worker pool the size of your plan's limit. Each worker sends its next request when its last one finishes.
+
+## Per-minute limit
+
+The Free plan allows **30 requests per minute**, counted over a sliding 60-second window. Paid plans also carry a high per-minute safety ceiling that stops runaway loops; ordinary traffic does not reach it. Either one answers:
 
 ```json
 {
-  "success": false,
-  "error": "Concurrency limit exceeded for this API key",
-  "meta": { ... }
+  "error": "Rate limit exceeded",
+  "retryAfterSeconds": 12
 }
 ```
+
+with a `Retry-After` header in seconds. Responses also carry `X-RateLimit-Limit` and `X-RateLimit-Remaining`.
+
+## Requests without an API key
+
+Requests that carry no API key or token are limited to 300 per minute per IP address. After 60 unknown API keys or invalid tokens from one IP address in a minute, that address is refused for the rest of the minute with `429` and a `Retry-After` header. Requests made with a valid key never count toward either limit.
 
 ## Handling 429 responses
 
@@ -98,4 +103,4 @@ def fetch_with_retry(url, params, headers, max_retries=3):
 - **Batch wisely** — use `/enrich` instead of separate `/brand` + `/company` + `/classify` calls to reduce request count
 - **Cache responses** — most brand/company data is stable; cache it for hours or days
 - **Deduplicate** — avoid re-fetching the same domain multiple times in a short window
-- **Queue large jobs** — if processing many URLs, space requests out over time rather than sending all at once
+- **Match your concurrency** — for large jobs, run as many requests in parallel as your plan allows and no more; extra requests are refused, not queued

@@ -82,16 +82,16 @@ A few consequences:
 
 ## Plans
 
-Every plan unlocks every endpoint. Plans differ in their monthly credits, their rate limit and how many requests can run at once.
+Every plan unlocks every endpoint. Plans differ in their monthly credits and how many requests can run at once. Paid plans have no per-minute cap; see [Rate limits](/concepts/rate-limits).
 
-| Plan | Price | Credits per month | Requests per minute | Concurrent requests |
+| Plan | Price | Credits per month | Concurrent requests | Requests per minute |
 |---|---|---|---|---|
-| Free | $0 | 1,000 | 60 | 1 |
-| Starter | $9 a month, or $90 a year | 5,000 | 120 | 2 |
-| Pro | $49 a month, or $490 a year | 75,000 | 300 | 3 |
-| Growth | $149 a month, or $1,490 a year | 300,000 | 600 | 5 |
-| Scale | $399 a month, or $3,990 a year | 1,000,000 | 1,000 | 10 |
-| Enterprise | Custom | From 2,000,000 | Custom | Custom |
+| Free | $0 | 1,000 | 1 | 30 |
+| Starter | $9 a month, or $90 a year | 5,000 | 10 | No limit |
+| Pro | $49 a month, or $490 a year | 75,000 | 50 | No limit |
+| Growth | $149 a month, or $1,490 a year | 300,000 | 150 | No limit |
+| Scale | $399 a month, or $3,990 a year | 1,000,000 | 500 | No limit |
+| Enterprise | Custom | From 2,000,000 | Custom | No limit |
 
 Plans are listed on the [pricing page](https://prefetch.io/#pricing-section). You can change plan from the [upgrade page](https://prefetch.io/upgrade). An upgrade applies straight away and is charged pro rata; Stripe shows exactly what any change costs before you confirm it.
 
