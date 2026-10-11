@@ -1,0 +1,16 @@
+---
+title: "DELETE /batch/scrape/{id}"
+description: "Stop a running batch scrape. Pages already scraped stay readable. Free."
+openapi: "DELETE /batch/scrape/{id}"
+---
+
+## Overview
+
+Stops a batch that is `pending` or `running`. Pages already scraped stay readable through [`GET /batch/scrape/{id}`](/api-reference/endpoint/batch-scrape-status) until the batch expires, and are billed on the next status call as usual. Cancelling a finished batch returns its final state. Free.
+
+## Example request
+
+```bash cURL
+curl -X DELETE "https://api.prefetch.io/batch/scrape/crw_5a8d2e7f1c4b4a9e8d3c6b1a0f9e8d7c" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```

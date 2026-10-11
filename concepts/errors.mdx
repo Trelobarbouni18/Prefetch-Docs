@@ -1,130 +1,130 @@
 ---
 title: "Error handling"
-description: "How errors are returned by the Prefetch API, including status codes and error messages."
+description: "How the Prefetch API reports errors: the error envelope, machine-readable error codes, and when to retry."
 icon: "circle-exclamation"
 ---
 
 ## Error envelope
 
-All errors use the same response envelope as successful responses, with `success: false` and an `error` string:
+Errors use the same envelope as successful responses, with `success: false`, a human-readable `error`, and two fields for code to branch on:
 
 ```json
 {
   "success": false,
-  "error": "Human-readable error message",
+  "error": "The target URL could not be resolved. Please check the domain name.",
+  "error_code": "DNS_RESOLUTION_FAILED",
+  "retryable": false,
   "meta": {
     "requestId": "uuid-v4",
-    "durationMs": 12
+    "durationMs": 412
   }
 }
 ```
 
-Always check `success` before reading `data`.
+- **`error_code`** says what went wrong. Codes are stable: once published, a code keeps its meaning. The wording of `error` can change, so don't match on it.
+- **`retryable`** says whether the same request can succeed if you send it again after a short wait. It is `false` when the problem is the request or the target itself — a bad parameter, a domain that does not exist, a page that returns 404 — and `true` for capacity limits, timeouts, and transient failures.
 
-```javascript
-const { success, data, error, meta } = await res.json();
+Authentication and rate-limit errors are answered before a request is processed, so they carry `error`, `error_code`, and `retryable` without `success` or `meta`:
 
-if (!success) {
-  console.error(`Request ${meta.requestId} failed: ${error}`);
-  // Handle error
-} else {
-  // Use data
+```json
+{
+  "error": "Rate limit exceeded",
+  "retryAfterSeconds": 12,
+  "error_code": "RATE_LIMITED",
+  "retryable": true
 }
 ```
 
-## HTTP status codes
+## Handling errors
 
-| Status | Category | When it occurs |
-|---|---|---|
-| `200` | Success | Request completed successfully, credits deducted |
-| `201` | Created | A monitor was created (`POST /monitor`) |
-| `202` | Accepted | Work was queued: a crawl (`POST /crawl`) or a monitor check (`POST /monitor/{id}/run`) |
-| `400` | Validation error | Invalid or missing `url`, bad parameter values |
-| `401` | Unauthorized | No `X-API-Key` header provided |
-| `403` | Forbidden | Invalid key, revoked key, expired key, credit limit exceeded, blocklisted URL, monitor limit reached |
-| `404` | Not found | Unknown or expired crawl id, or a monitor or check that does not exist — or is not yours |
-| `409` | Conflict | A monitor check is already queued or running (`POST /monitor/{id}/run`) |
-| `422` | Unresolvable | URL hostname could not be resolved (DNS failure) |
-| `429` | Rate limited | Concurrency limit or per-minute limit exceeded, or too many failed authentication attempts from one IP |
-| `500` | Server error | Page not accessible, extraction failed, internal error |
-| `502` | Bad gateway | Connection refused to target URL, or SSL certificate invalid |
-| `503` | Unavailable | Queue is backed up, service temporarily overloaded |
-| `504` | Timeout | Request exceeded the 55-second processing limit |
+```javascript
+const res = await fetch(url, { headers: { "X-API-Key": process.env.PREFETCH_API_KEY } });
+const body = await res.json();
 
-## Error messages
+if (res.ok) {
+  // Use body.data
+} else if (body.retryable) {
+  // Wait (honour the Retry-After header when present), then send the same request again
+} else if (body.error_code === "CREDITS_EXHAUSTED") {
+  // Top up, or wait for the monthly refill
+} else {
+  // Not worth retrying as-is: fix the request, or skip this URL
+  console.error(`${body.error_code}: ${body.error}`);
+}
+```
 
-### Validation errors (400)
+## Error codes
 
-| Message | Cause |
-|---|---|
-| `"url parameter is required"` | Missing `url` query parameter |
-| `"Invalid URL"` | URL fails validation (bad format, private IP, reserved TLD) |
-| `"URL exceeds maximum length"` | URL longer than 2048 characters |
-| `"width must be between 320 and 5000"` | Screenshot width out of range |
-| `"height must be between 320 and 5000"` | Screenshot height out of range |
-| `"screenshotColors must be between 2 and 12"` | Color count out of range |
+### Your request
 
-### Auth errors (401 / 403)
+| Code | Status | Retryable | Meaning |
+|---|---|---|---|
+| `INVALID_REQUEST` | 400 | No | A parameter is missing or invalid. The message names it. |
+| `PAYLOAD_TOO_LARGE` | 413 | No | The request body is over 1 MB. |
+| `NOT_FOUND` | 404 | No | No such crawl, batch, monitor, or check — or it has expired, or is not yours. |
+| `CONFLICT` | 409 | Yes | A monitor check is already queued or running. Retry when it finishes. |
 
-| Message | Cause |
-|---|---|
-| `"Missing API key"` | No `X-API-Key` header |
-| `"Invalid API key"` | Key not found in the system |
-| `"API key has been revoked"` | Key was manually revoked |
-| `"API key has expired"` | Key passed its expiry date |
-| `"Credit limit exceeded"` | Key used up its monthly credit allowance. Requests work again when your credits [refill](/concepts/credits#monthly-allowance) |
-| `"URL is blocklisted for this API key"` | URL is on the key's blocklist |
+### Your account
 
-### DNS errors (422)
+| Code | Status | Retryable | Meaning |
+|---|---|---|---|
+| `UNAUTHORIZED` | 401, 403 | No | No API key, or the key is unknown, revoked, expired, or not live. |
+| `CREDITS_EXHAUSTED` | 403 | No | The key has used its credits. Requests work again after a top-up or the [monthly refill](/concepts/credits#monthly-allowance). |
+| `FORBIDDEN` | 403 | No | The key cannot use this feature — for example, monitors need a direct Prefetch API key rather than a RapidAPI subscription. |
+| `RATE_LIMITED` | 429 | Yes | Too many requests this minute. Wait `retryAfterSeconds`. See [Rate limits](/concepts/rate-limits). |
+| `CONCURRENCY_LIMITED` | 429 | Yes | Your key already has as many requests running as its plan allows (`limit`). Retry when one finishes. |
 
-| Message | Cause |
-|---|---|
-| `"Could not resolve hostname"` | URL hostname failed DNS lookup |
+### The target URL
 
-### Rate limit errors (429)
+| Code | Status | Retryable | Meaning |
+|---|---|---|---|
+| `URL_BLOCKED` | 403 | No | The URL is on your key's blocklist. |
+| `URL_NOT_PERMITTED` | 403 | No | The URL, or a page it redirected to, points at a private or reserved address. |
+| `DNS_RESOLUTION_FAILED` | 422 | No | The domain does not resolve. Check the spelling. |
+| `TARGET_BLOCKED` | 403 | No | The site refused automated access. |
+| `TARGET_CONNECTION_FAILED` | 502 | Yes | The site refused or dropped the connection. |
+| `TARGET_TIMEOUT` | 504 | Yes | The site did not respond in time. |
+| `TARGET_SSL_ERROR` | 502 | No | The site's TLS certificate is invalid or expired. |
+| `TARGET_SERVER_ERROR` | 502 | Yes | The site answered with a 5xx error. |
+| `TARGET_CLIENT_ERROR` | 502 | No | The site answered with a 4xx error, such as 404. The message includes the status. |
+| `TARGET_NOT_A_PAGE` | 422 | No | The URL is a file download, not a web page. |
+| `TARGET_UNLOADABLE` | 502 | No | The site's response could not be loaded as a page. |
 
-| Message | Cause |
-|---|---|
-| `"Concurrency limit exceeded — too many requests in flight"` | Your key already has as many requests running as its plan allows |
-| `"Rate limit exceeded"` | Per-minute limit exceeded (30 a minute on Free) |
-| `"Too many failed authentication attempts, please try again later"` | Too many unknown API keys or invalid tokens from your IP address this minute |
-| `"Too many requests, please try again later"` | Over 300 requests a minute from one IP address without an API key |
+### This service
 
-### Gateway errors (502 / 503)
+| Code | Status | Retryable | Meaning |
+|---|---|---|---|
+| `TIMEOUT` | 504 | Yes | The request did not finish within its time limit (55 seconds for most endpoints). |
+| `SERVICE_BUSY` | 503 | Yes | Prefetch is under heavy load. Retry after the `Retry-After` header. |
+| `SERVICE_UNAVAILABLE` | 503 | Yes | A component is temporarily unavailable. |
+| `RESEARCH_INCONCLUSIVE` | 500 | No | `/answers` could not find usable evidence for the task. Rephrase it, or name the site to research. |
+| `INTERNAL_ERROR` | 500 | Yes | Something failed on our side. Retry once; if it persists, contact support with the `requestId`. |
 
-| Message | Cause |
-|---|---|
-| `"Connection refused"` | Target URL actively refused the connection |
-| `"SSL certificate error"` | Target URL has an invalid or expired SSL certificate |
-| `"Service temporarily unavailable"` | Request queue is backed up; retry shortly |
+<Note>
+You are never charged credits for a failed request.
+</Note>
 
-### Server errors (500 / 504)
+## Errors on crawled pages
 
-| Message | Cause |
-|---|---|
-| `"Page not accessible"` | Target URL returned an error or was unreachable |
-| `"Extraction failed"` | Internal error during data extraction |
-| `"Request timed out"` | Processing exceeded 55 seconds |
+A crawl or batch scrape does not fail when one page does. Each page in `GET /crawl/{id}` and in `crawl.page` webhooks carries `ok`, and a failed page carries an `error_code` from the same list:
+
+```json
+{
+  "url": "https://example.com/pricing",
+  "depth": 1,
+  "status_code": null,
+  "ok": false,
+  "error": "Failed to load page (HTTP 503)",
+  "error_code": "TARGET_SERVER_ERROR"
+}
+```
+
+Use it to decide which pages to try again: `TARGET_SERVER_ERROR` and `TARGET_TIMEOUT` often succeed later, and `DNS_RESOLUTION_FAILED` never will.
 
 ## Blocked URLs
 
-Certain URLs are automatically blocked to prevent misuse:
+Some URLs are refused before any request is made:
 
-- **Private IP ranges** — `10.x.x.x`, `192.168.x.x`, `127.x.x.x`, etc.
-- **Reserved TLDs** — `.local`, `.internal`, `.localhost`, etc.
-- **Per-key blocklist** — URLs manually added to a key's blocklist
-
-Requests to blocked URLs return `403 Forbidden` with `"URL is blocklisted for this API key"`.
-
-## Retrying failed requests
-
-| Status | Should retry? | Strategy |
-|---|---|---|
-| `400` | No | Fix the request parameters |
-| `401` / `403` | No | Fix authentication or credits |
-| `422` | No | The hostname doesn't exist; fix the URL |
-| `429` | Yes | Exponential backoff — see [Rate limits](/concepts/rate-limits) |
-| `500` | Maybe | Retry once after a short delay; some pages are intermittently unavailable |
-| `502` | Maybe | Target site connection issue; retry once |
-| `503` | Yes | Service overloaded; retry with backoff |
-| `504` | Maybe | The target site may have been slow; retry once |
+- **Private and reserved addresses** — `10.x.x.x`, `192.168.x.x`, `127.x.x.x`, `169.254.x.x`, and similar, including domains that resolve to them and redirects that lead to them (`URL_NOT_PERMITTED`)
+- **Bare IP addresses and reserved TLDs** — `.local`, `.internal`, `.localhost`, and similar (`INVALID_REQUEST`)
+- **Per-key blocklist** — URLs added to your key's blocklist (`URL_BLOCKED`)

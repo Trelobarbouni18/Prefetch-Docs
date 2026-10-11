@@ -13,6 +13,7 @@ openapi: "GET /brand"
 - **Fonts** — font family names detected on the page
 - **Images** — OG image, Twitter card image, brand assets, screenshot URL
 - **Social links** — keyed by platform (twitter, linkedin, github, etc.)
+- **Design tokens** (opt-in) — the site's colors by role, its type, and its button and input styles
 
 Everything sits under `data.brand`, the same key `/enrich` uses — so `data.brand.colors` reads identically from either endpoint.
 
@@ -28,6 +29,40 @@ Everything sits under `data.brand`, the same key `/enrich` uses — so `data.bra
 | `filterAchromatic=true` | Excludes near-white, near-black, and greyscale results | — |
 
 You can combine any of these. Note that `css`, `html`, and `javascript` all feed the **same** `code_colors` map — it is keyed by nearest named color, not split per source.
+
+## Design tokens
+
+`brand_colors` tells you what a brand's colors are. `designTokens=true` tells you what each one is **for**, read from the page as it renders:
+
+- **Colors by role** — `primary` (the most prominent button's fill), `secondary`, `background`, `text`, `heading`, `link`, plus whether the page is `light` or `dark`
+- **Typography** — body and heading font stacks, weights, line height, and the h1–h3 and body sizes
+- **Components** — the primary and secondary button (fill, label color, border, radius, weight) and the first text input
+- **`border_radius`** — the primary button's rounding, a good proxy for the whole site's
+
+The block lands at `brand.design_tokens`. It is best effort: any field the page gives no reliable answer for is `null`. Requests with `designTokens=true` are never answered from curated data, so they always cost a live render.
+
+```bash
+curl "https://api.prefetch.io/brand?url=https://stripe.com&designTokens=true" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```json
+"design_tokens": {
+  "color_scheme": "light",
+  "colors": { "primary": "#533AFD", "secondary": null, "background": "#FFFFFF", "text": "#50617A", "heading": "#061B31", "link": "#533AFD" },
+  "typography": {
+    "body": { "font_family": "sohne-var", "font_stack": ["sohne-var", "SF Pro Display", "sans-serif"], "font_size": "16px", "font_weight": 400, "line_height": null },
+    "heading": { "font_family": "sohne-var", "font_stack": ["sohne-var", "SF Pro Display", "sans-serif"], "font_weight": 300 },
+    "sizes": { "h1": "48px", "h2": "32px", "h3": "26px", "body": "16px" }
+  },
+  "components": {
+    "button_primary": { "background": "#533AFD", "text_color": "#FFFFFF", "border_color": null, "border_radius": "4px", "font_weight": 400 },
+    "button_secondary": { "background": null, "text_color": "#FFFFFF", "border_color": null, "border_radius": "4px", "font_weight": 400 },
+    "input": null
+  },
+  "border_radius": "4px"
+}
+```
 
 ## Example requests
 

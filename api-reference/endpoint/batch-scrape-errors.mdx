@@ -1,0 +1,18 @@
+---
+title: "GET /batch/scrape/{id}/errors"
+description: "The pages of a batch scrape that failed, with error codes, and the URLs it skipped. Free."
+openapi: "GET /batch/scrape/{id}/errors"
+---
+
+## Overview
+
+The pages of a batch that were fetched and failed, oldest first, each with an [`error_code`](/concepts/errors#error-codes), plus `skipped`: pages left out, by reason — for a batch, `duplicate` when a URL redirected onto a page the batch already had, or `blocklist` when a URL was added to your blocklist after you submitted. The same response as [`GET /crawl/{id}/errors`](/api-reference/endpoint/crawl-errors). Free.
+
+Use the codes to decide what to resubmit: `TARGET_TIMEOUT` and `TARGET_SERVER_ERROR` often succeed on a second try, `DNS_RESOLUTION_FAILED` and `TARGET_CLIENT_ERROR` will not.
+
+## Example request
+
+```bash cURL
+curl "https://api.prefetch.io/batch/scrape/crw_5a8d2e7f1c4b4a9e8d3c6b1a0f9e8d7c/errors" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```

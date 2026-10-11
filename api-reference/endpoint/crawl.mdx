@@ -114,6 +114,9 @@ A crawl stays inside the boundary you draw. By default that means the site you p
 | `exclude_paths` | — | Regular expressions. A matching URL is skipped. |
 | `allow_subdomains` | `false` | Follow links onto subdomains. |
 | `allow_external_links` | `false` | Follow links onto other sites. |
+| `crawl_entire_domain` | `false` | Follow links anywhere on the site, not only at or below the start URL's path. |
+
+A crawl stays at or below the path it starts from: one started at `https://docs.stripe.com/payments/` crawls the payments docs, not the whole site its navigation links to. A start URL that names a file, like `/docs/intro.html`, scopes to its directory. Set `crawl_entire_domain: true` to follow links anywhere on the site.
 
 Patterns are matched against the **path and query**, not the whole URL — so `^/docs/` means the docs section, and a pattern containing the hostname will never match. Exclusions win over inclusions. An invalid regular expression is rejected at submission with a `400`, not silently ignored halfway through a crawl.
 
@@ -124,6 +127,10 @@ Patterns are matched against the **path and query**, not the whole URL — so `^
   "exclude_paths": ["^/docs/payments/legacy/", "\\?locale="]
 }
 ```
+
+### Duplicates
+
+`http://` and `https://`, `www.` and the bare domain, a trailing slash, and `/index.html` all name the same page, so each page is fetched and billed once. A page that redirects onto one the crawl already has is dropped as a `duplicate` instead of being returned twice.
 
 ## Sitemap seeding and depth
 
@@ -163,12 +170,65 @@ Crawls obey `robots.txt` by default — both `Disallow` rules and `Crawl-delay`.
 ```
 
 <Warning>
-  Formats are charged per page. Requesting `summary` or `json` on a 500-page crawl means 500 LLM calls. Start with a small `limit` to check the output before scaling up.
+  Formats are charged per page. Requesting `summary`, `json` or `check_prompt_injection` on a 500-page crawl means 500 LLM calls. Start with a small `limit` to check the output before scaling up.
 </Warning>
+
+## When pages are missing
+
+[`GET /crawl/{id}/errors`](/api-reference/endpoint/crawl-errors) explains a crawl that came back smaller than expected, for free:
+
+- **`failed`** — pages that were fetched and failed, each with an [`error_code`](/concepts/errors#error-codes) that says whether trying again could help.
+- **`skipped`** — URLs the crawl found but did not fetch, counted by reason with a few examples each: `limit`, `depth`, `out-of-scope`, `excluded`, `not-included`, `robots`, `off-site`, `file`, `invalid`, `blocklist`, `duplicate`.
+
+A large `limit` count means the crawl ran out of budget; a large `out-of-scope` count usually means it needed `crawl_entire_domain`.
+
+## Webhooks
+
+Pass `webhook` to be told about progress instead of polling: an `https` URL, or an object with `url` and optionally `events`, `headers` (sent with every delivery), and `metadata` (echoed back in every payload, up to 4 KB).
+
+```json
+{
+  "url": "https://docs.stripe.com",
+  "webhook": {
+    "url": "https://example.com/hooks/prefetch",
+    "events": ["page", "completed"],
+    "metadata": { "job": "docs-sync" }
+  }
+}
+```
+
+| Event | When |
+|---|---|
+| `crawl.started` | A worker picked the crawl up. |
+| `crawl.page` | A page was stored — the same object `GET /crawl/{id}` lists, including failed pages (`ok: false`). |
+| `crawl.completed` | The crawl finished or was cancelled. `data.status` says which. |
+| `crawl.failed` | The crawl stopped on an error. Pages already stored stay readable. |
+
+Every delivery has the same envelope:
+
+```json
+{
+  "success": true,
+  "type": "crawl.page",
+  "id": "whd_3f9a1c7e5b2d4f6a8c0e1b3d",
+  "created_at": "2026-10-11T09:14:09.512Z",
+  "crawl_id": "crw_9f2c1a7b4e0d4c3a8b1e5f7d2c9a0b3e",
+  "data": { "url": "https://docs.stripe.com/payments", "ok": true, "...": "..." },
+  "metadata": { "job": "docs-sync" }
+}
+```
+
+Deliveries are signed exactly like monitor webhooks — an `X-Prefetch-Signature` header you [verify](/api-reference/endpoint/monitor-webhook-page#verify-the-signature) with the `webhook.secret` from the `POST /crawl` response. That response is the only place the secret appears, so store it.
+
+Deliveries go out in order. Answer with a `2xx` within 10 seconds; a failed delivery is retried after 2, 10 and 30 seconds, then dropped. Webhooks are a notification, not the record: `GET /crawl/{id}` always has every page.
+
+## Restarts
+
+A crawl survives restarts on our side. If the worker running it stops mid-crawl — a deploy, a crash — another worker resumes it from a checkpoint saved every few seconds. At most the last few seconds of pages are fetched again, and a page is never returned or billed twice.
 
 ## Credits
 
-Submitting is free. You are charged **1 credit per page the crawl returns**, or **4** when `scrape_options.formats` asks for `summary` or `json`.
+Submitting is free. You are charged **1 credit per page the crawl returns**, or **4** when `scrape_options` asks for `summary`, `json` or `check_prompt_injection`.
 
 Pages are billed as they complete, on the status endpoint, so:
 
@@ -185,5 +245,11 @@ Pages are billed as they complete, on the status endpoint, so:
   </Card>
   <Card title="DELETE /crawl/{id}" icon="ban" href="/api-reference/endpoint/crawl-cancel">
     Stop a running crawl. Free.
+  </Card>
+  <Card title="GET /crawl/{id}/errors" icon="triangle-exclamation" href="/api-reference/endpoint/crawl-errors">
+    Failed pages and skipped URLs. Free.
+  </Card>
+  <Card title="POST /batch/scrape" icon="list" href="/api-reference/endpoint/batch-scrape">
+    Scrape a list of URLs you already have.
   </Card>
 </CardGroup>

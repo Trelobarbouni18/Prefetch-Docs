@@ -15,18 +15,21 @@ A credit is one page: fetching, mapping, crawling or screenshotting a page costs
 | `GET /brand` | 10 | Colors, logos, fonts, social links |
 | `GET /company` | 5 | Company name, emails, addresses |
 | `GET /classify` | 5 | IAB category, descriptions, tickers, ISINs |
-| `GET /scrape` | 1 | One page as markdown, HTML, links or images. **+3** when you ask for `summary` or `json` |
+| `GET /scrape` | 1 | One page as markdown, HTML, links or images. **+3** when you ask for `summary`, `json` or `check_prompt_injection` |
 | `GET /map` | 1 | Every URL a site exposes |
 | `POST /crawl` | — | Submitting a crawl is free |
-| `GET /crawl/{id}` | 1 per page | Charged as pages complete, never for the `limit` you asked for. 4 per page when `scrape_options.formats` asks for `summary` or `json` |
+| `GET /crawl/{id}` | 1 per page | Charged as pages complete, never for the `limit` you asked for. 4 per page when `scrape_options` asks for `summary`, `json` or `check_prompt_injection` |
 | `DELETE /crawl/{id}` | — | Cancelling a crawl |
+| `POST /batch/scrape` | — | Submitting a batch is free |
+| `GET /batch/scrape/{id}` | 1 per page | Charged as pages complete, like a crawl. 4 per page when `scrape_options` asks for `summary`, `json` or `check_prompt_injection` |
+| `GET /crawl/{id}/errors`, `GET /batch/scrape/{id}/errors` | — | Failed pages and skipped URLs |
 | `/monitor` calls | — | Creating, reading, changing, running and deleting monitors |
 | Each monitor check | 1 per page | Every page the check fetched (4 on targets tracking `json`), plus 1 per changed page judged against your goal |
 | `GET /screenshot` | 1 | Webpage screenshot URL |
 | `GET /health` | — | Liveness check |
 | `GET /ready` | — | Readiness check |
 
-`summary` and `json` are built by a language model from the page, which is what the 3-credit surcharge pays for. Every other format is the page itself.
+`summary` and `json` are built by a language model from the page, and `check_prompt_injection` has one read it, which is what the 3-credit surcharge pays for. A page pays it once, however many of the three it asks for. Every other format is the page itself.
 
 ## Credits over MCP
 
@@ -58,7 +61,7 @@ You are **not charged** for:
 Submitting a crawl with `POST /crawl` is free. Its pages are billed as they complete:
 
 - **1 credit per page** the crawl actually returns, charged on `GET /crawl/{id}`.
-- **4 credits per page** when `scrape_options.formats` asks for `summary` or `json`.
+- **4 credits per page** when `scrape_options` asks for `summary`, `json` or `check_prompt_injection`.
 
 Two consequences worth knowing:
 
@@ -87,7 +90,7 @@ Every plan unlocks every endpoint. Plans differ in their monthly credits and how
 | Plan | Price | Credits per month | Concurrent requests | Requests per minute |
 |---|---|---|---|---|
 | Free | $0 | 1,000 | 1 | 30 |
-| Starter | $9 a month, or $90 a year | 5,000 | 10 | No limit |
+| Starter | $11 a month, or $108 a year | 5,000 | 10 | No limit |
 | Pro | $49 a month, or $490 a year | 75,000 | 50 | No limit |
 | Growth | $149 a month, or $1,490 a year | 300,000 | 150 | No limit |
 | Scale | $399 a month, or $3,990 a year | 1,000,000 | 500 | No limit |

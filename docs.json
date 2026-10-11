@@ -100,7 +100,12 @@
               "api-reference/endpoint/map",
               "api-reference/endpoint/crawl",
               "api-reference/endpoint/crawl-status",
-              "api-reference/endpoint/crawl-cancel"
+              "api-reference/endpoint/crawl-cancel",
+              "api-reference/endpoint/crawl-errors",
+              "api-reference/endpoint/batch-scrape",
+              "api-reference/endpoint/batch-scrape-status",
+              "api-reference/endpoint/batch-scrape-errors",
+              "api-reference/endpoint/batch-scrape-cancel"
             ]
           },
           {

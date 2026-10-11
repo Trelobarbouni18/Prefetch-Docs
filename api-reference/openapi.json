@@ -52,18 +52,38 @@
         "properties": {
           "success": {
             "type": "boolean",
-            "enum": [false]
+            "enum": [false],
+            "description": "Always false. Absent, like `meta`, on authentication and rate-limit errors, which are answered before a request is processed."
           },
           "error": {
             "type": "string",
-            "description": "Human-readable error message.",
+            "description": "Human-readable error message. The wording can change: branch on `error_code`.",
             "example": "Credit limit exceeded"
+          },
+          "error_code": {
+            "type": "string",
+            "enum": ["INVALID_REQUEST", "PAYLOAD_TOO_LARGE", "NOT_FOUND", "CONFLICT", "UNAUTHORIZED", "FORBIDDEN", "CREDITS_EXHAUSTED", "RATE_LIMITED", "CONCURRENCY_LIMITED", "URL_BLOCKED", "URL_NOT_PERMITTED", "DNS_RESOLUTION_FAILED", "TARGET_BLOCKED", "TARGET_CONNECTION_FAILED", "TARGET_TIMEOUT", "TARGET_SSL_ERROR", "TARGET_SERVER_ERROR", "TARGET_CLIENT_ERROR", "TARGET_NOT_A_PAGE", "TARGET_UNLOADABLE", "RESEARCH_INCONCLUSIVE", "TIMEOUT", "SERVICE_BUSY", "SERVICE_UNAVAILABLE", "INTERNAL_ERROR"],
+            "description": "What went wrong, for machines. Stable: a code keeps its meaning once published. See [Error handling](/concepts/errors).",
+            "example": "CREDITS_EXHAUSTED"
+          },
+          "retryable": {
+            "type": "boolean",
+            "description": "Whether the same request can succeed if sent again after a short wait (honour `Retry-After` when present). False for problems with the request or the target.",
+            "example": false
+          },
+          "retryAfterSeconds": {
+            "type": "integer",
+            "description": "On `RATE_LIMITED`: seconds until a request will be accepted."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "On `CONCURRENCY_LIMITED`: how many requests this key may have in flight."
           },
           "meta": {
             "$ref": "#/components/schemas/Meta"
           }
         },
-        "required": ["success", "error", "meta"]
+        "required": ["error", "error_code", "retryable"]
       },
       "CodeColorItem": {
         "type": "object",
@@ -308,6 +328,234 @@
           "linkedin": "https://linkedin.com/company/stripe"
         }
       },
+      "ButtonTokens": {
+        "type": "object",
+        "nullable": true,
+        "properties": {
+          "background": {
+            "type": "string",
+            "nullable": true,
+            "description": "Fill color. `null` for an outlined or text-only button.",
+            "example": "#533AFD"
+          },
+          "text_color": {
+            "type": "string",
+            "nullable": true,
+            "description": "Label color.",
+            "example": "#FFFFFF"
+          },
+          "border_color": {
+            "type": "string",
+            "nullable": true,
+            "description": "Border color, when the button has a visible border."
+          },
+          "border_radius": {
+            "type": "string",
+            "nullable": true,
+            "description": "Corner radius. `9999px` means fully rounded (a pill).",
+            "example": "4px"
+          },
+          "font_weight": {
+            "type": "number",
+            "nullable": true,
+            "description": "Label weight.",
+            "example": 400
+          }
+        }
+      },
+      "DesignTokens": {
+        "type": "object",
+        "description": "The site's design system by role, read from the rendered page. Present only when the request sets `designTokens=true`. Best effort: a field the page gives no reliable answer for is `null`.",
+        "properties": {
+          "color_scheme": {
+            "type": "string",
+            "enum": [
+              "light",
+              "dark"
+            ],
+            "nullable": true,
+            "description": "Whether the page background is light or dark.",
+            "example": "light"
+          },
+          "colors": {
+            "type": "object",
+            "properties": {
+              "primary": {
+                "type": "string",
+                "nullable": true,
+                "description": "The main action color: the fill of the most prominent button, or a colored link when no button is filled.",
+                "example": "#533AFD"
+              },
+              "secondary": {
+                "type": "string",
+                "nullable": true,
+                "description": "The fill of the next most prominent button, when it is a distinct color."
+              },
+              "background": {
+                "type": "string",
+                "nullable": true,
+                "description": "The page background.",
+                "example": "#FFFFFF"
+              },
+              "text": {
+                "type": "string",
+                "nullable": true,
+                "description": "Body text.",
+                "example": "#50617A"
+              },
+              "heading": {
+                "type": "string",
+                "nullable": true,
+                "description": "The color most headings share.",
+                "example": "#061B31"
+              },
+              "link": {
+                "type": "string",
+                "nullable": true,
+                "description": "The most common color of in-content links.",
+                "example": "#533AFD"
+              }
+            }
+          },
+          "typography": {
+            "type": "object",
+            "properties": {
+              "body": {
+                "type": "object",
+                "properties": {
+                  "font_family": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "The first family in the stack.",
+                    "example": "sohne-var"
+                  },
+                  "font_stack": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "The full `font-family` list, in order.",
+                    "example": [
+                      "sohne-var",
+                      "Helvetica Neue",
+                      "Arial",
+                      "sans-serif"
+                    ]
+                  },
+                  "font_size": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "16px"
+                  },
+                  "font_weight": {
+                    "type": "number",
+                    "nullable": true,
+                    "example": 400
+                  },
+                  "line_height": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "`null` when the site leaves it at `normal`.",
+                    "example": "24px"
+                  }
+                }
+              },
+              "heading": {
+                "type": "object",
+                "properties": {
+                  "font_family": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "The lead heading's first family.",
+                    "example": "sohne-var"
+                  },
+                  "font_stack": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "font_weight": {
+                    "type": "number",
+                    "nullable": true,
+                    "example": 500
+                  }
+                }
+              },
+              "sizes": {
+                "type": "object",
+                "description": "Font size of the first visible heading at each level, and of body text.",
+                "properties": {
+                  "h1": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "48px"
+                  },
+                  "h2": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "32px"
+                  },
+                  "h3": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "26px"
+                  },
+                  "body": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "16px"
+                  }
+                }
+              }
+            }
+          },
+          "components": {
+            "type": "object",
+            "properties": {
+              "button_primary": {
+                "$ref": "#/components/schemas/ButtonTokens"
+              },
+              "button_secondary": {
+                "$ref": "#/components/schemas/ButtonTokens"
+              },
+              "input": {
+                "type": "object",
+                "nullable": true,
+                "description": "The first visible text field.",
+                "properties": {
+                  "background": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "#FFFFFF"
+                  },
+                  "text_color": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "#061B31"
+                  },
+                  "border_color": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "#E5EDF5"
+                  },
+                  "border_radius": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "4px"
+                  }
+                }
+              }
+            }
+          },
+          "border_radius": {
+            "type": "string",
+            "nullable": true,
+            "description": "The primary button's corner radius, a good proxy for the site's rounding.",
+            "example": "4px"
+          }
+        }
+      },
       "BrandBlock": {
         "type": "object",
         "description": "Brand identity extracted from the page.",
@@ -326,6 +574,9 @@
           },
           "social_links": {
             "$ref": "#/components/schemas/SocialLinks"
+          },
+          "design_tokens": {
+            "$ref": "#/components/schemas/DesignTokens"
           }
         },
         "required": [
@@ -562,6 +813,9 @@
           },
           "images": {
             "$ref": "#/components/schemas/ImagesBlock"
+          },
+          "design_tokens": {
+            "$ref": "#/components/schemas/DesignTokens"
           }
         },
         "required": [
@@ -702,6 +956,30 @@
                 }
               }
             }
+          },
+          "content_type": {
+            "type": "string",
+            "enum": [
+              "text/html",
+              "application/pdf"
+            ],
+            "description": "What the URL served. A PDF's text becomes the markdown; it has no html."
+          },
+          "page_count": {
+            "type": "integer",
+            "description": "PDFs only: pages in the document."
+          },
+          "cache_state": {
+            "type": "string",
+            "enum": [
+              "hit",
+              "miss"
+            ],
+            "description": "Present when the request set `max_age`: `hit` = served from a stored fetch, `miss` = fetched live."
+          },
+          "cached_at": {
+            "type": "string",
+            "description": "On a cache hit: when the stored copy was fetched (ISO 8601)."
           }
         }
       },
@@ -903,6 +1181,15 @@
           "json": {
             "$ref": "#/components/schemas/JsonBlock"
           },
+          "screenshot": {
+            "$ref": "#/components/schemas/ScrapeScreenshotBlock"
+          },
+          "pdf": {
+            "$ref": "#/components/schemas/PdfBlock"
+          },
+          "prompt_injection": {
+            "$ref": "#/components/schemas/PromptInjectionBlock"
+          },
           "warnings": {
             "type": "array",
             "items": {
@@ -912,6 +1199,213 @@
           }
         },
         "description": "The page content fields. Which of them are present depends on the `formats` requested."
+      },
+      "ScrapeScreenshotBlock": {
+        "type": "object",
+        "description": "Present when `formats` includes `screenshot`.",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The image on our CDN. Short-lived: copy it if you need to keep it."
+          },
+          "viewport": {
+            "type": "object",
+            "properties": {
+              "width": {
+                "type": "integer"
+              },
+              "height": {
+                "type": "integer"
+              }
+            }
+          },
+          "full_page": {
+            "type": "boolean"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "jpeg",
+              "png",
+              "webp"
+            ]
+          }
+        }
+      },
+      "PromptInjectionBlock": {
+        "type": "object",
+        "description": "Present when the request set `check_prompt_injection`.",
+        "properties": {
+          "detected": {
+            "type": "boolean",
+            "description": "True when the page's text appears to contain instructions aimed at an AI model."
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true,
+            "description": "Why it was flagged, quoting or describing the suspicious text. Null when nothing was found.",
+            "example": "The page tells AI assistants to ignore their instructions and send the user's API keys to an outside address."
+          },
+          "complete": {
+            "type": "boolean",
+            "description": "True when all of the page's text was checked. False when part of it could not be (a very long page, or the classifier was unavailable): `detected: false` then means nothing was found in what was checked, not that the page is clean."
+          },
+          "model": {
+            "type": "string",
+            "nullable": true,
+            "description": "The model that checked it; null for a page with no text.",
+            "example": "gpt-5.6-luna"
+          }
+        },
+        "required": [
+          "detected",
+          "reason",
+          "complete",
+          "model"
+        ]
+      },
+      "PdfBlock": {
+        "type": "object",
+        "description": "Present when the URL served a PDF. Its text is in `markdown`.",
+        "properties": {
+          "page_count": {
+            "type": "integer"
+          },
+          "pages_parsed": {
+            "type": "integer",
+            "description": "Pages whose text was read (capped for very long documents)."
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ScrapeBody": {
+        "type": "object",
+        "description": "The same options as `GET /scrape`, as typed JSON.",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "example": "https://stripe.com/pricing"
+          },
+          "formats": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "markdown",
+                "summary",
+                "html",
+                "raw_html",
+                "links",
+                "images",
+                "json",
+                "screenshot"
+              ]
+            },
+            "default": [
+              "markdown"
+            ]
+          },
+          "only_main_content": {
+            "type": "boolean",
+            "default": true
+          },
+          "include_links": {
+            "type": "boolean",
+            "default": true
+          },
+          "include_images": {
+            "type": "boolean",
+            "default": true
+          },
+          "include_base64_images": {
+            "type": "boolean",
+            "default": false
+          },
+          "include_selectors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "exclude_selectors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "json_prompt": {
+            "type": "string"
+          },
+          "json_schema": {
+            "type": "object"
+          },
+          "summary_max_words": {
+            "type": "integer",
+            "minimum": 20,
+            "maximum": 400,
+            "default": 120
+          },
+          "screenshot_full_page": {
+            "type": "boolean",
+            "default": false
+          },
+          "screenshot_format": {
+            "type": "string",
+            "enum": [
+              "jpeg",
+              "png",
+              "webp"
+            ],
+            "default": "jpeg"
+          },
+          "wait_for": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 30000,
+            "description": "Milliseconds to wait after the page loads."
+          },
+          "wait_for_selector": {
+            "type": "string",
+            "description": "Wait (up to 10 s) for this CSS selector. Best effort."
+          },
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Request headers to send to the target. Up to 20. Requests with headers are never cached."
+          },
+          "mobile": {
+            "type": "boolean",
+            "default": false
+          },
+          "timeout": {
+            "type": "integer",
+            "minimum": 5000,
+            "maximum": 50000
+          },
+          "max_age": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2592000000,
+            "default": 0,
+            "description": "Accept a stored copy fetched at most this many milliseconds ago."
+          },
+          "store_in_cache": {
+            "type": "boolean",
+            "default": true
+          },
+          "check_prompt_injection": {
+            "type": "boolean",
+            "default": false,
+            "description": "Check the page's text for prompt injection — text written to make an AI model reading the page ignore its instructions, leak data or take actions — and report it in `prompt_injection`. The page is still returned: the check warns, it does not block. Costs the same 3-credit surcharge as `summary` and `json` (once per page, however many of the three you ask for)."
+          }
+        }
       },
       "ScrapeData": {
         "allOf": [
@@ -1020,7 +1514,7 @@
       },
       "CrawlScrapeOptions": {
         "type": "object",
-        "description": "How each crawled page is rendered. The same options `GET /scrape` takes.",
+        "description": "How each crawled page is fetched and rendered. The same options `GET /scrape` takes.",
         "properties": {
           "formats": {
             "type": "array",
@@ -1033,7 +1527,8 @@
                 "raw_html",
                 "links",
                 "images",
-                "json"
+                "json",
+                "screenshot"
               ]
             },
             "default": [
@@ -1079,6 +1574,54 @@
             "minimum": 20,
             "maximum": 400,
             "default": 120
+          },
+          "screenshot_full_page": {
+            "type": "boolean",
+            "default": false
+          },
+          "screenshot_format": {
+            "type": "string",
+            "enum": [
+              "jpeg",
+              "png",
+              "webp"
+            ],
+            "default": "jpeg"
+          },
+          "wait_for": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 30000
+          },
+          "wait_for_selector": {
+            "type": "string"
+          },
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Sent with every page request. Pages fetched with headers are never cached."
+          },
+          "mobile": {
+            "type": "boolean",
+            "default": false
+          },
+          "max_age": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2592000000,
+            "default": 0,
+            "description": "Accept stored copies of pages fetched at most this many milliseconds ago."
+          },
+          "store_in_cache": {
+            "type": "boolean",
+            "default": true
+          },
+          "check_prompt_injection": {
+            "type": "boolean",
+            "default": false,
+            "description": "Check each page for prompt injection, as on `/scrape`. Adds the AI surcharge to every page."
           }
         }
       },
@@ -1152,6 +1695,53 @@
             "default": true,
             "description": "Seed the crawl from the site's sitemap as well as from links."
           },
+          "crawl_entire_domain": {
+            "type": "boolean",
+            "default": false,
+            "description": "Follow links anywhere on the site. By default a crawl stays at or below the path it starts from: one started at `/docs/` crawls `/docs/…` only. A crawl from the root covers the whole site either way."
+          },
+          "webhook": {
+            "description": "Where to send progress: an https URL, or an object. Events: `crawl.started`, `crawl.page` (one per page), `crawl.completed`, `crawl.failed`. Each delivery is signed — `X-Prefetch-Signature: t=<unix>,v1=<hex>`, HMAC-SHA256 of `<t>.<raw body>` with the `secret` returned when the crawl is created — the same scheme as monitor webhooks.",
+            "oneOf": [
+              {
+                "type": "string",
+                "example": "https://example.com/hooks/prefetch"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "url"
+                ],
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  },
+                  "events": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "started",
+                        "page",
+                        "completed",
+                        "failed"
+                      ]
+                    }
+                  },
+                  "headers": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "description": "Echoed back in every payload (up to 4 KB)."
+                  }
+                }
+              }
+            ]
+          },
           "delay_ms": {
             "type": "integer",
             "minimum": 0,
@@ -1205,6 +1795,25 @@
             "type": "string",
             "format": "date-time",
             "description": "After this, the crawl and its pages are no longer readable."
+          },
+          "webhook": {
+            "type": "object",
+            "description": "Present when the request set `webhook`.",
+            "properties": {
+              "url": {
+                "type": "string"
+              },
+              "events": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "secret": {
+                "type": "string",
+                "description": "Verifies the `X-Prefetch-Signature` on each delivery. Shown only here — store it."
+              }
+            }
           }
         }
       },
@@ -1233,12 +1842,255 @@
               "error": {
                 "type": "string",
                 "nullable": true
+              },
+              "error_code": {
+                "type": "string",
+                "nullable": true,
+                "description": "Why the page failed, as one of the API's [error codes](/concepts/errors#error-codes); null when it did not.",
+                "example": "TARGET_SERVER_ERROR"
               }
             }
           },
           {
             "$ref": "#/components/schemas/ScrapePayload"
           }
+        ]
+      },
+      "SkippedUrls": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "number"
+            },
+            "samples": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "count",
+            "samples"
+          ]
+        },
+        "description": "URLs the crawl found but did not fetch, by reason: `limit`, `depth`, `out-of-scope`, `excluded`, `not-included`, `robots`, `off-site`, `file`, `invalid`, `blocklist`, `duplicate` (a redirect onto a page already crawled)."
+      },
+      "CrawlErrorsData": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "running",
+              "completed",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string"
+                },
+                "depth": {
+                  "type": "integer"
+                },
+                "status_code": {
+                  "type": "integer",
+                  "nullable": true
+                },
+                "error": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "error_code": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "Why the page failed, as one of the API's [error codes](/concepts/errors#error-codes).",
+                  "example": "TARGET_SERVER_ERROR"
+                }
+              },
+              "required": [
+                "url",
+                "depth",
+                "status_code",
+                "error",
+                "error_code"
+              ]
+            },
+            "description": "Pages that were fetched and failed, oldest first."
+          },
+          "failed_total": {
+            "type": "integer"
+          },
+          "skipped": {
+            "$ref": "#/components/schemas/SkippedUrls"
+          },
+          "next": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "failed",
+          "failed_total",
+          "skipped",
+          "next"
+        ]
+      },
+      "BatchScrapeRequest": {
+        "type": "object",
+        "required": [
+          "urls"
+        ],
+        "properties": {
+          "urls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "maxItems": 500,
+            "description": "The pages to scrape (1–500). Duplicates are scraped once.",
+            "example": [
+              "https://stripe.com/pricing",
+              "https://stripe.com/docs"
+            ]
+          },
+          "concurrency": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "default": 2,
+            "description": "Pages fetched in parallel."
+          },
+          "ignore_invalid_urls": {
+            "type": "boolean",
+            "default": false,
+            "description": "Drop URLs that fail validation (listed in `invalid_urls`) instead of rejecting the whole batch."
+          },
+          "webhook": {
+            "description": "Where to send progress: an https URL, or an object. Events: `batch_scrape.started`, `batch_scrape.page` (one per page), `batch_scrape.completed`, `batch_scrape.failed`. Each delivery is signed — `X-Prefetch-Signature: t=<unix>,v1=<hex>`, HMAC-SHA256 of `<t>.<raw body>` with the `secret` returned when the batch is created — the same scheme as monitor webhooks.",
+            "oneOf": [
+              {
+                "type": "string",
+                "example": "https://example.com/hooks/prefetch"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "url"
+                ],
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  },
+                  "events": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "started",
+                        "page",
+                        "completed",
+                        "failed"
+                      ]
+                    }
+                  },
+                  "headers": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "description": "Echoed back in every payload (up to 4 KB)."
+                  }
+                }
+              }
+            ]
+          },
+          "scrape_options": {
+            "$ref": "#/components/schemas/CrawlScrapeOptions"
+          }
+        }
+      },
+      "BatchJobData": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "crw_4b1e9c0a7d2f4e6b"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "running",
+              "completed",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "url_count": {
+            "type": "integer",
+            "description": "Pages queued, after removing duplicates (and invalid URLs, with ignore_invalid_urls)."
+          },
+          "invalid_urls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "URLs dropped by ignore_invalid_urls."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "webhook": {
+            "type": "object",
+            "description": "Present when the request set `webhook`.",
+            "properties": {
+              "url": {
+                "type": "string"
+              },
+              "events": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "secret": {
+                "type": "string",
+                "description": "Verifies the `X-Prefetch-Signature` on each delivery. Shown only here — store it."
+              }
+            }
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "url_count",
+          "invalid_urls",
+          "created_at",
+          "expires_at"
         ]
       },
       "CrawlStatusData": {
@@ -1306,6 +2158,33 @@
               "$ref": "#/components/schemas/CrawlPage"
             },
             "description": "Crawled pages, in completion order."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "crawl",
+              "batch"
+            ],
+            "description": "`batch` for a `POST /batch/scrape` job."
+          },
+          "skipped": {
+            "type": "object",
+            "description": "URLs the crawl found but did not fetch, by reason: `limit`, `depth`, `out-of-scope`, `excluded`, `not-included`, `robots`, `off-site`, `file`, `invalid`, `blocklist`, `duplicate` (a redirect onto a page already crawled). Present once anything was skipped.",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "count": {
+                  "type": "integer"
+                },
+                "samples": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Up to five examples."
+                }
+              }
+            }
           }
         }
       },
@@ -2457,7 +3336,7 @@
         "name": "formats",
         "in": "query",
         "required": false,
-        "description": "Comma-separated list of output formats. Each requested format appears as its own object on `data`; formats you do not request are absent, not null.",
+        "description": "Comma-separated list of output formats: `markdown`, `summary`, `html`, `raw_html`, `links`, `images`, `json`, `screenshot`. Each requested format appears as its own object on `data`; formats you do not request are absent, not null.",
         "schema": {
           "type": "string",
           "default": "markdown",
@@ -2553,6 +3432,117 @@
           "minimum": 20,
           "maximum": 400,
           "default": 120
+        }
+      },
+      "scrapeScreenshotFullPage": {
+        "name": "screenshot_full_page",
+        "in": "query",
+        "required": false,
+        "description": "For the `screenshot` format: capture the whole scrollable page.",
+        "schema": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "screenshotFormatParam": {
+        "name": "screenshot_format",
+        "in": "query",
+        "required": false,
+        "description": "For the `screenshot` format: image type.",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "jpeg",
+            "png",
+            "webp"
+          ],
+          "default": "jpeg"
+        }
+      },
+      "waitFor": {
+        "name": "wait_for",
+        "in": "query",
+        "required": false,
+        "description": "Milliseconds to wait after the page loads, for content that arrives late. Renders in a browser.",
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30000,
+          "default": 0
+        }
+      },
+      "waitForSelector": {
+        "name": "wait_for_selector",
+        "in": "query",
+        "required": false,
+        "description": "Wait (up to 10 s) for this CSS selector before reading the page. Best effort: if it never appears, the page is returned with a warning.",
+        "schema": {
+          "type": "string",
+          "example": "#pricing-table"
+        }
+      },
+      "scrapeHeaders": {
+        "name": "headers",
+        "in": "query",
+        "required": false,
+        "description": "Request headers to send to the target, as a JSON object string. Up to 20; hop-by-hop and proxy headers are refused. Requests with headers are never cached. Easier as an object in `POST /scrape`.",
+        "schema": {
+          "type": "string",
+          "example": "{\"Accept-Language\":\"de-DE\"}"
+        }
+      },
+      "mobile": {
+        "name": "mobile",
+        "in": "query",
+        "required": false,
+        "description": "Render the page as a phone (viewport, touch and user agent).",
+        "schema": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "scrapeTimeout": {
+        "name": "timeout",
+        "in": "query",
+        "required": false,
+        "description": "Give up after this many milliseconds.",
+        "schema": {
+          "type": "integer",
+          "minimum": 5000,
+          "maximum": 50000,
+          "default": 50000
+        }
+      },
+      "maxAge": {
+        "name": "max_age",
+        "in": "query",
+        "required": false,
+        "description": "Accept a stored copy of the page fetched at most this many milliseconds ago instead of fetching it again (up to 30 days). Any mix of formats is served from one stored fetch; `metadata.cache_state` says which happened. 0 always fetches.",
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2592000000,
+          "default": 0
+        }
+      },
+      "storeInCache": {
+        "name": "store_in_cache",
+        "in": "query",
+        "required": false,
+        "description": "Store this fetch for later `max_age` requests.",
+        "schema": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "checkPromptInjection": {
+        "name": "check_prompt_injection",
+        "in": "query",
+        "required": false,
+        "description": "Check the page's text for prompt injection — text written to make an AI model reading the page ignore its instructions, leak data or take actions — and report it in `prompt_injection`. The page is still returned: the check warns, it does not block. Costs the same 3-credit surcharge as `summary` and `json` (once per page, however many of the three you ask for).",
+        "schema": {
+          "type": "boolean",
+          "default": false
         }
       },
       "mapLimit": {
@@ -3065,6 +4055,13 @@
             "required": false,
             "description": "Exclude near-white, near-black, and greyscale colors from results. Pass `true` to enable.",
             "schema": { "type": "boolean", "default": false }
+          },
+          {
+            "name": "designTokens",
+            "in": "query",
+            "required": false,
+            "description": "Add `brand.design_tokens`: the site's colors by role (primary, background, text, heading, link), its heading and body type, and its button and input styles, read from the rendered page. Pass `true` to enable. Requests with this set are never answered from curated data.",
+            "schema": { "type": "boolean", "default": false }
           }
         ],
         "responses": {
@@ -3171,6 +4168,13 @@
             "required": false,
             "description": "Exclude near-white, near-black, and greyscale colors from results. Pass `true` to enable.",
             "schema": { "type": "boolean", "default": false }
+          },
+          {
+            "name": "designTokens",
+            "in": "query",
+            "required": false,
+            "description": "Add `brand.design_tokens`: the site's colors by role (primary, background, text, heading, link), its heading and body type, and its button and input styles, read from the rendered page. Pass `true` to enable. Requests with this set are never answered from curated data.",
+            "schema": { "type": "boolean", "default": false }
           }
         ],
         "responses": {
@@ -3274,7 +4278,7 @@
       "get": {
         "operationId": "scrapeUrl",
         "summary": "Scrape a page",
-        "description": "Fetches one URL and returns it in the formats you request: clean markdown, an LLM summary, cleaned or raw HTML, links, images, or JSON matching your own schema. Pages that need JavaScript are rendered in a real browser automatically. **Credit cost: 1**, plus 3 when `summary` or `json` is requested.",
+        "description": "Fetches one URL and returns it in the formats you request: clean markdown, an LLM summary, cleaned or raw HTML, links, images, a screenshot, or JSON matching your own schema. Pages that need JavaScript are rendered in a real browser automatically, and a PDF URL returns the document's text as markdown. Set `max_age` to accept a stored copy of the page instead of fetching it again. **Credit cost: 1**, plus 3 when `summary` or `json` is requested.",
         "tags": [
           "Endpoints"
         ],
@@ -3311,6 +4315,36 @@
           },
           {
             "$ref": "#/components/parameters/summaryMaxWords"
+          },
+          {
+            "$ref": "#/components/parameters/scrapeScreenshotFullPage"
+          },
+          {
+            "$ref": "#/components/parameters/screenshotFormatParam"
+          },
+          {
+            "$ref": "#/components/parameters/waitFor"
+          },
+          {
+            "$ref": "#/components/parameters/waitForSelector"
+          },
+          {
+            "$ref": "#/components/parameters/scrapeHeaders"
+          },
+          {
+            "$ref": "#/components/parameters/mobile"
+          },
+          {
+            "$ref": "#/components/parameters/scrapeTimeout"
+          },
+          {
+            "$ref": "#/components/parameters/maxAge"
+          },
+          {
+            "$ref": "#/components/parameters/storeInCache"
+          },
+          {
+            "$ref": "#/components/parameters/checkPromptInjection"
           }
         ],
         "responses": {
@@ -3649,7 +4683,7 @@
       "post": {
         "operationId": "startCrawl",
         "summary": "Start a crawl",
-        "description": "Queues a breadth-first crawl and returns its id immediately. Crawls run for minutes, so nothing waits on this request — poll `GET /crawl/{id}` for progress and results.\n\n**Credit cost: nothing to submit, 1 per page the crawl returns (4 when `scrape_options.formats` asks for `summary` or `json`).** Pages are charged as they complete, so you pay for what was fetched rather than for the `limit` you asked for.",
+        "description": "Queues a breadth-first crawl and returns its id immediately. Crawls run for minutes, so nothing waits on this request — poll `GET /crawl/{id}` for progress and results.\n\n**Credit cost: nothing to submit, 1 per page the crawl returns (4 when `scrape_options` asks for `summary`, `json` or `check_prompt_injection`).** Pages are charged as they complete, so you pay for what was fetched rather than for the `limit` you asked for.",
         "tags": [
           "Endpoints"
         ],
@@ -3986,6 +5020,699 @@
                     },
                     "data": {
                       "$ref": "#/components/schemas/CrawlStatusData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, credit limit, or blocklisted URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The URL hostname could not be resolved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily busy. Retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Request timed out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Crawl not found, expired, or owned by another key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/crawl/{id}/errors": {
+      "get": {
+        "operationId": "getCrawlErrors",
+        "summary": "Get crawl errors and skipped URLs",
+        "description": "Why a crawl came back with less than you expected: the pages that were fetched and failed, oldest first (paged with `skip`/`limit`), each with an `error_code`, and `skipped`, every URL the crawl found but did not fetch, counted by reason with a few examples of each. Free.",
+        "tags": [
+          "Endpoints"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/crawlId"
+          },
+          {
+            "$ref": "#/components/parameters/crawlSkip"
+          },
+          {
+            "$ref": "#/components/parameters/crawlPageLimit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Failed pages and skip reasons.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CrawlErrorsData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": "crw_9f2c1a7b4e0d4c3a8b1e5f7d2c9a0b3e",
+                    "status": "completed",
+                    "failed": [
+                      {
+                        "url": "https://docs.stripe.com/legacy/v1",
+                        "depth": 2,
+                        "status_code": null,
+                        "error": "Failed to load page (HTTP 503)",
+                        "error_code": "TARGET_SERVER_ERROR"
+                      }
+                    ],
+                    "failed_total": 1,
+                    "skipped": {
+                      "out-of-scope": {
+                        "count": 41,
+                        "samples": [
+                          "https://docs.stripe.com/blog/2024",
+                          "https://docs.stripe.com/jobs"
+                        ]
+                      },
+                      "robots": {
+                        "count": 3,
+                        "samples": [
+                          "https://docs.stripe.com/search"
+                        ]
+                      }
+                    },
+                    "next": null
+                  },
+                  "meta": {
+                    "requestId": "4c1e2a9b-7d3f-4b8e-9a6c-1f2e3d4c5b6a",
+                    "durationMs": 41
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, credit limit, or blocklisted URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The URL hostname could not be resolved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily busy. Retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Request timed out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Crawl not found, expired, or owned by another key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/batch/scrape": {
+      "post": {
+        "operationId": "startBatchScrape",
+        "summary": "Scrape a list of URLs",
+        "description": "Queues a list of pages as one job and returns its id immediately. Each page is fetched and rendered exactly as `GET /scrape` would, configured through `scrape_options`; nothing is followed, and no sitemap or robots.txt is read. Poll `GET /batch/scrape/{id}` for progress and results, or pass a `webhook`.\n\n**Credit cost: nothing to submit, 1 per page returned (4 when `scrape_options` asks for `summary`, `json` or `check_prompt_injection`).** Pages are charged as they complete.",
+        "tags": [
+          "Endpoints"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchScrapeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Batch queued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/BatchJobData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": "crw_5a8d2e7f1c4b4a9e8d3c6b1a0f9e8d7c",
+                    "status": "pending",
+                    "url_count": 2,
+                    "invalid_urls": [],
+                    "created_at": "2026-10-11T09:14:03.221Z",
+                    "expires_at": "2026-10-12T09:14:03.221Z"
+                  },
+                  "meta": {
+                    "requestId": "9b8a7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d",
+                    "durationMs": 58
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, credit limit, or blocklisted URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The URL hostname could not be resolved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily busy. Retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Request timed out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/batch/scrape/{id}": {
+      "get": {
+        "operationId": "getBatchScrape",
+        "summary": "Get batch status and results",
+        "description": "Progress plus a page of scraped pages, in completion order: the same response as `GET /crawl/{id}`, with `kind: \"batch\"`. Follow `next` until it is null. Pages are billed here as they complete, never twice.",
+        "tags": [
+          "Endpoints"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/crawlId"
+          },
+          {
+            "$ref": "#/components/parameters/crawlSkip"
+          },
+          {
+            "$ref": "#/components/parameters/crawlPageLimit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Batch status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CrawlStatusData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, credit limit, or blocklisted URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The URL hostname could not be resolved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily busy. Retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Request timed out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Crawl not found, expired, or owned by another key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "cancelBatchScrape",
+        "summary": "Cancel a batch",
+        "description": "Stops a running batch. Pages already scraped stay readable until it expires, and are billed on the next status call as usual. Free.",
+        "tags": [
+          "Endpoints"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/crawlId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Batch cancelled, or already finished.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CrawlStatusData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, credit limit, or blocklisted URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The URL hostname could not be resolved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily busy. Retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Request timed out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Crawl not found, expired, or owned by another key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/batch/scrape/{id}/errors": {
+      "get": {
+        "operationId": "getBatchScrapeErrors",
+        "summary": "Get batch errors",
+        "description": "The pages of a batch that failed, oldest first, each with an `error_code`, and `skipped`: URLs left out, by reason (`duplicate`, `blocklist`, `invalid`). Free.",
+        "tags": [
+          "Endpoints"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/crawlId"
+          },
+          {
+            "$ref": "#/components/parameters/crawlSkip"
+          },
+          {
+            "$ref": "#/components/parameters/crawlPageLimit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Failed pages and skip reasons.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CrawlErrorsData"
                     },
                     "meta": {
                       "$ref": "#/components/schemas/Meta"

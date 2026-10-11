@@ -1,0 +1,46 @@
+---
+title: "GET /crawl/{id}/errors"
+description: "Why a crawl returned fewer pages than expected: failed pages with error codes, and skipped URLs by reason. Free."
+openapi: "GET /crawl/{id}/errors"
+---
+
+## Overview
+
+Explains a crawl that came back smaller than you expected. It returns two things:
+
+- **`failed`** — pages that were fetched and failed, oldest first, each with an [`error_code`](/concepts/errors#error-codes). Paged with `skip` and `limit`; follow `next` until it is `null`.
+- **`skipped`** — every URL the crawl found but did not fetch, counted by reason, with a few example URLs for each.
+
+| Reason | Meaning |
+|---|---|
+| `limit` | The crawl had already queued `limit` pages. |
+| `depth` | Deeper than `max_depth`. |
+| `out-of-scope` | Above the start URL's path. Set `crawl_entire_domain` to follow these. |
+| `excluded` | Matched `exclude_paths`. |
+| `not-included` | Matched none of `include_paths`. |
+| `robots` | Disallowed by the site's `robots.txt`. |
+| `off-site` | On another site or a subdomain you did not allow. |
+| `file` | A file rather than a page — an image, an archive, a stylesheet. |
+| `invalid` | Not a URL the API will fetch, such as a private address. |
+| `blocklist` | On your key's blocklist. |
+| `duplicate` | A page the crawl already had, under another URL or through a redirect. |
+
+Works while the crawl is running and until it expires. Free.
+
+## Example request
+
+```bash cURL
+curl "https://api.prefetch.io/crawl/crw_9f2c1a7b4e0d4c3a8b1e5f7d2c9a0b3e/errors" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="POST /crawl" icon="spider" href="/api-reference/endpoint/crawl">
+    Start a crawl.
+  </Card>
+  <Card title="Error handling" icon="circle-exclamation" href="/concepts/errors">
+    What each error code means, and which are worth retrying.
+  </Card>
+</CardGroup>

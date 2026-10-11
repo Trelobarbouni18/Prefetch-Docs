@@ -1,0 +1,69 @@
+---
+title: "POST /batch/scrape"
+description: "Scrape a list of URLs in one job. Free to submit, then 1 credit per page returned."
+openapi: "POST /batch/scrape"
+---
+
+## Overview
+
+`/batch/scrape` scrapes up to 500 URLs you already have, as one job. Each page is fetched and rendered exactly as [`GET /scrape`](/api-reference/endpoint/scrape) would render it, configured through `scrape_options`. Nothing is followed and no sitemap is read: you get the pages you listed.
+
+It works like a [crawl](/api-reference/endpoint/crawl): you get an id straight away, then read progress and pages from [`GET /batch/scrape/{id}`](/api-reference/endpoint/batch-scrape-status), or receive them by webhook.
+
+Use it instead of many `/scrape` calls when you have a list of URLs: one request instead of hundreds, and no concurrency limit to manage on your side.
+
+## Example request
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.prefetch.io/batch/scrape" \
+  -H "X-API-Key: $PREFETCH_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "urls": ["https://stripe.com/pricing", "https://stripe.com/docs"],
+    "scrape_options": { "formats": ["markdown"], "only_main_content": true }
+  }'
+```
+
+```javascript Node.js
+const res = await fetch("https://api.prefetch.io/batch/scrape", {
+  method: "POST",
+  headers: { "X-API-Key": process.env.PREFETCH_API_KEY, "Content-Type": "application/json" },
+  body: JSON.stringify({
+    urls: ["https://stripe.com/pricing", "https://stripe.com/docs"],
+    scrape_options: { formats: ["markdown"] },
+  }),
+});
+const { data } = await res.json();
+console.log(data.id); // poll GET /batch/scrape/{id}
+```
+
+</CodeGroup>
+
+## Invalid URLs
+
+Every URL gets the checks a single `/scrape` would. By default one invalid or blocklisted URL rejects the whole batch with a `400` that names it. Set `ignore_invalid_urls: true` to drop those URLs instead; they are listed in the response's `invalid_urls`. Duplicate URLs, including the same page under another spelling (`www.`, a trailing slash), are scraped once.
+
+## Webhooks
+
+`webhook` works as it does for crawls, with events named `batch_scrape.started`, `batch_scrape.page`, `batch_scrape.completed` and `batch_scrape.failed`. See [crawl webhooks](/api-reference/endpoint/crawl#webhooks) for the payload and how to verify the signature.
+
+## Credits
+
+Submitting is free. You are charged **1 credit per page returned**, or **4** when `scrape_options` asks for `summary`, `json` or `check_prompt_injection`. Pages are billed as they complete, on the status endpoint, and failed pages are never charged.
+
+<Tip>
+Over MCP, `prefetch_batch_scrape` submits the batch and waits for it, returning the pages when it finishes in time.
+</Tip>
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="GET /batch/scrape/{id}" icon="list-check" href="/api-reference/endpoint/batch-scrape-status">
+    Read progress and pages.
+  </Card>
+  <Card title="GET /batch/scrape/{id}/errors" icon="triangle-exclamation" href="/api-reference/endpoint/batch-scrape-errors">
+    Which pages failed, and why.
+  </Card>
+</CardGroup>
