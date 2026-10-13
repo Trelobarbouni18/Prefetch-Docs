@@ -89,6 +89,7 @@ if (res.ok) {
 | `TARGET_CLIENT_ERROR` | 502 | No | The site answered with a 4xx error, such as 404. The message includes the status. |
 | `TARGET_NOT_A_PAGE` | 422 | No | The URL is a file download, not a web page. |
 | `TARGET_UNLOADABLE` | 502 | No | The site's response could not be loaded as a page. |
+| `TARGET_ELEMENT_NOT_FOUND` | 422 | No | `/screenshot` with `selector`: no element on the page matched it within 10 seconds. |
 
 ### This service
 

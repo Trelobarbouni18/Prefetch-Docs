@@ -11,21 +11,28 @@ A credit is one page: fetching, mapping, crawling or screenshotting a page costs
 | Endpoint | Credits | What you get |
 |---|---|---|
 | `GET /resolve` | 1 | A company or brand name → its domain. 3 when a live lookup runs (`live=true`), 0 when nothing matches |
+| `GET /transaction` | 3 | A card transaction line → its merchant. 1 for a line looked up in the last 7 days; +10 with `include_brand` |
+| `GET /search` | 2 per 10 results | Web search results, rounded up to the next 10. Each result page scraped: +1 (+4 for `summary` or `json`) |
 | `GET /enrich` | 12 | Brand + company + classification |
 | `GET /brand` | 10 | Colors, logos, fonts, social links |
+| `GET /styleguide` | 10 | Design system: colors by role, type scale, spacing, radii, shadows, components, CSS and Tailwind exports |
 | `GET /company` | 5 | Company name, emails, addresses |
 | `GET /classify` | 5 | IAB category, descriptions, tickers, ISINs |
 | `GET /scrape` | 1 | One page as markdown, HTML, links or images. **+3** when you ask for `summary`, `json` or `check_prompt_injection` |
 | `GET /map` | 1 | Every URL a site exposes |
 | `POST /crawl` | — | Submitting a crawl is free |
-| `GET /crawl/{id}` | 1 per page | Charged as pages complete, never for the `limit` you asked for. 4 per page when `scrape_options` asks for `summary`, `json` or `check_prompt_injection` |
+| Each crawled page | 1 per page | Charged as pages complete, never for the `limit` you asked for. 4 per page when `scrape_options` asks for `summary`, `json` or `check_prompt_injection` |
 | `DELETE /crawl/{id}` | — | Cancelling a crawl |
 | `POST /batch/scrape` | — | Submitting a batch is free |
-| `GET /batch/scrape/{id}` | 1 per page | Charged as pages complete, like a crawl. 4 per page when `scrape_options` asks for `summary`, `json` or `check_prompt_injection` |
-| `GET /crawl/{id}/errors`, `GET /batch/scrape/{id}/errors` | — | Failed pages and skipped URLs |
+| Each batch-scraped page | 1 per page | Charged as pages complete, like a crawl. 4 per page when `scrape_options` asks for `summary`, `json` or `check_prompt_injection` |
+| `POST /batch/{endpoint}` | — | Submitting a batch of brand, enrich, company, classify, screenshot or styleguide is free |
+| Each batch URL answered | the endpoint's price | 12 per URL for `/batch/enrich`, 10 for brand or styleguide, 5 for company or classify, 1 for screenshot |
+| Status, errors and cancel calls for crawls and batches | — | Free in themselves |
 | `/monitor` calls | — | Creating, reading, changing, running and deleting monitors |
 | Each monitor check | 1 per page | Every page the check fetched (4 on targets tracking `json`), plus 1 per changed page judged against your goal |
-| `GET /screenshot` | 1 | Webpage screenshot URL |
+| `GET /screenshot` | 1 | Webpage screenshot URL, any device, element, format or theme |
+| Logo CDN images | — | No credits: each plan includes a monthly quota of logo requests (see [Logo CDN](/api-reference/endpoint/logo-cdn)) |
+| `GET /logo/token`, `POST /logo/token/rotate` | — | Your publishable logo token |
 | `GET /health` | — | Liveness check |
 | `GET /ready` | — | Readiness check |
 
@@ -37,8 +44,9 @@ The [MCP server](/mcp/overview) charges exactly what the equivalent REST endpoin
 
 Several MCP tools are free, because they only manage or read work you have already paid for:
 
-- `prefetch_check_crawl_status` — bills only the crawl pages that completed since your last call.
+- `prefetch_check_crawl_status` — bills only the crawl or batch pages that completed since your last call.
 - `prefetch_cancel_crawl` — never charges.
+- `prefetch_logo_urls` — never charges: logos use your plan's logo quota, not credits.
 - `prefetch_create_monitor`, `prefetch_list_monitors`, `prefetch_get_monitor`, `prefetch_update_monitor`, `prefetch_delete_monitor` and `prefetch_get_monitor_check` — never charge. A monitor's checks are billed as they run, exactly as over REST; `prefetch_run_monitor` runs one now.
 
 MCP calls also share the request cache with REST calls, so an agent scraping a page you already fetched pays nothing for it.
@@ -56,19 +64,24 @@ You are **not charged** for:
 - Individual crawl pages that failed to fetch (`ok: false`)
 - Monitor pages that could not be checked, and monitor checks that were skipped
 
-## How crawls are charged
+## How crawls and batches are charged
 
-Submitting a crawl with `POST /crawl` is free. Its pages are billed as they complete:
+Submitting a crawl (`POST /crawl`) or a batch (`POST /batch/scrape`, `POST /batch/{endpoint}`) is free. What it returns is billed as it completes:
 
-- **1 credit per page** the crawl actually returns, charged on `GET /crawl/{id}`.
-- **4 credits per page** when `scrape_options` asks for `summary`, `json` or `check_prompt_injection`.
+- **1 credit per page** a crawl or `/batch/scrape` actually returns — **4** when `scrape_options` asks for `summary`, `json` or `check_prompt_injection`.
+- **The endpoint's own price per URL** a `/batch/{endpoint}` answers: 12 for enrich, 10 for brand or styleguide, 5 for company or classify, 1 for screenshot.
 
-Two consequences worth knowing:
+Pages are charged when you poll the status endpoint, or when the job ends — whichever comes first — and never twice. Three consequences worth knowing:
 
 - You pay for pages **fetched**, never for the `limit` you requested. A crawl capped at 500 pages that finds 12 costs 12 credits, not 500.
 - **Polling is free.** Each status call bills only the pages that completed since your previous call, so checking every five seconds costs exactly the same as checking once at the end.
+- **Webhooks don't change the price.** A job you only read through its webhooks is charged when it ends, for the pages its webhooks delivered.
 
-Cancelling a crawl charges you for what it fetched before it stopped, and nothing else.
+Failed pages are never charged. Cancelling charges you for what was fetched before it stopped, and nothing else. A `/batch/{endpoint}` your key cannot pay for in full is refused when you submit it, with a message saying how many URLs fit.
+
+## How searches are charged
+
+A search costs **2 credits per 10 results** returned, rounded up: 10 results cost 2, 11 to 20 cost 4. Result pages you ask to have scraped cost what [`/scrape`](/api-reference/endpoint/scrape) costs, each — and a page that could not be scraped costs nothing.
 
 ## How monitors are charged
 
@@ -156,6 +169,11 @@ When you need brand, company, and classification data for a URL, use `/enrich` f
 | Scenario | Best approach | Credits spent |
 |---|---|---|
 | Have a name, need the domain | `/resolve` | 1 (3 with a live lookup) |
+| Have a card transaction line, need the merchant | `/transaction` | 3 (1 for a repeat) |
+| Need to find pages about something | `/search` | 2 per 10 results |
+| Need to show companies' logos | the [logo CDN](/api-reference/endpoint/logo-cdn) | 0 — a monthly quota |
+| Need a site's design system for UI work | `/styleguide` | 10 |
+| Need 300 domains enriched | `/batch/enrich` | 12 per domain answered |
 | Need all three data types | `/enrich` | 12 |
 | Need brand + company only | `/enrich` | 12 (15 as `/brand` + `/company`) |
 | Need brand only | `/brand` | 10 |

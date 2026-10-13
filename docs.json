@@ -57,6 +57,21 @@
         ]
       },
       {
+        "tab": "Integrations",
+        "groups": [
+          {
+            "group": "No-code tools",
+            "pages": [
+              "integrations/overview",
+              "integrations/clay",
+              "integrations/n8n",
+              "integrations/zapier",
+              "integrations/make"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "MCP",
         "groups": [
           {
@@ -80,7 +95,9 @@
           {
             "group": "Discovery",
             "pages": [
-              "api-reference/endpoint/resolve"
+              "api-reference/endpoint/resolve",
+              "api-reference/endpoint/transaction",
+              "api-reference/endpoint/search"
             ]
           },
           {
@@ -90,7 +107,8 @@
               "api-reference/endpoint/classify",
               "api-reference/endpoint/company",
               "api-reference/endpoint/screenshot",
-              "api-reference/endpoint/enrich"
+              "api-reference/endpoint/enrich",
+              "api-reference/endpoint/styleguide"
             ]
           },
           {
@@ -106,6 +124,23 @@
               "api-reference/endpoint/batch-scrape-status",
               "api-reference/endpoint/batch-scrape-errors",
               "api-reference/endpoint/batch-scrape-cancel"
+            ]
+          },
+          {
+            "group": "Batch",
+            "pages": [
+              "api-reference/endpoint/batch",
+              "api-reference/endpoint/batch-status",
+              "api-reference/endpoint/batch-errors",
+              "api-reference/endpoint/batch-cancel"
+            ]
+          },
+          {
+            "group": "Logo CDN",
+            "pages": [
+              "api-reference/endpoint/logo-cdn",
+              "api-reference/endpoint/logo-token",
+              "api-reference/endpoint/logo-token-rotate"
             ]
           },
           {

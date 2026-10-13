@@ -1,0 +1,135 @@
+---
+title: "GET /styleguide"
+description: "A site's design system — colors by role, the type scale, spacing, radii, shadows and component styles — plus ready-to-use CSS variables and a Tailwind theme. Costs 10 credits."
+openapi: "GET /styleguide"
+---
+
+## Overview
+
+`/styleguide` renders a page in a real browser and reads its design system off what is actually on screen — the way a designer would write it down to rebuild the site's look:
+
+- **Colors by role** — `primary` (the main button's fill), `secondary`, `accent`, `background`, `surface`, `text`, `text_muted`, `heading`, `link`, `border` — and the full palette.
+- **Typography** — the heading, body and monospace faces with their font stacks, and the type scale: `h1`–`h6`, `body`, `small`, `label` and `nav`, each with size, weight, line height, letter spacing and text transform. The ratio between steps is reported, named when it is a classic one (*major third*, *perfect fourth*…).
+- **Spacing** — the base unit most margins and paddings are a multiple of, and the scale in use.
+- **Radii and shadows** — small, medium and large, plus whether pills are used.
+- **Components** — the primary and secondary button (fill, text, border, radius, weight, font size, height, padding, shadow), the input, the card and the link.
+- **Breakpoints** — the widths the CSS switches layout at.
+- **CSS variables** — the site's own custom properties for colors, lengths, fonts and shadows.
+
+`exports` has the same guide as **CSS custom properties** and a **Tailwind theme**, ready to paste. It is built for coding agents: point one at a site and it can generate UI that looks like it.
+
+For logos, brand colors from the logo itself, fonts and social links, use [`/brand`](/api-reference/endpoint/brand).
+
+## Example requests
+
+<CodeGroup>
+
+```bash cURL
+curl "https://api.prefetch.io/styleguide?url=https://stripe.com" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```bash Dark theme
+curl "https://api.prefetch.io/styleguide?url=https://github.com&dark_mode=true" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```javascript Node.js — write a Tailwind preset
+import { writeFile } from "node:fs/promises";
+
+const res = await fetch("https://api.prefetch.io/styleguide?url=https://linear.app", {
+  headers: { "X-API-Key": process.env.PREFETCH_API_KEY },
+});
+const { data } = await res.json();
+
+await writeFile("brand.css", data.exports.css);
+await writeFile("tailwind.brand.js", `export default ${JSON.stringify(data.exports.tailwind, null, 2)};\n`);
+```
+
+</CodeGroup>
+
+## Example response
+
+```json
+{
+  "success": true,
+  "data": {
+    "url": "https://stripe.com",
+    "domain": "stripe.com",
+    "dark_mode": false,
+    "styleguide": {
+      "color_scheme": "light",
+      "colors": {
+        "primary": "#533AFD", "secondary": null, "accent": null,
+        "background": "#FFFFFF", "surface": "#E5EDF5",
+        "text": "#50617A", "text_muted": "#64748D", "heading": "#061B31",
+        "link": "#533AFD", "border": "#E5EDF5"
+      },
+      "palette": [{ "hex": "#533AFD", "role": "primary" }, { "hex": "#FFFFFF", "role": "background" }],
+      "typography": {
+        "font_families": {
+          "heading": { "family": "sohne-var", "stack": ["sohne-var", "SF Pro Display", "sans-serif"] },
+          "body": { "family": "sohne-var", "stack": ["sohne-var", "SF Pro Display", "sans-serif"] },
+          "mono": null
+        },
+        "styles": {
+          "h1": { "font_family": "sohne-var", "font_size": "48px", "font_weight": 300, "line_height": "55.2px", "letter_spacing": "-0.96px", "text_transform": null },
+          "body": { "font_family": "sohne-var", "font_size": "16px", "font_weight": 300, "line_height": "22.4px", "letter_spacing": null, "text_transform": null }
+        },
+        "base_font_size": "16px",
+        "scale": { "ratio": 1.441, "name": "augmented fourth" },
+        "web_fonts": { "google_fonts": [], "adobe_fonts": [] }
+      },
+      "spacing": { "base_unit": "4px", "scale": ["4px", "8px", "12px", "16px", "24px", "32px", "40px", "64px"] },
+      "radius": { "small": "4px", "medium": "6px", "large": "16px", "full": true, "scale": ["4px", "6px", "16px", "9999px"], "button": "4px", "input": "4px", "card": "6px" },
+      "shadows": {
+        "small": "rgba(23, 23, 23, 0.06) 0px 3px 6px 0px",
+        "medium": null,
+        "large": "rgba(23, 23, 23, 0.08) 0px 15px 35px 0px",
+        "scale": ["rgba(23, 23, 23, 0.06) 0px 3px 6px 0px", "rgba(23, 23, 23, 0.08) 0px 15px 35px 0px"]
+      },
+      "borders": { "width": "1px", "color": "#E5EDF5" },
+      "components": {
+        "button_primary": { "background": "#533AFD", "text_color": "#FFFFFF", "border_color": null, "border_radius": "4px", "font_weight": 400, "font_family": "sohne-var", "font_size": "16px", "height": "48px", "padding": "15.5px 24px 16.5px", "text_transform": null, "letter_spacing": null, "box_shadow": null },
+        "button_secondary": null,
+        "input": null,
+        "card": { "background": "#FFFFFF", "border_color": null, "border_width": null, "border_radius": "6px", "box_shadow": "rgba(50, 50, 93, 0.12) 0px 16px 32px 0px", "padding": null },
+        "link": { "color": "#533AFD", "text_decoration": "none", "font_weight": 400 }
+      },
+      "breakpoints": ["640px", "768px", "1024px"],
+      "css_variables": { "--hds-color-accent-border-solid": "#533afd" }
+    },
+    "exports": {
+      "css": ":root {\n  --color-primary: #533AFD;\n  --color-background: #FFFFFF;\n  …\n}\n",
+      "tailwind": { "theme": { "extend": { "colors": { "primary": "#533AFD", "background": "#FFFFFF" }, "fontSize": { "h1": ["48px", { "lineHeight": "55.2px", "fontWeight": "300", "letterSpacing": "-0.96px" }] } } } }
+    }
+  },
+  "meta": { "requestId": "3c2b1a0f-9e8d-4c7b-8a6f-5e4d3c2b1a0f", "durationMs": 4532 }
+}
+```
+
+## How it reads a site
+
+Everything comes from computed styles in the rendered page, so it reflects what visitors see, whatever the CSS framework:
+
+- Colors are read in any CSS color space (`oklch()`, `lab()`, `color()` included) and given as hex; translucent ones are blended over what is behind them.
+- A text style is the one most instances of an element share, weighted by text, so one oversized hero heading does not speak for every heading.
+- Spacing, radii and shadows are tallied across up to 2,500 visible elements. Off-grid one-offs don't make the scale, transparent placeholder shadows (Tailwind's) are dropped, and hairline "ring" shadows count as borders, not elevation.
+- `css_variables` lists custom properties in scope on the page, names that read as design tokens first.
+
+It is best effort: a value the page gives no reliable answer for is `null`. Set `dark_mode=true` to read the dark theme of a site that has one; `color_scheme` says which theme you got.
+
+## Credits
+
+**10 credits** per request. Never answered from curated data; repeat requests can be served from the request cache.
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="GET /brand" icon="palette" href="/api-reference/endpoint/brand">
+    Logos, brand colors, fonts and social links. **10 credits.**
+  </Card>
+  <Card title="GET /screenshot" icon="camera" href="/api-reference/endpoint/screenshot">
+    See the page the guide was read from. **1 credit.**
+  </Card>
+</CardGroup>

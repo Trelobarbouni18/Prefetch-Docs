@@ -1,0 +1,14 @@
+---
+title: "DELETE /batch/{endpoint}/{id}"
+description: "Stop a running batch. URLs already answered stay readable, and are charged."
+openapi: "DELETE /batch/{endpoint}/{id}"
+---
+
+## Overview
+
+Stops a running batch: no new URLs are started, and the ones in flight finish. URLs already answered stay readable from [`GET /batch/{endpoint}/{id}`](/api-reference/endpoint/batch-status) until the batch expires, and are charged as usual. Cancelling a batch that already finished returns its final state.
+
+```bash
+curl -X DELETE "https://api.prefetch.io/batch/enrich/crw_7c2e9a4b1d0f4e6a8b3c5d7e9f1a2b3c" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```

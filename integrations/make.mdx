@@ -1,0 +1,82 @@
+---
+title: "Make"
+description: "Build Make scenarios that enrich spreadsheet rows, name card transactions and receive batch results with the HTTP module."
+icon: "gears"
+---
+
+Make reaches Prefetch through the **HTTP → Make a request** module.
+
+## Enrich new rows in a Google Sheet
+
+**1. Google Sheets → Watch New Rows** on a sheet with a domain column.
+
+**2. HTTP → Make a request**
+
+| Field | Value |
+|---|---|
+| URL | `https://api.prefetch.io/enrich` |
+| Method | `GET` |
+| Headers | `X-API-Key`: your Prefetch API key |
+| Query String | `url`: the domain column from step 1 |
+| Parse response | **Yes** |
+| Timeout | `60` |
+
+Run the module once so Make learns the response's structure; its fields then appear in the mapping panel under **Data**.
+
+**3. Google Sheets → Update a Row**, row number from step 1, mapping for example:
+
+| Column | Map |
+|---|---|
+| Company | `data.company.name` |
+| Industry | `data.classification.category` |
+| Description | `data.classification.tagline_description` |
+| Logo | `data.brand.logos.primary.url` |
+| Brand color | `first(map(data.brand.colors.brand_colors; "hex"))` |
+| LinkedIn | `data.company.social_links.linkedin` |
+
+12 credits per row.
+
+<Tip>
+Set the scenario's **maximum number of cycles** and the HTTP module's **sequential processing** so no more requests run at once than your plan's concurrency allows (1 on Free, 10 on Starter).
+</Tip>
+
+## Name the merchant on card transactions
+
+The same scenario shape, with the HTTP module pointed at `/transaction`:
+
+| Field | Value |
+|---|---|
+| URL | `https://api.prefetch.io/transaction` |
+| Method | `GET` |
+| Headers | `X-API-Key`: your Prefetch API key |
+| Query String | `descriptor`: the statement line · `country`: `US` |
+| Parse response | **Yes** |
+
+Map `data.kind`, `data.merchant.name`, `data.merchant.domain`, `data.category` and `data.logo_url`. 3 credits per line, 1 for a line looked up in the last 7 days.
+
+## Retrying what can be retried
+
+Add an error handler to the HTTP module: right-click → **Add error handler → Resume** (or **Break** with automatic retries). Prefetch's error body says whether a retry can help:
+
+- `retryable: true` — `SERVICE_BUSY`, `CONCURRENCY_LIMITED`, `TIMEOUT`, `TARGET_TIMEOUT`: retry after a pause.
+- `retryable: false` — `DNS_RESOLUTION_FAILED`, `TARGET_BLOCKED`, `INVALID_REQUEST`: record the error and move on.
+
+Failed requests are never charged.
+
+## Batches with a webhook
+
+For hundreds of domains at once, start a [batch](/api-reference/endpoint/batch) and let Prefetch call your scenario back:
+
+1. Create a scenario starting with **Webhooks → Custom webhook**, and copy its address.
+2. From another scenario (or once, by hand), send `POST https://api.prefetch.io/batch/enrich` with the body:
+
+   ```json
+   {
+     "urls": ["stripe.com", "linear.app", "notion.so"],
+     "webhook": { "url": "YOUR_MAKE_WEBHOOK_ADDRESS", "events": ["page"] }
+   }
+   ```
+
+3. Each `batch_enrich.page` event arrives as one bundle in the first scenario, with the domain's result under `data` — map it into your sheet or CRM.
+
+Each domain costs 12 credits; failed ones are free. Webhooks are not available through RapidAPI keys.

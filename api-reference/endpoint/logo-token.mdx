@@ -1,0 +1,15 @@
+---
+title: "GET /logo/token"
+description: "Your organisation's publishable logo CDN token, with this month's quota and use."
+openapi: "GET /logo/token"
+---
+
+## Overview
+
+Returns the token to put in [logo CDN](/api-reference/endpoint/logo-cdn) URLs, an example URL, and this month's quota and use. Use counts reach it within a minute or so of the requests.
+
+```bash
+curl "https://api.prefetch.io/logo/token" -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+Free. Not available through RapidAPI.

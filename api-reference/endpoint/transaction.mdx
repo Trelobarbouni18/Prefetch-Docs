@@ -1,0 +1,124 @@
+---
+title: "GET /transaction"
+description: "Turn a card transaction descriptor into the merchant behind it — name, website, logo, processor and location. Costs 3 credits, 1 for a line seen in the last week."
+openapi: "GET /transaction"
+---
+
+## Overview
+
+Bank statement lines are written for card networks, not people: `SQ *BLUE BOTTLE COFFE OAKLAND CA`, `PAYPAL *SPOTIFYAB`, `AMZN Mktp US*2K4LX9B12`. `/transaction` reads one and tells you who was paid:
+
+| Descriptor | Merchant | Website | Processor | Where |
+|---|---|---|---|---|
+| `SQ *BLUE BOTTLE COFFE OAKLAND CA` | Blue Bottle Coffee | bluebottlecoffee.com | Square | Oakland, CA |
+| `PAYPAL *SPOTIFYAB` | Spotify | spotify.com | PayPal | |
+| `AMZN Mktp US*2K4LX9B12` | Amazon | amazon.com | | |
+| `CHECKCARD 0412 STARBUCKS STORE 12345 SEATTLE WA` | Starbucks | starbucks.com | | Seattle, WA |
+| `VENMO *JOHN SMITH` | — a payment to a **person** | | Venmo | |
+| `MONTHLY MAINTENANCE FEE` | — a bank **fee** | | | |
+
+Truncated words are completed (descriptors are cut at 22 characters), processor prefixes and store numbers are dropped, and lines that are not purchases say so in `kind`: `person`, `transfer`, `fee`, `atm` or `refund`.
+
+The merchant's name is then resolved to its website exactly as [`/resolve`](/api-reference/endpoint/resolve) does it — the name index first, then a live lookup that verifies each candidate against its own homepage, using the line's city to tell local businesses apart. `logo_url` points at the merchant's logo on the [logo CDN](/api-reference/endpoint/logo-cdn), with your publishable token, ready for an `<img>` tag. `include_brand=true` adds the merchant's full brand (logos, colors, fonts), as [`/brand`](/api-reference/endpoint/brand) returns it.
+
+## Example requests
+
+<CodeGroup>
+
+```bash cURL
+curl -G "https://api.prefetch.io/transaction" \
+  --data-urlencode "descriptor=SQ *BLUE BOTTLE COFFE OAKLAND CA" \
+  --data-urlencode "country=US" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```bash POST, with the brand
+curl -X POST "https://api.prefetch.io/transaction" \
+  -H "X-API-Key: $PREFETCH_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "descriptor": "PAYPAL *SPOTIFYAB", "mcc": "5815", "include_brand": true }'
+```
+
+```javascript Node.js — enrich a statement
+const lines = ["SQ *BLUE BOTTLE COFFE OAKLAND CA", "NETFLIX.COM 866-579-7172 CA", "VENMO *JOHN SMITH"];
+
+for (const descriptor of lines) {
+  const res = await fetch("https://api.prefetch.io/transaction", {
+    method: "POST",
+    headers: { "X-API-Key": process.env.PREFETCH_API_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ descriptor, country: "US" }),
+  });
+  const { data } = await res.json();
+  console.log(descriptor, "→", data.kind === "merchant" ? `${data.merchant.name} (${data.merchant.domain ?? "no site"})` : data.kind);
+}
+```
+
+</CodeGroup>
+
+## Example response
+
+```json
+{
+  "success": true,
+  "data": {
+    "descriptor": "SQ *BLUE BOTTLE COFFE OAKLAND CA",
+    "kind": "merchant",
+    "merchant": {
+      "name": "Blue Bottle Coffee",
+      "domain": "bluebottlecoffee.com",
+      "url": "https://bluebottlecoffee.com",
+      "confidence": 0.88,
+      "source": "live"
+    },
+    "candidates": [
+      { "name": "Blue Bottle Coffee", "domain": "bluebottlecoffee.com", "url": "https://bluebottlecoffee.com", "confidence": 0.88, "source": "live" }
+    ],
+    "payment_processor": "Square",
+    "location": { "city": "Oakland", "region": "CA", "country": "US" },
+    "category": "Coffee shop",
+    "logo_url": "https://logo.prefetch.io/bluebottlecoffee.com?token=pk_4f1c9e2b7a0d4c3e8b6a1f2d3c4b5a69",
+    "parsed_by": "model",
+    "warnings": []
+  },
+  "meta": { "requestId": "8a7b6c5d-4e3f-4a2b-9c1d-0e9f8a7b6c5d", "durationMs": 1577 }
+}
+```
+
+## Reading the response
+
+| Field | Meaning |
+|---|---|
+| `kind` | `merchant`, or what else the line is. Only a `merchant` has a `merchant`. |
+| `merchant.name` | The trading name, even when no website was found — many local businesses have none. |
+| `merchant.domain` | The website, when one was found with confidence of at least 0.6. At 0.8 or above, treat it as the answer. Below 0.6 it is only in `candidates`. |
+| `candidates` | Every domain considered, best first, including low-confidence ones. |
+| `logo_url` | Null when no website was found, or for keys without a logo token (RapidAPI). |
+| `parsed_by` | `rules` when the language model was unavailable and the line was read by pattern alone — a less reliable reading, flagged in `warnings`. |
+
+`country` (where the card was used) and `mcc` (the merchant category code from your card data) are optional hints that help with ambiguous lines.
+
+## Credits
+
+| Outcome | Credits |
+|---|---|
+| A line read and resolved | 3 |
+| The same line, country and MCC looked up in the last 7 days | 1 |
+| `include_brand=true`, and a brand was returned | +10 |
+| Failures | 0 |
+
+Statements repeat the same merchants every month, so most of a statement's lines are served at 1 credit after the first month.
+
+<Note>
+How fast unknown merchants resolve depends on the name index. Lines whose merchant the index knows answer in about a second; others run a live lookup, typically 2–5 seconds.
+</Note>
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Logo CDN" icon="image" href="/api-reference/endpoint/logo-cdn">
+    The `logo_url` behind every merchant. Free, with a monthly quota.
+  </Card>
+  <Card title="GET /resolve" icon="magnifying-glass" href="/api-reference/endpoint/resolve">
+    A name you already have → its domain. **1 credit.**
+  </Card>
+</CardGroup>

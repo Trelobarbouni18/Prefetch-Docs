@@ -1,16 +1,18 @@
 ---
 title: "GET /screenshot"
-description: "Capture a webpage screenshot and get a public URL to the image. Costs 1 credit."
+description: "Capture a webpage — the viewport, the full page or one element — as a phone, a tablet or a desktop, in light or dark mode, as JPEG, PNG, WebP or PDF. Costs 1 credit."
 openapi: "GET /screenshot"
 ---
 
 ## Overview
 
-`/screenshot` opens a URL in a headless Chrome browser and captures a screenshot. The image is stored in cloud storage and a public URL is returned. You can configure:
+`/screenshot` opens a URL in a headless Chrome browser, captures it, stores the image and returns a public URL to it. Cookie banners and ad slots are hidden on every capture. You can choose:
 
-- **Viewport size** — width and height of the browser window
-- **Full page** — capture the entire scrollable content instead of just the viewport
-- **Format** — JPEG (smaller), PNG (lossless), or WebP (best compression)
+- **What to capture** — the viewport, the full scrollable page (`full_page`), or a single element (`selector`).
+- **What to render it as** — a viewport size (`width`, `height`), or a real device (`device`): its viewport, pixel density, touch support and user agent, so the page serves its phone or tablet layout.
+- **How the page looks** — its dark theme (`dark_mode`), and with ad and tracker requests blocked (`block_ads`).
+- **When to capture** — after a delay (`wait_for`), or once an element appears (`wait_for_selector`).
+- **The output** — `jpeg` (smaller), `png` (lossless), `webp` (best compression), or `pdf` (the whole page as a document), with `quality` for JPEG and WebP.
 
 ## Example requests
 
@@ -21,29 +23,37 @@ curl "https://api.prefetch.io/screenshot?url=https://stripe.com" \
   -H "X-API-Key: $PREFETCH_API_KEY"
 ```
 
-```bash Mobile viewport
-curl "https://api.prefetch.io/screenshot?url=https://stripe.com&width=390&height=844" \
+```bash iPhone 15, dark mode
+curl "https://api.prefetch.io/screenshot?url=https://github.com&device=iphone_15&dark_mode=true" \
   -H "X-API-Key: $PREFETCH_API_KEY"
 ```
 
-```bash Full page PNG
-curl "https://api.prefetch.io/screenshot?url=https://stripe.com&full_page=true&format=png" \
+```bash One element as PNG
+curl "https://api.prefetch.io/screenshot?url=https://stripe.com/pricing&selector=%23pricing&format=png" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```bash Full page, no ads, WebP
+curl "https://api.prefetch.io/screenshot?url=https://www.theverge.com&full_page=true&block_ads=true&format=webp&quality=70" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```bash Wait for a chart, then capture
+curl "https://api.prefetch.io/screenshot?url=https://example.com/dashboard&wait_for_selector=.chart%20canvas&wait_for=1000" \
   -H "X-API-Key: $PREFETCH_API_KEY"
 ```
 
 ```javascript Node.js
 const params = new URLSearchParams({
   url: "https://stripe.com",
-  width: "1280",
-  height: "800",
+  device: "pixel_7",
   format: "webp",
-  full_page: "false",
+  block_ads: "true",
 });
 
-const res = await fetch(
-  `https://api.prefetch.io/screenshot?${params}`,
-  { headers: { "X-API-Key": process.env.PREFETCH_API_KEY } }
-);
+const res = await fetch(`https://api.prefetch.io/screenshot?${params}`, {
+  headers: { "X-API-Key": process.env.PREFETCH_API_KEY },
+});
 const { data } = await res.json();
 console.log(data.screenshot_url);
 ```
@@ -56,36 +66,76 @@ console.log(data.screenshot_url);
 {
   "success": true,
   "data": {
-    "url": "https://stripe.com",
-    "screenshot_url": "https://assets.prefetch.io/screenshots/stripe-1440x900-abc123.jpg",
-    "viewport": {
-      "width": 1440,
-      "height": 900
-    },
+    "url": "https://github.com",
+    "screenshot_url": "https://assets.prefetch.io/screenshots/github-iphone15.jpg",
+    "viewport": { "width": 393, "height": 659 },
     "format": "jpeg",
     "full_page": false,
-    "captured_at": "2026-03-19T14:22:05.000Z"
+    "captured_at": "2026-10-13T09:36:12.000Z",
+    "device": "iphone_15",
+    "device_scale_factor": 3,
+    "dark_mode": true,
+    "selector": null
   },
   "meta": {
     "requestId": "c1d2e3f4-5a6b-7c8d-9e0f-1a2b3c4d5e6f",
-    "durationMs": 2540
+    "durationMs": 2450
   }
 }
 ```
+
+`viewport` is in CSS pixels; the image is `viewport × device_scale_factor` pixels — an `iphone_15` capture is 1179 pixels wide. `warnings` appears when something was not as asked but the capture still happened, for example a `wait_for_selector` that never appeared.
+
+## Devices
+
+| `device` | Viewport | Density |
+|---|---|---|
+| `iphone_15` | 393 × 659 | 3× |
+| `iphone_15_pro_max` | 430 × 739 | 3× |
+| `iphone_se` | 320 × 568 | 2× |
+| `pixel_7` | 412 × 839 | 2.625× |
+| `galaxy_s8` | 360 × 740 | 3× |
+| `ipad` | 810 × 1080 | 2× |
+| `ipad_mini` | 768 × 1024 | 2× |
+| `ipad_pro_11` | 834 × 1194 | 2× |
+| `galaxy_tab_s4` | 712 × 1138 | 2.25× |
+| `desktop_retina` | 1280 × 720 | 2× |
+
+A device sets the viewport, so `width` and `height` are ignored with it.
+
+## Elements
+
+`selector` captures the first element matching a CSS selector, whole — `#pricing`, `header`, `.hero img`. The element is waited for (up to 10 seconds); if nothing matches, the request fails with `422` and error code `TARGET_ELEMENT_NOT_FOUND`, and is not charged. An element cannot be captured as a PDF.
+
+`wait_for_selector` is different: it is best effort. The page is captured as it is once the selector appears, or after 10 seconds with a warning if it never does.
 
 ## Format comparison
 
 | Format | Best for | Notes |
 |---|---|---|
-| `jpeg` | General use, thumbnails | Smallest file size, lossy compression |
-| `png` | Logos, UI elements, transparency | Lossless, larger files |
-| `webp` | Web display | Best compression-to-quality ratio |
+| `jpeg` | General use, thumbnails | Smallest file size, lossy. `quality` 1–100, default 85 |
+| `png` | Logos, UI elements, exact pixels | Lossless, larger files |
+| `webp` | Web display | Best compression-to-quality ratio. `quality` 1–100, default 85 |
+| `pdf` | Documents, archiving | The whole page, as printed with backgrounds |
+
+Images larger than 8 MB — a long page at a phone's pixel density — are scaled down until they fit.
 
 ## Parameter limits
 
-| Parameter | Default | Min | Max |
-|---|---|---|---|
-| `width` | 1440 | 320 | 5000 |
-| `height` | 900 | 320 | 5000 |
-| `format` | `jpeg` | — | — |
-| `full_page` | `false` | — | — |
+| Parameter | Default | Range |
+|---|---|---|
+| `width` | 1440 | 320–2560 |
+| `height` | 900 | 240–5000 |
+| `format` | `jpeg` | `jpeg`, `png`, `webp`, `pdf` |
+| `full_page` | `false` | — |
+| `device` | none | see Devices |
+| `dark_mode` | `false` | — |
+| `selector` | none | a CSS selector, up to 200 characters |
+| `wait_for` | 0 | 0–30,000 ms |
+| `wait_for_selector` | none | a CSS selector, up to 200 characters |
+| `block_ads` | `false` | — |
+| `quality` | 85 | 1–100 |
+
+## Credits
+
+**1 credit** per capture, whatever the options. Failures are never charged.

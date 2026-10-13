@@ -1,0 +1,116 @@
+---
+title: "Logo CDN"
+description: "Any company's logo as an image URL: logo.prefetch.io/stripe.com?token=… Put it straight in an <img> tag. No credits — every plan includes a monthly quota."
+---
+
+## Overview
+
+```html
+<img src="https://logo.prefetch.io/stripe.com?token=pk_YOUR_TOKEN" alt="Stripe" width="64" height="64" />
+```
+
+The logo CDN serves any domain's logo as an image, from Cloudflare's network. Use it wherever you show companies — customer lists, transaction feeds, CRM records, search results — without storing a single image yourself.
+
+- **No credits.** Logo requests don't touch your credit balance: each plan includes a monthly quota of them.
+- **Embeddable.** The `token` is a *publishable* token: it serves logo images and nothing else, so it is safe in your HTML. It is not your API key.
+- **Always an image.** A domain whose logo isn't known yet gets a letter mark in a stable color, and its logo is looked up in the background — the next request usually has it.
+
+## Your token
+
+Get it from the API with your API key:
+
+```bash
+curl "https://api.prefetch.io/logo/token" -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```json
+{
+  "success": true,
+  "data": {
+    "token": "pk_4f1c9e2b7a0d4c3e8b6a1f2d3c4b5a69",
+    "cdn_url": "https://logo.prefetch.io",
+    "example": "https://logo.prefetch.io/stripe.com?token=pk_4f1c9e2b7a0d4c3e8b6a1f2d3c4b5a69",
+    "quota": 100000,
+    "used": 1234,
+    "period": "2026-10-01"
+  }
+}
+```
+
+There is one token per organisation, and it stays the same when you rotate API keys, so logos already on your pages keep working. If someone else is using your token against your quota, [rotate it](/api-reference/endpoint/logo-token-rotate) — every logo embedded with the old one stops loading at once.
+
+## Parameters
+
+```
+https://logo.prefetch.io/<domain>?token=<token>[&size=128][&format=png][&theme=light][&greyscale=true][&fallback=monogram]
+```
+
+| Parameter | Default | Values |
+|---|---|---|
+| `<domain>` | — | Any domain: `stripe.com`, `www.stripe.com` and `https://stripe.com/pricing` all mean `stripe.com`. |
+| `token` | — | Your publishable token. Required. |
+| `size` | `128` | 16–512 pixels. Logos are square, centred on a transparent background. |
+| `format` | `png` | `png`, `webp` or `jpeg` (`jpg` works too). |
+| `theme` | `light` | The background a JPEG is flattened onto (`light` is white, `dark` near-black). PNG and WebP stay transparent. |
+| `greyscale` | `false` | `true` for a grey logo. |
+| `fallback` | `monogram` | What a domain without a known logo gets: `monogram` (the letter mark), `404`, or `transparent` (an empty image). |
+
+Unknown values fall back to the default rather than failing: a broken image helps nobody.
+
+## Examples
+
+<CodeGroup>
+
+```html HTML
+<img src="https://logo.prefetch.io/linear.app?token=pk_YOUR_TOKEN&size=48" width="24" height="24" alt="Linear" />
+```
+
+```jsx React
+function CompanyLogo({ domain, size = 32 }) {
+  return (
+    <img
+      src={`https://logo.prefetch.io/${domain}?token=${process.env.NEXT_PUBLIC_PREFETCH_LOGO_TOKEN}&size=${size * 2}`}
+      width={size}
+      height={size}
+      alt=""
+      loading="lazy"
+      style={{ borderRadius: 6 }}
+    />
+  );
+}
+```
+
+```markdown Markdown
+![Stripe](https://logo.prefetch.io/stripe.com?token=pk_YOUR_TOKEN&size=64)
+```
+
+</CodeGroup>
+
+Request twice the size you display for sharp logos on high-density screens. The letter mark is a square; round it with CSS if you want a circle.
+
+## Where logos come from
+
+In order: Prefetch's curated brand data; the icons the site declares for itself (its apple touch icon, icons and web app manifest), largest first; and, when those are all tiny, the logo in the page itself. The result is stored once and every size and format is cut from it. Logos are cached at the edge for a week.
+
+## Quotas
+
+| Plan | Logo requests per month |
+|---|---|
+| Free | 100,000 |
+| Starter | 250,000 |
+| Pro | 1,000,000 |
+| Growth | 3,000,000 |
+| Scale | 10,000,000 |
+| Enterprise | Unlimited |
+
+Months are calendar months (UTC); the count resets on the 1st. Only images served count — an invalid token, a quota refusal or a `fallback=404` does not, and browsers cache each logo for a day, so repeat views are free. Past the quota, requests get `429` until the 1st or an upgrade.
+
+## Errors
+
+| Status | When |
+|---|---|
+| `400` | The path is not a domain. |
+| `401` | No token, or not a valid one (a rotated token, for example). |
+| `429` | The organisation's monthly logo quota is used up. |
+
+Errors are JSON with an `error` message. The logo CDN is not available through RapidAPI.

@@ -1,0 +1,14 @@
+---
+title: "GET /batch/{endpoint}/{id}/errors"
+description: "The URLs of a batch that failed, with their error codes. Free."
+openapi: "GET /batch/{endpoint}/{id}/errors"
+---
+
+## Overview
+
+Lists the URLs that were run and failed, oldest first, each with an `error_code` — the same code a single call of that URL would have answered with — so you can tell the ones worth retrying (`TARGET_TIMEOUT`, `TARGET_SERVER_ERROR`) from the ones that never will work (`DNS_RESOLUTION_FAILED`, `TARGET_BLOCKED`). Free; failed URLs are never charged.
+
+```bash
+curl "https://api.prefetch.io/batch/enrich/crw_7c2e9a4b1d0f4e6a8b3c5d7e9f1a2b3c/errors" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```

@@ -1,0 +1,15 @@
+---
+title: "POST /logo/token/rotate"
+description: "Replace your logo CDN token. Logos embedded with the old token stop loading at once."
+openapi: "POST /logo/token/rotate"
+---
+
+## Overview
+
+Issues a new publishable token for your organisation and retires the old one immediately. Every logo already embedded with the old token stops loading, so rotate only when someone else is using your token against your quota — then update your pages with the new one.
+
+```bash
+curl -X POST "https://api.prefetch.io/logo/token/rotate" -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+Free. Not available through RapidAPI.

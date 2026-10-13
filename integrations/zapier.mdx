@@ -1,0 +1,69 @@
+---
+title: "Zapier"
+description: "Enrich new CRM companies and name the merchants on card transactions with Prefetch, using Webhooks by Zapier."
+icon: "bolt"
+---
+
+Zapier reaches Prefetch through **Webhooks by Zapier**, which can call any API. (Webhooks by Zapier is available on Zapier's paid plans.)
+
+## Enrich new companies in your CRM
+
+**Trigger:** your CRM's *New Company* (HubSpot, Pipedrive, Salesforce, Attio…).
+
+**Action:** *Webhooks by Zapier → GET*
+
+| Field | Value |
+|---|---|
+| URL | `https://api.prefetch.io/enrich` |
+| Query String Params | `url` → the company's **domain** from the trigger |
+| Headers | `X-API-Key` → your Prefetch API key |
+
+Test the step. Zapier flattens the response, so the fields appear as, for example:
+
+| Zapier field | What it is |
+|---|---|
+| `Data Company Name` | The legal or trading name |
+| `Data Classification Category` | Industry (IAB) |
+| `Data Classification Tagline Description` | One-line description |
+| `Data Brand Logos Primary Url` | Logo image URL |
+| `Data Brand Colors Brand Colors Hex` | Brand colors (the first is the main one) |
+| `Data Company Social Links Linkedin` | LinkedIn page |
+
+**Action:** your CRM's *Update Company*, mapping those fields onto your properties.
+
+12 credits per company. If your trigger only has a company **name**, add a step before it: *Webhooks by Zapier → GET* `https://api.prefetch.io/resolve` with `name` → the company name and `live` → `true`, and use `Data Results Domain` (the first result) when `Data Results Confidence` is at least 0.8 — a *Filter by Zapier* step can stop the Zap otherwise.
+
+## Name the merchant on card transactions
+
+**Trigger:** wherever transactions arrive — a new row in Google Sheets or Airtable, a new transaction in your banking tool.
+
+**Action:** *Webhooks by Zapier → GET*
+
+| Field | Value |
+|---|---|
+| URL | `https://api.prefetch.io/transaction` |
+| Query String Params | `descriptor` → the statement line; `country` → `US` (or the card's country) |
+| Headers | `X-API-Key` → your Prefetch API key |
+
+Use `Data Kind` (`merchant`, `person`, `transfer`, `fee`, `atm` or `refund`), `Data Merchant Name`, `Data Merchant Domain`, `Data Category`, `Data Payment Processor` and `Data Logo Url`. 3 credits per transaction; 1 for a line looked up in the last 7 days.
+
+## Long jobs: batches and webhooks
+
+A Zap step times out long before a crawl or a large batch finishes. Split it in two:
+
+1. **Zap 1** starts the job: *Webhooks by Zapier → Custom Request*, `POST` to `https://api.prefetch.io/batch/enrich`, with data:
+
+   ```json
+   {
+     "urls": ["stripe.com", "linear.app", "notion.so"],
+     "webhook": { "url": "YOUR_CATCH_HOOK_URL", "events": ["page"] }
+   }
+   ```
+
+2. **Zap 2** receives each result: trigger *Webhooks by Zapier → Catch Hook* (its URL goes in `webhook.url` above). Every `batch_enrich.page` event carries one domain's result under `data`.
+
+Webhooks are not available through RapidAPI keys.
+
+## Errors
+
+A failed step shows Prefetch's error body. `error_code` says what went wrong and `retryable` whether trying again can help — turn on Zapier's autoreplay for the retryable ones (`SERVICE_BUSY`, `CONCURRENCY_LIMITED`, `TARGET_TIMEOUT`). Failed requests are never charged.

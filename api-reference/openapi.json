@@ -780,8 +780,8 @@
           },
           "format": {
             "type": "string",
-            "enum": ["jpeg", "png", "webp"],
-            "description": "Image format of the screenshot.",
+            "enum": ["jpeg", "png", "webp", "pdf"],
+            "description": "Format of the capture.",
             "example": "jpeg"
           },
           "full_page": {
@@ -794,6 +794,35 @@
             "format": "date-time",
             "description": "ISO 8601 timestamp of when the screenshot was taken.",
             "example": "2026-03-19T14:22:05.000Z"
+          },
+          "device": {
+            "type": "string",
+            "nullable": true,
+            "description": "The `device` preset the page was rendered as; null for a plain viewport.",
+            "example": "iphone_15"
+          },
+          "device_scale_factor": {
+            "type": "number",
+            "nullable": true,
+            "description": "Pixels per CSS pixel in the image: 1 for a plain viewport, the device's own density for a preset.",
+            "example": 3
+          },
+          "dark_mode": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "Whether the page was asked for its dark theme."
+          },
+          "selector": {
+            "type": "string",
+            "nullable": true,
+            "description": "The element captured, when `selector` was set."
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Non-fatal notes, e.g. a `wait_for_selector` that never appeared."
           }
         },
         "required": ["url", "screenshot_url", "viewport", "format", "full_page", "captured_at"]
@@ -2035,6 +2064,11 @@
             "type": "string",
             "example": "crw_4b1e9c0a7d2f4e6b"
           },
+          "endpoint": {
+            "type": "string",
+            "description": "What each URL is run through.",
+            "example": "scrape"
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -2165,7 +2199,12 @@
               "crawl",
               "batch"
             ],
-            "description": "`batch` for a `POST /batch/scrape` job."
+            "description": "`batch` for a `POST /batch/{endpoint}` job."
+          },
+          "endpoint": {
+            "type": "string",
+            "description": "What each item is: `scrape` for a crawl or /batch/scrape, otherwise the batch's endpoint (`brand`, `enrich`, …).",
+            "example": "scrape"
           },
           "skipped": {
             "type": "object",
@@ -3274,6 +3313,1394 @@
             }
           }
         }
+      },
+      "SearchData": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "web",
+              "news"
+            ]
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchResultItem"
+            }
+          },
+          "count": {
+            "type": "number"
+          },
+          "scraped": {
+            "type": "number",
+            "description": "Result pages fetched — each charged at the /scrape rate."
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "query",
+          "type",
+          "results",
+          "count",
+          "scraped",
+          "warnings"
+        ]
+      },
+      "SearchResultItem": {
+        "type": "object",
+        "properties": {
+          "position": {
+            "type": "number",
+            "description": "Rank on the results page, from 1.",
+            "example": 1
+          },
+          "url": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "description": "The snippet the search engine shows for the result."
+          },
+          "date": {
+            "type": "string",
+            "nullable": true,
+            "description": "Publication date as the result shows it, when it shows one.",
+            "example": "2 days ago"
+          },
+          "source": {
+            "type": "string",
+            "nullable": true,
+            "description": "News results: the publisher.",
+            "example": "The Verge"
+          },
+          "image_url": {
+            "type": "string",
+            "nullable": true,
+            "description": "News results: the article's thumbnail."
+          },
+          "scrape": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScrapeData"
+              },
+              {
+                "description": "The result page in the requested formats — the same object GET /scrape returns. Present when scraping was asked for and the page was fetched."
+              }
+            ]
+          },
+          "scrape_error": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_code": {
+                "type": "string",
+                "enum": [
+                  "INVALID_REQUEST",
+                  "PAYLOAD_TOO_LARGE",
+                  "NOT_FOUND",
+                  "CONFLICT",
+                  "UNAUTHORIZED",
+                  "FORBIDDEN",
+                  "CREDITS_EXHAUSTED",
+                  "RATE_LIMITED",
+                  "CONCURRENCY_LIMITED",
+                  "URL_BLOCKED",
+                  "URL_NOT_PERMITTED",
+                  "DNS_RESOLUTION_FAILED",
+                  "TARGET_BLOCKED",
+                  "TARGET_CONNECTION_FAILED",
+                  "TARGET_TIMEOUT",
+                  "TARGET_SSL_ERROR",
+                  "TARGET_SERVER_ERROR",
+                  "TARGET_CLIENT_ERROR",
+                  "TARGET_NOT_A_PAGE",
+                  "TARGET_UNLOADABLE",
+                  "TARGET_ELEMENT_NOT_FOUND",
+                  "RESEARCH_INCONCLUSIVE",
+                  "TIMEOUT",
+                  "SERVICE_BUSY",
+                  "SERVICE_UNAVAILABLE",
+                  "INTERNAL_ERROR"
+                ]
+              }
+            },
+            "required": [
+              "error",
+              "error_code"
+            ],
+            "description": "Why the result page could not be scraped. Not charged."
+          }
+        },
+        "required": [
+          "position",
+          "url",
+          "title",
+          "description",
+          "date",
+          "source",
+          "image_url"
+        ]
+      },
+      "SearchBody": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "What to search for, as you would type it into Google (1–400 characters). Search operators work (`\"exact phrase\"`, `-word`, `filetype:pdf`). `q` is accepted too.",
+            "example": "best open source CRM"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Results to return (1–50; 1–10 when results are scraped). Default: 10.",
+            "example": 5
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "web",
+              "news"
+            ]
+          },
+          "country": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "time_range": {
+            "type": "string",
+            "enum": [
+              "hour",
+              "day",
+              "week",
+              "month",
+              "year"
+            ]
+          },
+          "include_domains": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "exclude_domains": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "scrape_options": {
+            "type": "object",
+            "properties": {
+              "formats": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "markdown",
+                    "summary",
+                    "html",
+                    "raw_html",
+                    "links",
+                    "images",
+                    "json",
+                    "screenshot"
+                  ]
+                }
+              },
+              "only_main_content": {
+                "type": "boolean"
+              },
+              "include_links": {
+                "type": "boolean"
+              },
+              "include_images": {
+                "type": "boolean"
+              },
+              "include_base64_images": {
+                "type": "boolean"
+              },
+              "include_selectors": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "exclude_selectors": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "json_prompt": {
+                "type": "string"
+              },
+              "json_schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "nullable": true
+                }
+              },
+              "summary_max_words": {
+                "type": "integer"
+              },
+              "screenshot_full_page": {
+                "type": "boolean"
+              },
+              "screenshot_format": {
+                "type": "string",
+                "enum": [
+                  "jpeg",
+                  "png",
+                  "webp"
+                ]
+              },
+              "wait_for": {
+                "type": "integer"
+              },
+              "wait_for_selector": {
+                "type": "string"
+              },
+              "headers": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "mobile": {
+                "type": "boolean"
+              },
+              "max_age": {
+                "type": "integer"
+              },
+              "store_in_cache": {
+                "type": "boolean"
+              },
+              "check_prompt_injection": {
+                "type": "boolean",
+                "description": "Check each page for prompt injection, as on /scrape. Adds the AI surcharge to every page."
+              }
+            },
+            "description": "Scrape each result page — the same options /scrape takes. Omit to return search results only."
+          },
+          "timeout": {
+            "type": "integer",
+            "description": "Give up after this many milliseconds (5,000–45000). Result pages still loading are returned with a `scrape_error` and not charged."
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "description": "The same options as GET /search, as typed JSON."
+      },
+      "StyleguideData": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string",
+            "example": "stripe.com"
+          },
+          "dark_mode": {
+            "type": "boolean"
+          },
+          "styleguide": {
+            "$ref": "#/components/schemas/Styleguide"
+          },
+          "exports": {
+            "type": "object",
+            "properties": {
+              "css": {
+                "type": "string",
+                "description": "The guide as CSS custom properties on `:root`.",
+                "example": ":root {\n  --color-primary: #635BFF;\n}\n"
+              },
+              "tailwind": {
+                "type": "object",
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "description": "The guide as a Tailwind config: merge `theme.extend` into yours."
+              }
+            },
+            "required": [
+              "css",
+              "tailwind"
+            ]
+          }
+        },
+        "required": [
+          "url",
+          "domain",
+          "dark_mode",
+          "styleguide",
+          "exports"
+        ]
+      },
+      "Styleguide": {
+        "type": "object",
+        "properties": {
+          "color_scheme": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "light",
+              "dark",
+              null
+            ]
+          },
+          "colors": {
+            "type": "object",
+            "properties": {
+              "primary": {
+                "type": "string",
+                "nullable": true,
+                "example": "#635BFF",
+                "description": "The main action color: the fill of the most prominent button."
+              },
+              "secondary": {
+                "type": "string",
+                "nullable": true,
+                "example": "#635BFF"
+              },
+              "accent": {
+                "type": "string",
+                "nullable": true,
+                "example": "#635BFF"
+              },
+              "background": {
+                "type": "string",
+                "nullable": true,
+                "example": "#635BFF"
+              },
+              "surface": {
+                "type": "string",
+                "nullable": true,
+                "example": "#635BFF",
+                "description": "The most used fill other than the page background: panels, cards, sections."
+              },
+              "text": {
+                "type": "string",
+                "nullable": true,
+                "example": "#635BFF"
+              },
+              "text_muted": {
+                "type": "string",
+                "nullable": true,
+                "example": "#635BFF"
+              },
+              "heading": {
+                "type": "string",
+                "nullable": true,
+                "example": "#635BFF"
+              },
+              "link": {
+                "type": "string",
+                "nullable": true,
+                "example": "#635BFF"
+              },
+              "border": {
+                "type": "string",
+                "nullable": true,
+                "example": "#635BFF"
+              }
+            },
+            "required": [
+              "primary",
+              "secondary",
+              "accent",
+              "background",
+              "surface",
+              "text",
+              "text_muted",
+              "heading",
+              "link",
+              "border"
+            ]
+          },
+          "palette": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "hex": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "hex",
+                "role"
+              ]
+            },
+            "description": "Every color the guide found, by role, most important first (up to 16)."
+          },
+          "typography": {
+            "type": "object",
+            "properties": {
+              "font_families": {
+                "type": "object",
+                "properties": {
+                  "heading": {
+                    "$ref": "#/components/schemas/FontFamilyRef"
+                  },
+                  "body": {
+                    "$ref": "#/components/schemas/FontFamilyRef"
+                  },
+                  "mono": {
+                    "$ref": "#/components/schemas/FontFamilyRef"
+                  }
+                },
+                "required": [
+                  "heading",
+                  "body",
+                  "mono"
+                ]
+              },
+              "styles": {
+                "type": "object",
+                "properties": {
+                  "h1": {
+                    "$ref": "#/components/schemas/TextStyle"
+                  },
+                  "h2": {
+                    "$ref": "#/components/schemas/TextStyle"
+                  },
+                  "h3": {
+                    "$ref": "#/components/schemas/TextStyle"
+                  },
+                  "h4": {
+                    "$ref": "#/components/schemas/TextStyle"
+                  },
+                  "h5": {
+                    "$ref": "#/components/schemas/TextStyle"
+                  },
+                  "h6": {
+                    "$ref": "#/components/schemas/TextStyle"
+                  },
+                  "body": {
+                    "$ref": "#/components/schemas/TextStyle"
+                  },
+                  "small": {
+                    "$ref": "#/components/schemas/TextStyle"
+                  },
+                  "label": {
+                    "$ref": "#/components/schemas/TextStyle"
+                  },
+                  "nav": {
+                    "$ref": "#/components/schemas/TextStyle"
+                  }
+                },
+                "required": [
+                  "h1",
+                  "h2",
+                  "h3",
+                  "h4",
+                  "h5",
+                  "h6",
+                  "body",
+                  "small",
+                  "label",
+                  "nav"
+                ],
+                "description": "The style most of each element's instances share."
+              },
+              "base_font_size": {
+                "type": "string",
+                "nullable": true,
+                "example": "16px"
+              },
+              "scale": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "ratio": {
+                    "type": "number",
+                    "example": 1.25
+                  },
+                  "name": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "major third"
+                  }
+                },
+                "required": [
+                  "ratio",
+                  "name"
+                ],
+                "description": "The ratio between steps of the type scale, named when it is a classic one."
+              },
+              "web_fonts": {
+                "type": "object",
+                "properties": {
+                  "google_fonts": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "adobe_fonts": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "google_fonts",
+                  "adobe_fonts"
+                ],
+                "description": "Stylesheet URLs that load the fonts, to reuse as they are."
+              }
+            },
+            "required": [
+              "font_families",
+              "styles",
+              "base_font_size",
+              "scale",
+              "web_fonts"
+            ]
+          },
+          "spacing": {
+            "type": "object",
+            "properties": {
+              "base_unit": {
+                "type": "string",
+                "nullable": true,
+                "description": "The unit most margins, paddings and gaps are a multiple of.",
+                "example": "8px"
+              },
+              "scale": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "example": [
+                  "4px",
+                  "8px",
+                  "16px",
+                  "24px",
+                  "32px",
+                  "48px"
+                ]
+              }
+            },
+            "required": [
+              "base_unit",
+              "scale"
+            ]
+          },
+          "radius": {
+            "type": "object",
+            "properties": {
+              "small": {
+                "type": "string",
+                "nullable": true
+              },
+              "medium": {
+                "type": "string",
+                "nullable": true
+              },
+              "large": {
+                "type": "string",
+                "nullable": true
+              },
+              "full": {
+                "type": "boolean",
+                "description": "Whether pills (fully rounded corners) are used."
+              },
+              "scale": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "button": {
+                "type": "string",
+                "nullable": true
+              },
+              "input": {
+                "type": "string",
+                "nullable": true
+              },
+              "card": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "small",
+              "medium",
+              "large",
+              "full",
+              "scale",
+              "button",
+              "input",
+              "card"
+            ]
+          },
+          "shadows": {
+            "type": "object",
+            "properties": {
+              "small": {
+                "type": "string",
+                "nullable": true
+              },
+              "medium": {
+                "type": "string",
+                "nullable": true
+              },
+              "large": {
+                "type": "string",
+                "nullable": true
+              },
+              "scale": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "small",
+              "medium",
+              "large",
+              "scale"
+            ]
+          },
+          "borders": {
+            "type": "object",
+            "properties": {
+              "width": {
+                "type": "string",
+                "nullable": true
+              },
+              "color": {
+                "type": "string",
+                "nullable": true,
+                "example": "#635BFF"
+              }
+            },
+            "required": [
+              "width",
+              "color"
+            ]
+          },
+          "components": {
+            "type": "object",
+            "properties": {
+              "button_primary": {
+                "$ref": "#/components/schemas/StyleguideButton"
+              },
+              "button_secondary": {
+                "$ref": "#/components/schemas/StyleguideButton"
+              },
+              "input": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "background": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "#635BFF"
+                  },
+                  "text_color": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "#635BFF"
+                  },
+                  "border_color": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "#635BFF"
+                  },
+                  "border_radius": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "height": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "padding": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "font_size": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "background",
+                  "text_color",
+                  "border_color",
+                  "border_radius"
+                ]
+              },
+              "card": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "background": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "#635BFF"
+                  },
+                  "border_color": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "#635BFF"
+                  },
+                  "border_width": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "border_radius": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "box_shadow": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "padding": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "background",
+                  "border_color",
+                  "border_width",
+                  "border_radius",
+                  "box_shadow",
+                  "padding"
+                ]
+              },
+              "link": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "color": {
+                    "type": "string",
+                    "nullable": true,
+                    "example": "#635BFF"
+                  },
+                  "text_decoration": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "font_weight": {
+                    "type": "number",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "color",
+                  "text_decoration",
+                  "font_weight"
+                ]
+              }
+            },
+            "required": [
+              "button_primary",
+              "button_secondary",
+              "input",
+              "card",
+              "link"
+            ]
+          },
+          "breakpoints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The media-query widths the site's CSS switches layout at.",
+            "example": [
+              "640px",
+              "768px",
+              "1024px",
+              "1280px"
+            ]
+          },
+          "css_variables": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "The site's own CSS custom properties for colors, lengths, fonts and shadows, as set on the root (up to 120).",
+            "example": {
+              "--brand-primary": "#635BFF",
+              "--radius-md": "8px"
+            }
+          }
+        },
+        "required": [
+          "color_scheme",
+          "colors",
+          "palette",
+          "typography",
+          "spacing",
+          "radius",
+          "shadows",
+          "borders",
+          "components",
+          "breakpoints",
+          "css_variables"
+        ]
+      },
+      "TextStyle": {
+        "type": "object",
+        "nullable": true,
+        "properties": {
+          "font_family": {
+            "type": "string",
+            "nullable": true,
+            "example": "Inter"
+          },
+          "font_size": {
+            "type": "string",
+            "nullable": true,
+            "example": "48px"
+          },
+          "font_weight": {
+            "type": "number",
+            "nullable": true,
+            "example": 600
+          },
+          "line_height": {
+            "type": "string",
+            "nullable": true,
+            "example": "56px"
+          },
+          "letter_spacing": {
+            "type": "string",
+            "nullable": true,
+            "example": "-0.96px"
+          },
+          "text_transform": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "font_family",
+          "font_size",
+          "font_weight",
+          "line_height",
+          "letter_spacing",
+          "text_transform"
+        ]
+      },
+      "FontFamilyRef": {
+        "type": "object",
+        "nullable": true,
+        "properties": {
+          "family": {
+            "type": "string",
+            "example": "Inter"
+          },
+          "stack": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "Inter",
+              "system-ui",
+              "sans-serif"
+            ]
+          }
+        },
+        "required": [
+          "family",
+          "stack"
+        ]
+      },
+      "StyleguideButton": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ButtonTokens"
+          },
+          {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "font_family": {
+                "type": "string",
+                "nullable": true
+              },
+              "font_size": {
+                "type": "string",
+                "nullable": true
+              },
+              "height": {
+                "type": "string",
+                "nullable": true,
+                "example": "40px"
+              },
+              "padding": {
+                "type": "string",
+                "nullable": true,
+                "example": "10px 20px"
+              },
+              "text_transform": {
+                "type": "string",
+                "nullable": true
+              },
+              "letter_spacing": {
+                "type": "string",
+                "nullable": true
+              },
+              "box_shadow": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          }
+        ]
+      },
+      "TransactionData": {
+        "type": "object",
+        "properties": {
+          "descriptor": {
+            "type": "string",
+            "example": "SQ *BLUE BOTTLE COFFE OAKLAND CA"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "merchant",
+              "person",
+              "transfer",
+              "fee",
+              "atm",
+              "refund",
+              "unknown"
+            ],
+            "description": "What the line is: a payment to a `merchant`, to a `person` (Venmo, Zelle…), a `transfer` between accounts, a bank `fee`, an `atm` withdrawal, a `refund`, or `unknown`."
+          },
+          "merchant": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "name": {
+                "type": "string",
+                "nullable": true,
+                "description": "The merchant's trading name, with words the descriptor truncated completed.",
+                "example": "Blue Bottle Coffee"
+              },
+              "domain": {
+                "type": "string",
+                "nullable": true,
+                "description": "Its website, when found with enough confidence; ready for every other endpoint's `url`.",
+                "example": "bluebottlecoffee.com"
+              },
+              "url": {
+                "type": "string",
+                "nullable": true
+              },
+              "confidence": {
+                "type": "number",
+                "nullable": true,
+                "description": "0–1, for the domain. At 0.8 or above treat it as the answer.",
+                "example": 0.93
+              },
+              "source": {
+                "type": "string",
+                "nullable": true,
+                "enum": [
+                  "curated",
+                  "index",
+                  "live",
+                  null
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "domain",
+              "url",
+              "confidence",
+              "source"
+            ],
+            "description": "Null unless `kind` is `merchant`."
+          },
+          "candidates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResolveResultItem"
+            },
+            "description": "Every domain considered, best first — including ones below the confidence bar."
+          },
+          "payment_processor": {
+            "type": "string",
+            "nullable": true,
+            "description": "The processor or wallet that prefixed the line (Square, Toast, PayPal…).",
+            "example": "Square"
+          },
+          "location": {
+            "type": "object",
+            "properties": {
+              "city": {
+                "type": "string",
+                "nullable": true
+              },
+              "region": {
+                "type": "string",
+                "nullable": true
+              },
+              "country": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "city",
+              "region",
+              "country"
+            ],
+            "description": "Where the line says the payment was made, when it says.",
+            "example": {
+              "city": "Oakland",
+              "region": "CA",
+              "country": "US"
+            }
+          },
+          "category": {
+            "type": "string",
+            "nullable": true,
+            "example": "Coffee shop"
+          },
+          "logo_url": {
+            "type": "string",
+            "nullable": true,
+            "description": "The merchant's logo on the Prefetch logo CDN, with your publishable token: put it straight in an <img>. Null when no website was found."
+          },
+          "brand": {
+            "type": "object",
+            "properties": {
+              "colors": {
+                "$ref": "#/components/schemas/ColorsBlock"
+              },
+              "fonts": {
+                "type": "object",
+                "properties": {
+                  "families": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "families"
+                ],
+                "example": {
+                  "families": [
+                    "Inter",
+                    "Roboto"
+                  ]
+                }
+              },
+              "logos": {
+                "$ref": "#/components/schemas/LogosBlock"
+              },
+              "images": {
+                "$ref": "#/components/schemas/ImagesBlock"
+              },
+              "design_tokens": {
+                "$ref": "#/components/schemas/DesignTokens"
+              },
+              "social_links": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "example": {
+                  "twitter": "https://twitter.com/stripe",
+                  "linkedin": "https://linkedin.com/company/stripe"
+                }
+              }
+            },
+            "description": "With `include_brand=true` and a website found: the same block GET /brand returns."
+          },
+          "parsed_by": {
+            "type": "string",
+            "enum": [
+              "model",
+              "rules"
+            ],
+            "description": "`rules` when the language model was unavailable and the line was read by pattern alone."
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "descriptor",
+          "kind",
+          "merchant",
+          "candidates",
+          "payment_processor",
+          "location",
+          "category",
+          "logo_url",
+          "parsed_by",
+          "warnings"
+        ]
+      },
+      "TransactionBody": {
+        "type": "object",
+        "properties": {
+          "descriptor": {
+            "type": "string",
+            "description": "The transaction line as the bank statement or card network shows it (1–200 characters).",
+            "example": "PAYPAL *SPOTIFYAB"
+          },
+          "country": {
+            "type": "string"
+          },
+          "mcc": {
+            "type": "string"
+          },
+          "include_brand": {
+            "type": "boolean",
+            "description": "Also return the merchant's brand — logos, colors, fonts — exactly as GET /brand would, when its website is found. Adds the /brand price (10 credits), charged only when a brand is returned. Can take several seconds for a site not seen before."
+          }
+        },
+        "required": [
+          "descriptor"
+        ],
+        "description": "The same options as GET /transaction, as typed JSON."
+      },
+      "BatchBody": {
+        "type": "object",
+        "properties": {
+          "urls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The URLs or bare domains to run (1–500). Duplicates run once. `domains` is accepted too.",
+            "example": [
+              "stripe.com",
+              "https://linear.app",
+              "notion.so"
+            ]
+          },
+          "options": {
+            "type": "object",
+            "additionalProperties": {
+              "nullable": true
+            },
+            "description": "The endpoint's own parameters, as GET /{endpoint} takes them, applied to every URL — e.g. `{\"design_tokens\": true}` for brand or enrich, `{\"device\": \"iphone_15\"}` for screenshot. Typed JSON or strings.",
+            "example": {
+              "design_tokens": true
+            }
+          },
+          "concurrency": {
+            "type": "integer",
+            "description": "URLs run in parallel (1–5). Default: 2."
+          },
+          "ignore_invalid_urls": {
+            "type": "boolean",
+            "description": "Drop URLs that fail validation (listed in `invalid_urls`) instead of rejecting the whole batch. Default: false."
+          },
+          "webhook": {
+            "$ref": "#/components/schemas/CrawlWebhook"
+          }
+        },
+        "required": [
+          "urls"
+        ]
+      },
+      "CrawlWebhook": {
+        "anyOf": [
+          {
+            "type": "string",
+            "description": "An https:// URL; every event is sent."
+          },
+          {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string",
+                "example": "https://example.com/hooks/prefetch"
+              },
+              "events": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "started",
+                    "page",
+                    "completed",
+                    "failed"
+                  ]
+                },
+                "description": "Which events to send. Default: all four."
+              },
+              "headers": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Sent with every delivery (up to 20)."
+              },
+              "metadata": {
+                "type": "object",
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "description": "Echoed back in every payload (up to 4 KB)."
+              }
+            },
+            "required": [
+              "url"
+            ]
+          }
+        ],
+        "description": "Where to send progress. Each delivery is signed — `X-Prefetch-Signature: t=<unix>,v1=<hex>`, HMAC-SHA256 of `<t>.<raw body>` with the `secret` returned when the job is created — the same scheme as monitor webhooks."
+      },
+      "BatchStatusData": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CrawlStatusData"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/BatchItem"
+                },
+                "description": "Answered URLs, in completion order."
+              }
+            }
+          }
+        ]
+      },
+      "BatchItem": {
+        "allOf": [
+          {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string"
+              },
+              "depth": {
+                "type": "number",
+                "description": "Always 0: a batch follows nothing."
+              },
+              "status_code": {
+                "type": "number",
+                "nullable": true
+              },
+              "ok": {
+                "type": "boolean",
+                "description": "False when the URL could not be answered. You are not charged for it."
+              },
+              "error": {
+                "type": "string",
+                "nullable": true
+              },
+              "error_code": {
+                "type": "string",
+                "nullable": true,
+                "description": "Why the page failed, as one of the API's error codes (`TARGET_TIMEOUT`, `DNS_RESOLUTION_FAILED`, …); null when it did not.",
+                "example": "TARGET_SERVER_ERROR"
+              }
+            },
+            "required": [
+              "url",
+              "depth",
+              "status_code",
+              "ok",
+              "error",
+              "error_code"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": {
+              "nullable": true
+            }
+          }
+        ],
+        "description": "One URL of a batch: the fields GET /{endpoint} returns for it (`domain`, `brand`, `company`, `classification`, `screenshot_url`, `styleguide`, …), plus the batch's bookkeeping."
+      },
+      "LogoTokenData": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Your organisation's publishable logo token. Safe to put in a web page: it serves logo images only, within your plan's quota.",
+            "example": "pk_4f1c9e2b7a0d4c3e8b6a1f2d3c4b5a69"
+          },
+          "cdn_url": {
+            "type": "string",
+            "example": "https://logo.prefetch.io"
+          },
+          "example": {
+            "type": "string",
+            "example": "https://logo.prefetch.io/stripe.com?token=pk_4f1c9e2b7a0d4c3e8b6a1f2d3c4b5a69"
+          },
+          "quota": {
+            "type": "number",
+            "nullable": true,
+            "description": "Logo requests included this month; null is unlimited.",
+            "example": 100000
+          },
+          "used": {
+            "type": "number",
+            "description": "Logo requests counted this month. Counts reach it within a minute or so.",
+            "example": 1234
+          },
+          "period": {
+            "type": "string",
+            "nullable": true,
+            "description": "The month the counts are for (its first day, UTC).",
+            "example": "2026-10-01"
+          }
+        },
+        "required": [
+          "token",
+          "cdn_url",
+          "example",
+          "quota",
+          "used",
+          "period"
+        ]
       }
     },
     "parameters": {
@@ -3315,10 +4742,10 @@
         "name": "format",
         "in": "query",
         "required": false,
-        "description": "Image format. Default: `jpeg`.",
+        "description": "Output format: `jpeg`, `png`, `webp`, or `pdf` (the whole page as a PDF document). Default: `jpeg`.",
         "schema": {
           "type": "string",
-          "enum": ["jpeg", "png", "webp"],
+          "enum": ["jpeg", "png", "webp", "pdf"],
           "default": "jpeg"
         }
       },
@@ -3934,7 +5361,96 @@
           { "$ref": "#/components/parameters/screenshotWidth" },
           { "$ref": "#/components/parameters/screenshotHeight" },
           { "$ref": "#/components/parameters/screenshotFormat" },
-          { "$ref": "#/components/parameters/screenshotFullPage" }
+          { "$ref": "#/components/parameters/screenshotFullPage" },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "iphone_15",
+                "iphone_15_pro_max",
+                "iphone_se",
+                "pixel_7",
+                "galaxy_s8",
+                "ipad",
+                "ipad_mini",
+                "ipad_pro_11",
+                "galaxy_tab_s4",
+                "desktop_retina"
+              ],
+              "description": "Render as a real device: its viewport, pixel density, touch support and user agent, so the page serves its phone or tablet layout. The image keeps the device's pixel density (an `iphone_15` capture is 1179 px wide). Overrides `width` and `height`.",
+              "example": "iphone_15"
+            },
+            "required": false,
+            "description": "Render as a real device: its viewport, pixel density, touch support and user agent, so the page serves its phone or tablet layout. The image keeps the device's pixel density (an `iphone_15` capture is 1179 px wide). Overrides `width` and `height`.",
+            "name": "device",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "required": false,
+            "description": "Ask the page for its dark theme (`prefers-color-scheme: dark`). Pages without one render as usual. Pass \"true\" to enable.",
+            "name": "dark_mode",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Capture only the first element matching this CSS selector, e.g. `#pricing` or `header`. Answers 422 `TARGET_ELEMENT_NOT_FOUND` when nothing matches within 10 s. Not available with `format=pdf`.",
+              "example": "#pricing"
+            },
+            "required": false,
+            "description": "Capture only the first element matching this CSS selector, e.g. `#pricing` or `header`. Answers 422 `TARGET_ELEMENT_NOT_FOUND` when nothing matches within 10 s. Not available with `format=pdf`.",
+            "name": "selector",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 30000,
+              "default": 0
+            },
+            "required": false,
+            "description": "Milliseconds to wait after the page loads, for content that arrives late (0–30000).",
+            "name": "wait_for",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Wait (up to 10 s) for this CSS selector to be visible before capturing. Best effort: if it never appears, the page is captured as it is, with a warning.",
+              "example": ".chart canvas"
+            },
+            "required": false,
+            "description": "Wait (up to 10 s) for this CSS selector to be visible before capturing. Best effort: if it never appears, the page is captured as it is, with a warning.",
+            "name": "wait_for_selector",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "required": false,
+            "description": "Block ad and tracker requests while the page loads, on top of the ad and cookie-banner hiding every screenshot gets. Pages load faster and cleaner. Pass \"true\" to enable.",
+            "name": "block_ads",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 85
+            },
+            "required": false,
+            "description": "Image quality for `jpeg` and `webp` (1–100). Default: 85.",
+            "name": "quality",
+            "in": "query"
+          }
         ],
         "responses": {
           "200": {
@@ -7331,6 +8847,1918 @@
           },
           "503": {
             "description": "Monitoring is temporarily unavailable. Retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/search": {
+      "get": {
+        "operationId": "searchWeb",
+        "summary": "Search the web",
+        "description": "Searches the web (Google results) and returns each result's title, URL and snippet, best first. `type=news` returns recent articles with their publisher and date. Narrow it with `time_range`, `country`, `language`, `location`, `include_domains` and `exclude_domains`.\n\nAsk for page content and each result page is scraped in the same request — through `formats` on GET, or a `scrape_options` object on POST, taking the options /scrape takes — and returned in `scrape` on its result. A page that cannot be fetched in time gets a `scrape_error` instead and is not charged.\n\n**Credit cost: 2 per 10 results** (rounded up), plus 1 per result page scraped (4 for `summary` or `json`). Failed requests are never charged.",
+        "tags": [
+          "Endpoints"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "What to search for, as you would type it into Google (1–400 characters). Search operators work (`\"exact phrase\"`, `-word`, `filetype:pdf`). `q` is accepted too.",
+              "example": "best open source CRM"
+            },
+            "required": true,
+            "description": "What to search for, as you would type it into Google (1–400 characters). Search operators work (`\"exact phrase\"`, `-word`, `filetype:pdf`). `q` is accepted too.",
+            "name": "query",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Results to return (1–50; 1–10 when results are scraped). Default: 10.",
+              "example": "10"
+            },
+            "required": false,
+            "description": "Results to return (1–50; 1–10 when results are scraped). Default: 10.",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "web",
+                "news"
+              ],
+              "description": "`web` (default) or `news` — recent articles with their publisher and date."
+            },
+            "required": false,
+            "description": "`web` (default) or `news` — recent articles with their publisher and date.",
+            "name": "type",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Two-letter country code to search from, e.g. `us`, `de`.",
+              "example": "us"
+            },
+            "required": false,
+            "description": "Two-letter country code to search from, e.g. `us`, `de`.",
+            "name": "country",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Two-letter language code for the results, e.g. `en`, `de`.",
+              "example": "en"
+            },
+            "required": false,
+            "description": "Two-letter language code for the results, e.g. `en`, `de`.",
+            "name": "language",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "A city or region to search from, e.g. `Berlin, Germany`."
+            },
+            "required": false,
+            "description": "A city or region to search from, e.g. `Berlin, Germany`.",
+            "name": "location",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "hour",
+                "day",
+                "week",
+                "month",
+                "year"
+              ],
+              "description": "Only results from the past hour, day, week, month or year."
+            },
+            "required": false,
+            "description": "Only results from the past hour, day, week, month or year.",
+            "name": "time_range",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Comma-separated domains to search within (up to 10).",
+              "example": "github.com,gitlab.com"
+            },
+            "required": false,
+            "description": "Comma-separated domains to search within (up to 10).",
+            "name": "include_domains",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Comma-separated domains to leave out (up to 10).",
+              "example": "pinterest.com"
+            },
+            "required": false,
+            "description": "Comma-separated domains to leave out (up to 10).",
+            "name": "exclude_domains",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Scrape each result page into these formats (the /scrape formats: markdown, summary, html, raw_html, links, images, json, screenshot). Omit to return search results only.",
+              "example": "markdown"
+            },
+            "required": false,
+            "description": "Scrape each result page into these formats (the /scrape formats: markdown, summary, html, raw_html, links, images, json, screenshot). Omit to return search results only.",
+            "name": "formats",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "With `formats`: strip navigation, sidebars and footers from each page. Default: true."
+            },
+            "required": false,
+            "description": "With `formats`: strip navigation, sidebars and footers from each page. Default: true.",
+            "name": "only_main_content",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "With `formats`: accept a stored copy of a page fetched at most this many milliseconds ago.",
+              "example": "86400000"
+            },
+            "required": false,
+            "description": "With `formats`: accept a stored copy of a page fetched at most this many milliseconds ago.",
+            "name": "max_age",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Give up after this many milliseconds (5,000–45000). Result pages still loading are returned with a `scrape_error` and not charged.",
+              "example": "30000"
+            },
+            "required": false,
+            "description": "Give up after this many milliseconds (5,000–45000). Result pages still loading are returned with a `scrape_error` and not charged.",
+            "name": "timeout",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Results, best first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/SearchData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "query": "stripe pricing",
+                    "type": "web",
+                    "count": 2,
+                    "scraped": 0,
+                    "warnings": [],
+                    "results": [
+                      {
+                        "position": 1,
+                        "url": "https://stripe.com/pricing",
+                        "title": "Pricing & Fees | Stripe",
+                        "description": "Find Stripe fees and pricing information…",
+                        "date": null,
+                        "source": null,
+                        "image_url": null
+                      },
+                      {
+                        "position": 2,
+                        "url": "https://docs.stripe.com/billing/subscriptions/pricing",
+                        "title": "Pricing models | Stripe Documentation",
+                        "description": "Learn about common pricing models…",
+                        "date": null,
+                        "source": null,
+                        "image_url": null
+                      }
+                    ]
+                  },
+                  "meta": {
+                    "requestId": "6f1d2c3b-4a5e-4f60-8b7a-9c0d1e2f3a4b",
+                    "durationMs": 1840
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, blocked URL, or credit limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate or concurrency limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily unavailable — retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "searchWebPost",
+        "summary": "Search the web (JSON body)",
+        "description": "Searches the web (Google results) and returns each result's title, URL and snippet, best first. `type=news` returns recent articles with their publisher and date. Narrow it with `time_range`, `country`, `language`, `location`, `include_domains` and `exclude_domains`.\n\nAsk for page content and each result page is scraped in the same request — through `formats` on GET, or a `scrape_options` object on POST, taking the options /scrape takes — and returned in `scrape` on its result. A page that cannot be fetched in time gets a `scrape_error` instead and is not charged.\n\n**Credit cost: 2 per 10 results** (rounded up), plus 1 per result page scraped (4 for `summary` or `json`). Failed requests are never charged.\n\nThe same endpoint as `GET /search`, with its options as typed JSON — the way to send `scrape_options`.",
+        "tags": [
+          "Endpoints"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Results, best first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/SearchData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "query": "stripe pricing",
+                    "type": "web",
+                    "count": 2,
+                    "scraped": 0,
+                    "warnings": [],
+                    "results": [
+                      {
+                        "position": 1,
+                        "url": "https://stripe.com/pricing",
+                        "title": "Pricing & Fees | Stripe",
+                        "description": "Find Stripe fees and pricing information…",
+                        "date": null,
+                        "source": null,
+                        "image_url": null
+                      },
+                      {
+                        "position": 2,
+                        "url": "https://docs.stripe.com/billing/subscriptions/pricing",
+                        "title": "Pricing models | Stripe Documentation",
+                        "description": "Learn about common pricing models…",
+                        "date": null,
+                        "source": null,
+                        "image_url": null
+                      }
+                    ]
+                  },
+                  "meta": {
+                    "requestId": "6f1d2c3b-4a5e-4f60-8b7a-9c0d1e2f3a4b",
+                    "durationMs": 1840
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, blocked URL, or credit limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate or concurrency limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily unavailable — retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/styleguide": {
+      "get": {
+        "operationId": "getStyleguide",
+        "summary": "Extract a design system",
+        "description": "Reads the design system off the rendered page: colors by role (primary, secondary, accent, background, surface, text, heading, link, border) and the full palette; heading, body and monospace fonts with the type scale (h1–h6, body, small, label, nav — size, weight, line height, letter spacing); the spacing rhythm and its base unit; corner radii and shadows by size; border style; the primary and secondary button, input, card and link styles; the media-query breakpoints; and the site's own CSS custom properties. `exports` has the same as CSS variables and a Tailwind theme, ready to paste. Built for coding agents that need to match a site's look.\n\nBest effort: a value the page gives no reliable answer for is null. Never answered from curated data. **Credit cost: 10.**",
+        "tags": [
+          "Endpoints"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Target website URL. https:// is prepended automatically if the protocol is omitted.",
+              "example": "https://stripe.com"
+            },
+            "required": true,
+            "description": "Target website URL. https:// is prepended automatically if the protocol is omitted.",
+            "name": "url",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Read the site's dark theme (`prefers-color-scheme: dark`) instead of its default one. Sites without one return their usual theme, with `color_scheme` saying which it is. Pass \"true\" to enable."
+            },
+            "required": false,
+            "description": "Read the site's dark theme (`prefers-color-scheme: dark`) instead of its default one. Sites without one return their usual theme, with `color_scheme` saying which it is. Pass \"true\" to enable.",
+            "name": "dark_mode",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The site's design system.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/StyleguideData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "url": "https://stripe.com",
+                    "domain": "stripe.com",
+                    "dark_mode": false,
+                    "styleguide": {
+                      "color_scheme": "light",
+                      "colors": {
+                        "primary": "#533AFD",
+                        "secondary": null,
+                        "accent": null,
+                        "background": "#FFFFFF",
+                        "surface": "#E5EDF5",
+                        "text": "#50617A",
+                        "text_muted": "#64748D",
+                        "heading": "#061B31",
+                        "link": "#533AFD",
+                        "border": "#E5EDF5"
+                      },
+                      "palette": [
+                        {
+                          "hex": "#533AFD",
+                          "role": "primary"
+                        },
+                        {
+                          "hex": "#FFFFFF",
+                          "role": "background"
+                        },
+                        {
+                          "hex": "#061B31",
+                          "role": "heading"
+                        }
+                      ],
+                      "typography": {
+                        "font_families": {
+                          "heading": {
+                            "family": "sohne-var",
+                            "stack": [
+                              "sohne-var",
+                              "SF Pro Display",
+                              "sans-serif"
+                            ]
+                          },
+                          "body": {
+                            "family": "sohne-var",
+                            "stack": [
+                              "sohne-var",
+                              "SF Pro Display",
+                              "sans-serif"
+                            ]
+                          },
+                          "mono": null
+                        },
+                        "styles": {
+                          "h1": {
+                            "font_family": "sohne-var",
+                            "font_size": "48px",
+                            "font_weight": 300,
+                            "line_height": "55.2px",
+                            "letter_spacing": "-0.96px",
+                            "text_transform": null
+                          },
+                          "body": {
+                            "font_family": "sohne-var",
+                            "font_size": "16px",
+                            "font_weight": 300,
+                            "line_height": "22.4px",
+                            "letter_spacing": null,
+                            "text_transform": null
+                          }
+                        },
+                        "base_font_size": "16px",
+                        "scale": {
+                          "ratio": 1.441,
+                          "name": "augmented fourth"
+                        },
+                        "web_fonts": {
+                          "google_fonts": [],
+                          "adobe_fonts": []
+                        }
+                      },
+                      "spacing": {
+                        "base_unit": "4px",
+                        "scale": [
+                          "4px",
+                          "8px",
+                          "12px",
+                          "16px",
+                          "24px",
+                          "32px",
+                          "40px",
+                          "64px"
+                        ]
+                      },
+                      "radius": {
+                        "small": "4px",
+                        "medium": "6px",
+                        "large": "16px",
+                        "full": true,
+                        "scale": [
+                          "4px",
+                          "6px",
+                          "16px",
+                          "9999px"
+                        ],
+                        "button": "4px",
+                        "input": "4px",
+                        "card": "6px"
+                      },
+                      "shadows": {
+                        "small": "rgba(23, 23, 23, 0.06) 0px 3px 6px 0px",
+                        "medium": null,
+                        "large": "rgba(23, 23, 23, 0.08) 0px 15px 35px 0px",
+                        "scale": [
+                          "rgba(23, 23, 23, 0.06) 0px 3px 6px 0px",
+                          "rgba(23, 23, 23, 0.08) 0px 15px 35px 0px"
+                        ]
+                      },
+                      "borders": {
+                        "width": "1px",
+                        "color": "#E5EDF5"
+                      },
+                      "components": {
+                        "button_primary": {
+                          "background": "#533AFD",
+                          "text_color": "#FFFFFF",
+                          "border_color": null,
+                          "border_radius": "4px",
+                          "font_weight": 400,
+                          "font_family": "sohne-var",
+                          "font_size": "16px",
+                          "height": "48px",
+                          "padding": "15.5px 24px 16.5px",
+                          "text_transform": null,
+                          "letter_spacing": null,
+                          "box_shadow": null
+                        },
+                        "button_secondary": null,
+                        "input": null,
+                        "card": {
+                          "background": "#FFFFFF",
+                          "border_color": null,
+                          "border_width": null,
+                          "border_radius": "6px",
+                          "box_shadow": "rgba(50, 50, 93, 0.12) 0px 16px 32px 0px",
+                          "padding": null
+                        },
+                        "link": {
+                          "color": "#533AFD",
+                          "text_decoration": "none",
+                          "font_weight": 400
+                        }
+                      },
+                      "breakpoints": [
+                        "640px",
+                        "768px",
+                        "1024px"
+                      ],
+                      "css_variables": {
+                        "--hds-color-accent-border-solid": "#533afd"
+                      }
+                    },
+                    "exports": {
+                      "css": ":root {\n  --color-primary: #533AFD;\n  --color-background: #FFFFFF;\n}\n",
+                      "tailwind": {
+                        "theme": {
+                          "extend": {
+                            "colors": {
+                              "primary": "#533AFD",
+                              "background": "#FFFFFF"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "meta": {
+                    "requestId": "6f1d2c3b-4a5e-4f60-8b7a-9c0d1e2f3a4b",
+                    "durationMs": 1840
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, blocked URL, or credit limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate or concurrency limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily unavailable — retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Request timed out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/transaction": {
+      "get": {
+        "operationId": "lookupTransaction",
+        "summary": "Identify a transaction's merchant",
+        "description": "Reads a card transaction descriptor — a bank statement line — and names the merchant behind it: \"SQ *BLUE BOTTLE COFFE OAKLAND CA\" → Blue Bottle Coffee, `bluebottlecoffee.com`, paid through Square, in Oakland. Truncated words are completed, processor prefixes and store numbers dropped, and lines that are not purchases are said to be so (`person`, `transfer`, `fee`, `atm`, `refund`). The merchant's name is resolved to its website the way `/resolve` does it, and `logo_url` points at its logo on the logo CDN. `include_brand=true` adds its brand as `GET /brand` returns it.\n\n**Credit cost: 3 per lookup, 1 when the same line (with the same country and MCC) was looked up in the last 7 days**, plus 10 when `include_brand` returns a brand. Failures are never charged.",
+        "tags": [
+          "Endpoints"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "The transaction line as the bank statement or card network shows it (1–200 characters).",
+              "example": "SQ *BLUE BOTTLE COFFE OAKLAND CA"
+            },
+            "required": true,
+            "description": "The transaction line as the bank statement or card network shows it (1–200 characters).",
+            "name": "descriptor",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Two-letter code of the country the card was used in. Helps tell local merchants apart.",
+              "example": "US"
+            },
+            "required": false,
+            "description": "Two-letter code of the country the card was used in. Helps tell local merchants apart.",
+            "name": "country",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "The four-digit merchant category code, if your card data has it.",
+              "example": "5814"
+            },
+            "required": false,
+            "description": "The four-digit merchant category code, if your card data has it.",
+            "name": "mcc",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Also return the merchant's brand — logos, colors, fonts — exactly as GET /brand would, when its website is found. Adds the /brand price (10 credits), charged only when a brand is returned. Can take several seconds for a site not seen before. Pass \"true\"."
+            },
+            "required": false,
+            "description": "Also return the merchant's brand — logos, colors, fonts — exactly as GET /brand would, when its website is found. Adds the /brand price (10 credits), charged only when a brand is returned. Can take several seconds for a site not seen before. Pass \"true\".",
+            "name": "include_brand",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The merchant, or what else the line is.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/TransactionData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "descriptor": "SQ *BLUE BOTTLE COFFE OAKLAND CA",
+                    "kind": "merchant",
+                    "merchant": {
+                      "name": "Blue Bottle Coffee",
+                      "domain": "bluebottlecoffee.com",
+                      "url": "https://bluebottlecoffee.com",
+                      "confidence": 0.88,
+                      "source": "live"
+                    },
+                    "candidates": [
+                      {
+                        "name": "Blue Bottle Coffee",
+                        "domain": "bluebottlecoffee.com",
+                        "url": "https://bluebottlecoffee.com",
+                        "confidence": 0.88,
+                        "source": "live"
+                      }
+                    ],
+                    "payment_processor": "Square",
+                    "location": {
+                      "city": "Oakland",
+                      "region": "CA",
+                      "country": "US"
+                    },
+                    "category": "Coffee shop",
+                    "logo_url": "https://logo.prefetch.io/bluebottlecoffee.com?token=pk_4f1c9e2b7a0d4c3e8b6a1f2d3c4b5a69",
+                    "parsed_by": "model",
+                    "warnings": []
+                  },
+                  "meta": {
+                    "requestId": "6f1d2c3b-4a5e-4f60-8b7a-9c0d1e2f3a4b",
+                    "durationMs": 1840
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, blocked URL, or credit limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate or concurrency limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily unavailable — retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "lookupTransactionPost",
+        "summary": "Identify a transaction's merchant (JSON body)",
+        "description": "Reads a card transaction descriptor — a bank statement line — and names the merchant behind it: \"SQ *BLUE BOTTLE COFFE OAKLAND CA\" → Blue Bottle Coffee, `bluebottlecoffee.com`, paid through Square, in Oakland. Truncated words are completed, processor prefixes and store numbers dropped, and lines that are not purchases are said to be so (`person`, `transfer`, `fee`, `atm`, `refund`). The merchant's name is resolved to its website the way `/resolve` does it, and `logo_url` points at its logo on the logo CDN. `include_brand=true` adds its brand as `GET /brand` returns it.\n\n**Credit cost: 3 per lookup, 1 when the same line (with the same country and MCC) was looked up in the last 7 days**, plus 10 when `include_brand` returns a brand. Failures are never charged.\n\nThe same endpoint as `GET /transaction`, with its options as typed JSON.",
+        "tags": [
+          "Endpoints"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The merchant, or what else the line is.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/TransactionData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "descriptor": "SQ *BLUE BOTTLE COFFE OAKLAND CA",
+                    "kind": "merchant",
+                    "merchant": {
+                      "name": "Blue Bottle Coffee",
+                      "domain": "bluebottlecoffee.com",
+                      "url": "https://bluebottlecoffee.com",
+                      "confidence": 0.88,
+                      "source": "live"
+                    },
+                    "candidates": [
+                      {
+                        "name": "Blue Bottle Coffee",
+                        "domain": "bluebottlecoffee.com",
+                        "url": "https://bluebottlecoffee.com",
+                        "confidence": 0.88,
+                        "source": "live"
+                      }
+                    ],
+                    "payment_processor": "Square",
+                    "location": {
+                      "city": "Oakland",
+                      "region": "CA",
+                      "country": "US"
+                    },
+                    "category": "Coffee shop",
+                    "logo_url": "https://logo.prefetch.io/bluebottlecoffee.com?token=pk_4f1c9e2b7a0d4c3e8b6a1f2d3c4b5a69",
+                    "parsed_by": "model",
+                    "warnings": []
+                  },
+                  "meta": {
+                    "requestId": "6f1d2c3b-4a5e-4f60-8b7a-9c0d1e2f3a4b",
+                    "durationMs": 1840
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, blocked URL, or credit limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate or concurrency limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily unavailable — retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/batch/{endpoint}": {
+      "post": {
+        "operationId": "createBatch",
+        "summary": "Run an endpoint on many URLs",
+        "description": "Runs `brand`, `enrich`, `company`, `classify`, `screenshot` or `styleguide` on up to 500 URLs or bare domains as one job, and returns its id immediately. Each URL is answered exactly as `GET /{endpoint}` would answer it — curated data first, then a live extraction — with `options` (that endpoint's own parameters) applied to every URL. Poll `GET /batch/{endpoint}/{id}` for progress and results, or pass a `webhook`: events are named `batch_{endpoint}.*` (`batch_enrich.page` per URL, `batch_enrich.completed` at the end).\n\n**Credit cost: nothing to submit, then the endpoint's own price per URL answered** (enrich 12, brand 10, styleguide 10, classify 5, company 5, screenshot 1). URLs that fail are never charged. A key whose balance cannot cover every URL is refused up front with `CREDITS_EXHAUSTED`. Webhooks are not available through RapidAPI.",
+        "tags": [
+          "Endpoints"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "brand",
+                "enrich",
+                "company",
+                "classify",
+                "screenshot",
+                "styleguide"
+              ],
+              "description": "What every URL is run through. /batch/scrape has its own page.",
+              "example": "enrich"
+            },
+            "required": true,
+            "description": "What every URL is run through. /batch/scrape has its own page.",
+            "name": "endpoint",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Batch queued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/BatchJobData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": "crw_7c2e9a4b1d0f4e6a8b3c5d7e9f1a2b3c",
+                    "status": "pending",
+                    "endpoint": "enrich",
+                    "url_count": 3,
+                    "invalid_urls": [],
+                    "created_at": "2026-10-13T09:14:03.221Z",
+                    "expires_at": "2026-10-14T09:14:03.221Z"
+                  },
+                  "meta": {
+                    "requestId": "6f1d2c3b-4a5e-4f60-8b7a-9c0d1e2f3a4b",
+                    "durationMs": 1840
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, blocked URL, or credit limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate or concurrency limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily unavailable — retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/batch/{endpoint}/{id}": {
+      "get": {
+        "operationId": "getBatchStatus",
+        "summary": "Batch status and results",
+        "description": "Progress plus a page of answered URLs, in completion order: each carries what `GET /{endpoint}` returns for it, plus `ok`, `error` and `error_code`. Follow `next` until it is null. Results stay readable for 24 hours. URLs are charged as they complete — here, or when the batch ends — never twice.",
+        "tags": [
+          "Endpoints"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "brand",
+                "enrich",
+                "company",
+                "classify",
+                "screenshot",
+                "styleguide"
+              ],
+              "description": "What every URL is run through. /batch/scrape has its own page.",
+              "example": "enrich"
+            },
+            "required": true,
+            "description": "What every URL is run through. /batch/scrape has its own page.",
+            "name": "endpoint",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "The id returned when the job was created.",
+              "example": "crw_9f2c1a7b4e0d4c3a"
+            },
+            "required": true,
+            "description": "The id returned when the job was created.",
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Page rows to skip — the cursor for paging through a crawl's results.",
+              "example": "0"
+            },
+            "required": false,
+            "description": "Page rows to skip — the cursor for paging through a crawl's results.",
+            "name": "skip",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Page rows to return per request.",
+              "example": "25"
+            },
+            "required": false,
+            "description": "Page rows to return per request.",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Batch status and a page of results.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/BatchStatusData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": "crw_7c2e9a4b1d0f4e6a8b3c5d7e9f1a2b3c",
+                    "status": "completed",
+                    "url": "https://stripe.com",
+                    "total": 3,
+                    "completed": 3,
+                    "failed": 0,
+                    "credits_used": 36,
+                    "created_at": "2026-10-13T09:14:03.221Z",
+                    "started_at": "2026-10-13T09:14:04.010Z",
+                    "finished_at": "2026-10-13T09:14:41.512Z",
+                    "expires_at": "2026-10-14T09:14:03.221Z",
+                    "error": null,
+                    "kind": "batch",
+                    "endpoint": "enrich",
+                    "next": null,
+                    "data": [
+                      {
+                        "url": "https://stripe.com",
+                        "depth": 0,
+                        "status_code": 200,
+                        "ok": true,
+                        "error": null,
+                        "error_code": null,
+                        "domain": "stripe.com",
+                        "brand": {
+                          "colors": {
+                            "brand_colors": [
+                              {
+                                "color": "rgb(99, 91, 255)",
+                                "hex": "#635BFF",
+                                "name": "Blurple"
+                              }
+                            ]
+                          }
+                        },
+                        "company": {
+                          "name": "Stripe, Inc.",
+                          "emails": [],
+                          "addresses": []
+                        },
+                        "classification": {
+                          "iab_id": "IAB13",
+                          "category": "Personal Finance"
+                        }
+                      }
+                    ]
+                  },
+                  "meta": {
+                    "requestId": "6f1d2c3b-4a5e-4f60-8b7a-9c0d1e2f3a4b",
+                    "durationMs": 1840
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, blocked URL, or credit limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate or concurrency limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily unavailable — retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Batch not found or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "cancelBatch",
+        "summary": "Cancel a batch",
+        "description": "Stops a running batch. URLs already answered stay readable until it expires, and are charged.",
+        "tags": [
+          "Endpoints"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "brand",
+                "enrich",
+                "company",
+                "classify",
+                "screenshot",
+                "styleguide"
+              ],
+              "description": "What every URL is run through. /batch/scrape has its own page.",
+              "example": "enrich"
+            },
+            "required": true,
+            "description": "What every URL is run through. /batch/scrape has its own page.",
+            "name": "endpoint",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "The id returned when the job was created.",
+              "example": "crw_9f2c1a7b4e0d4c3a"
+            },
+            "required": true,
+            "description": "The id returned when the job was created.",
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Batch cancelled (or already finished).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CrawlStatusData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": "crw_7c2e9a4b1d0f4e6a8b3c5d7e9f1a2b3c",
+                    "status": "cancelled",
+                    "url": "https://stripe.com",
+                    "total": 3,
+                    "completed": 3,
+                    "failed": 0,
+                    "credits_used": 36,
+                    "created_at": "2026-10-13T09:14:03.221Z",
+                    "started_at": "2026-10-13T09:14:04.010Z",
+                    "finished_at": "2026-10-13T09:14:41.512Z",
+                    "expires_at": "2026-10-14T09:14:03.221Z",
+                    "error": null,
+                    "kind": "batch",
+                    "endpoint": "enrich",
+                    "next": null,
+                    "data": []
+                  },
+                  "meta": {
+                    "requestId": "6f1d2c3b-4a5e-4f60-8b7a-9c0d1e2f3a4b",
+                    "durationMs": 1840
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, blocked URL, or credit limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate or concurrency limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily unavailable — retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Batch not found or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/batch/{endpoint}/{id}/errors": {
+      "get": {
+        "operationId": "getBatchErrors",
+        "summary": "Batch errors",
+        "description": "The URLs that failed, oldest first, each with its `error_code`. Free.",
+        "tags": [
+          "Endpoints"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "brand",
+                "enrich",
+                "company",
+                "classify",
+                "screenshot",
+                "styleguide"
+              ],
+              "description": "What every URL is run through. /batch/scrape has its own page.",
+              "example": "enrich"
+            },
+            "required": true,
+            "description": "What every URL is run through. /batch/scrape has its own page.",
+            "name": "endpoint",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "The id returned when the job was created.",
+              "example": "crw_9f2c1a7b4e0d4c3a"
+            },
+            "required": true,
+            "description": "The id returned when the job was created.",
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Failed pages to skip, for paging.",
+              "example": "0"
+            },
+            "required": false,
+            "description": "Failed pages to skip, for paging.",
+            "name": "skip",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Failed pages per response (1–100). Default: 100.",
+              "example": "100"
+            },
+            "required": false,
+            "description": "Failed pages per response (1–100). Default: 100.",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The URLs that failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CrawlErrorsData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "id": "crw_7c2e9a4b1d0f4e6a8b3c5d7e9f1a2b3c",
+                    "status": "completed",
+                    "failed": [],
+                    "failed_total": 0,
+                    "skipped": {},
+                    "next": null
+                  },
+                  "meta": {
+                    "requestId": "6f1d2c3b-4a5e-4f60-8b7a-9c0d1e2f3a4b",
+                    "durationMs": 1840
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, blocked URL, or credit limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate or concurrency limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily unavailable — retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Batch not found or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/logo/token": {
+      "get": {
+        "operationId": "getLogoToken",
+        "summary": "Get your logo CDN token",
+        "description": "Your organisation's publishable logo token, with this month's quota and use.\n\nLogos are served from `https://logo.prefetch.io/<domain>?token=<token>` — put that URL straight in an `<img>` tag. Optional parameters: `size` (16–512, default 128), `format` (`png`, `webp`, `jpeg`), `theme` (`light` or `dark`: the background for JPEG), `greyscale`, and `fallback` (`monogram`, the default letter mark; `404`; or `transparent`).\n\nLogo requests cost **no credits**: each plan includes a monthly quota (Free 100,000 · Starter 250,000 · Pro 1,000,000 · Growth 3,000,000 · Scale 10,000,000). Not available through RapidAPI.",
+        "tags": [
+          "Endpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "Your publishable token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/LogoTokenData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "token": "pk_4f1c9e2b7a0d4c3e8b6a1f2d3c4b5a69",
+                    "cdn_url": "https://logo.prefetch.io",
+                    "example": "https://logo.prefetch.io/stripe.com?token=pk_4f1c9e2b7a0d4c3e8b6a1f2d3c4b5a69",
+                    "quota": 100000,
+                    "used": 1234,
+                    "period": "2026-10-01"
+                  },
+                  "meta": {
+                    "requestId": "6f1d2c3b-4a5e-4f60-8b7a-9c0d1e2f3a4b",
+                    "durationMs": 1840
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, blocked URL, or credit limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate or concurrency limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily unavailable — retry shortly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/logo/token/rotate": {
+      "post": {
+        "operationId": "rotateLogoToken",
+        "summary": "Rotate your logo CDN token",
+        "description": "Replaces your organisation's logo token. The old one stops working at once — and with it every logo already embedded with it — so rotate only a token someone else is using against your quota.",
+        "tags": [
+          "Endpoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "The new token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/LogoTokenData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "token": "pk_9a8b7c6d5e4f40312a1b2c3d4e5f6a7b",
+                    "cdn_url": "https://logo.prefetch.io",
+                    "example": "https://logo.prefetch.io/stripe.com?token=pk_9a8b7c6d5e4f40312a1b2c3d4e5f6a7b",
+                    "quota": 100000,
+                    "used": 0,
+                    "period": "2026-10-01"
+                  },
+                  "meta": {
+                    "requestId": "6f1d2c3b-4a5e-4f60-8b7a-9c0d1e2f3a4b",
+                    "durationMs": 1840
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Revoked key, expired key, blocked URL, or credit limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate or concurrency limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service temporarily unavailable — retry shortly.",
             "content": {
               "application/json": {
                 "schema": {

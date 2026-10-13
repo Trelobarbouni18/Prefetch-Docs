@@ -222,6 +222,8 @@ Deliveries are signed exactly like monitor webhooks — an `X-Prefetch-Signature
 
 Deliveries go out in order. Answer with a `2xx` within 10 seconds; a failed delivery is retried after 2, 10 and 30 seconds, then dropped. Webhooks are a notification, not the record: `GET /crawl/{id}` always has every page.
 
+Webhooks are not available through RapidAPI, which can only bill a response: poll `GET /crawl/{id}` instead.
+
 ## Restarts
 
 A crawl survives restarts on our side. If the worker running it stops mid-crawl — a deploy, a crash — another worker resumes it from a checkpoint saved every few seconds. At most the last few seconds of pages are fetched again, and a page is never returned or billed twice.
@@ -230,11 +232,12 @@ A crawl survives restarts on our side. If the worker running it stops mid-crawl 
 
 Submitting is free. You are charged **1 credit per page the crawl returns**, or **4** when `scrape_options` asks for `summary`, `json` or `check_prompt_injection`.
 
-Pages are billed as they complete, on the status endpoint, so:
+Pages are billed as they complete — when you poll the status endpoint, or when the crawl ends, whichever comes first — so:
 
 - You pay for pages actually fetched, never for the `limit` you asked for.
 - Pages that failed (`ok: false`) are not charged.
 - Polling repeatedly never charges twice for the same page.
+- A crawl you only read through webhooks is charged when it ends, for the pages its webhooks delivered.
 - A cancelled crawl is charged only for what it fetched before stopping.
 
 ## Next

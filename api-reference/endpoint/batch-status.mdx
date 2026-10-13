@@ -1,0 +1,68 @@
+---
+title: "GET /batch/{endpoint}/{id}"
+description: "Progress and results of a batch, a page at a time. Each answered URL carries what a single call returns."
+openapi: "GET /batch/{endpoint}/{id}"
+---
+
+## Overview
+
+Returns the batch's progress and a page of answered URLs, in completion order. Each item carries every field the single endpoint returns for that URL — `domain`, `brand`, `company`, `classification`, `screenshot_url`, `styleguide`… — plus the batch's own bookkeeping:
+
+| Field | Meaning |
+|---|---|
+| `ok` | `false` when the URL could not be answered. You are not charged for it. |
+| `error`, `error_code` | Why, as one of the API's [error codes](/concepts/errors). |
+| `status_code` | 200 for an answered URL. |
+
+Follow `next` until it is `null` to read every result. Results stay readable for 24 hours after the batch is created.
+
+## Example request
+
+```bash
+curl "https://api.prefetch.io/batch/enrich/crw_7c2e9a4b1d0f4e6a8b3c5d7e9f1a2b3c?limit=50" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+## Example response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "crw_7c2e9a4b1d0f4e6a8b3c5d7e9f1a2b3c",
+    "status": "completed",
+    "kind": "batch",
+    "endpoint": "enrich",
+    "url": "https://stripe.com",
+    "total": 3,
+    "completed": 3,
+    "failed": 0,
+    "credits_used": 36,
+    "created_at": "2026-10-13T09:14:03.221Z",
+    "started_at": "2026-10-13T09:14:04.010Z",
+    "finished_at": "2026-10-13T09:14:41.512Z",
+    "expires_at": "2026-10-14T09:14:03.221Z",
+    "error": null,
+    "next": null,
+    "data": [
+      {
+        "url": "https://stripe.com",
+        "depth": 0,
+        "status_code": 200,
+        "ok": true,
+        "error": null,
+        "error_code": null,
+        "domain": "stripe.com",
+        "brand": { "colors": { "brand_colors": [{ "color": "rgb(99, 91, 255)", "hex": "#635BFF", "name": "Blurple" }] } },
+        "company": { "name": "Stripe, Inc.", "emails": [], "addresses": [] },
+        "classification": { "iab_id": "IAB13", "category": "Personal Finance" }
+      }
+    ]
+  },
+  "meta": { "requestId": "2e3d4c5b-6a7f-4b8c-9d0e-1f2a3b4c5d6e", "durationMs": 88 }
+}
+```
+
+## Credits
+
+Polling is free in itself: each call charges only the URLs that completed since the previous call, at the endpoint's own price, and whatever no call claimed is charged when the batch ends. Polling every five seconds costs exactly what polling once at the end does.

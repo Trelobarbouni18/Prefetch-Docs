@@ -1,0 +1,39 @@
+---
+title: "Integrations"
+description: "Use Prefetch from Clay, n8n, Zapier and Make — enrich rows, name card transactions, search the web and run batches without writing code."
+icon: "plug"
+---
+
+Prefetch is a plain HTTPS API with an `X-API-Key` header, so every no-code tool that can make an HTTP request can use it. These guides give the exact configuration for the jobs people use them for:
+
+| You want to | Endpoint | Credits |
+|---|---|---|
+| Find a company's domain from its name | `GET /resolve` | 1 (3 with a live lookup) |
+| Enrich a company: industry, logo, colors, emails, social profiles | `GET /enrich` | 12 |
+| Just the industry, for ICP scoring | `GET /classify` | 5 |
+| Show a company's logo | the [logo CDN](/api-reference/endpoint/logo-cdn) | 0 |
+| Name the merchant on a card transaction | `GET /transaction` | 3 |
+| Search the web, with each result's text | `GET /search` | 2 per 10 results |
+| Enrich hundreds of domains as one job | `POST /batch/enrich` | 12 per domain |
+
+<CardGroup cols={2}>
+  <Card title="Clay" icon="table" href="/integrations/clay">
+    HTTP API columns that resolve, enrich and classify every row.
+  </Card>
+  <Card title="n8n" icon="diagram-project" href="/integrations/n8n">
+    Four workflows to paste straight into your editor.
+  </Card>
+  <Card title="Zapier" icon="bolt" href="/integrations/zapier">
+    Enrich new CRM records and name transactions with Webhooks by Zapier.
+  </Card>
+  <Card title="Make" icon="gears" href="/integrations/make">
+    Scenarios built on the HTTP "Make a request" module.
+  </Card>
+</CardGroup>
+
+## Before you start
+
+- **Your API key** goes in an `X-API-Key` header. Create one on the [dashboard](https://prefetch.io/dashboard). Treat it like a password: use your tool's credential store rather than pasting it into a field everyone can read.
+- **Concurrency.** Every plan limits how many requests run at once — 1 on Free, 10 on Starter, 50 on Pro. Tools that run rows in parallel (Clay, n8n, Make) should stay at or under that; a request over it waits a few seconds for a slot, then gets `429` with `error_code: CONCURRENCY_LIMITED`.
+- **Errors tell you whether to retry.** Every error body carries `error_code` and `retryable`. Retry `retryable: true` (busy, timeouts, rate limits) after a pause; don't retry `retryable: false` (an invalid domain, a site that does not exist). See [Errors](/concepts/errors).
+- **Failures are free.** A request that fails is never charged, so retrying one costs nothing until it succeeds.

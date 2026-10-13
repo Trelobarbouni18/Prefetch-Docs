@@ -47,11 +47,13 @@ Every URL gets the checks a single `/scrape` would. By default one invalid or bl
 
 ## Webhooks
 
-`webhook` works as it does for crawls, with events named `batch_scrape.started`, `batch_scrape.page`, `batch_scrape.completed` and `batch_scrape.failed`. See [crawl webhooks](/api-reference/endpoint/crawl#webhooks) for the payload and how to verify the signature.
+`webhook` works as it does for crawls, with events named `batch_scrape.started`, `batch_scrape.page`, `batch_scrape.completed` and `batch_scrape.failed`. See [crawl webhooks](/api-reference/endpoint/crawl#webhooks) for the payload and how to verify the signature. Not available through RapidAPI.
 
 ## Credits
 
-Submitting is free. You are charged **1 credit per page returned**, or **4** when `scrape_options` asks for `summary`, `json` or `check_prompt_injection`. Pages are billed as they complete, on the status endpoint, and failed pages are never charged.
+Submitting is free. You are charged **1 credit per page returned**, or **4** when `scrape_options` asks for `summary`, `json` or `check_prompt_injection`. Pages are billed as they complete — when you poll the status endpoint, or when the batch ends — and failed pages are never charged.
+
+To run brand, enrich, company, classify, screenshot or styleguide over a list instead, see [`POST /batch/{endpoint}`](/api-reference/endpoint/batch).
 
 <Tip>
 Over MCP, `prefetch_batch_scrape` submits the batch and waits for it, returning the pages when it finishes in time.

@@ -4,9 +4,9 @@ description: "Every tool the Prefetch MCP server exposes, with its parameters an
 icon: "wrench"
 ---
 
-Nineteen tools: one per API capability, plus the extra verbs crawls and monitors need. Your agent reads these descriptions and picks the right one — you rarely need to name a tool yourself.
+Twenty-five tools: one per API capability, plus the extra verbs crawls, batches and monitors need. Your agent reads these descriptions and picks the right one — you rarely need to name a tool yourself.
 
-All parameters are snake_case. Most tools require only `url` — or `name` for `prefetch_resolve`, `task` for `prefetch_answer`, `id` for the crawl and monitor tools that act on one, and `name` plus `schedule` to create a monitor.
+All parameters are snake_case. Most tools require only `url` — or `name` for `prefetch_resolve`, `descriptor` for `prefetch_transaction`, `query` for `prefetch_search`, `task` for `prefetch_answer`, `urls` for the batch tools, `domains` for `prefetch_logo_urls`, `id` for the crawl and monitor tools that act on one, and `name` plus `schedule` to create a monitor.
 
 See [MCP server](/mcp/overview) for setup.
 
@@ -24,7 +24,37 @@ Each result has a `confidence` from 0 to 1. Only the first can reach 0.8, and at
 | `limit` | number | `5` | How many candidates to return. 1–10. |
 | `live` | boolean | `true` | Look the name up live when the index is unsure. `false` for an instant, index-only lookup (free when nothing matches). |
 
+### `prefetch_transaction`
+
+Turns a card transaction descriptor — a bank statement line like `SQ *BLUE BOTTLE COFFE OAKLAND CA` — into the merchant behind it: its name, website, processor and location, and a `logo_url` ready to show. Lines that are payments to a person, transfers, fees or ATM withdrawals say so in `kind`. See [`GET /transaction`](/api-reference/endpoint/transaction).
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `descriptor` | string | — | **Required.** The statement line. Up to 200 characters. |
+| `country` | string | — | Two-letter code of the country the card was used in. |
+| `mcc` | string | — | The four-digit merchant category code, if known. |
+| `include_brand` | boolean | `false` | Also return the merchant's logos and colors, as `prefetch_brand` does. +10 credits. |
+
+3 credits per lookup, 1 for a line looked up in the last 7 days.
+
 ## Web extraction
+
+### `prefetch_search`
+
+Search the web (Google results) and get each result's title, URL and snippet — optionally with every result page scraped into markdown in the same call. Use it to find pages; for a researched answer, use `prefetch_answer`. See [`GET /search`](/api-reference/endpoint/search).
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `query` | string | — | **Required.** What to search for. Search operators work: `"exact phrase"`, `-word`, `filetype:pdf`. |
+| `limit` | number | `10` | Results to return. 1–50, or 1–10 with `scrape_results`. |
+| `type` | string | `web` | `web` or `news`. |
+| `time_range` | string | — | `hour`, `day`, `week`, `month` or `year`. |
+| `country`, `language` | string | — | Two-letter codes. |
+| `include_domains`, `exclude_domains` | string[] | — | Up to 10 each. |
+| `scrape_results` | boolean | `false` | Also fetch each result page. 1 credit per page. |
+| `formats` | string[] | `["markdown"]` | With `scrape_results`: the page formats. |
+
+2 credits per 10 results, plus 1 per page scraped.
 
 ### `prefetch_scrape`
 
@@ -102,11 +132,11 @@ Sitemap-seeded pages sit at depth 0, because they were handed over rather than f
 
 ### `prefetch_check_crawl_status`
 
-Status and results for a crawl. Returns one page of results at a time.
+Status and results for a crawl or batch. Returns one page of results at a time.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `id` | string | — | **Required.** The crawl id from `prefetch_crawl`. |
+| `id` | string | — | **Required.** The id from `prefetch_crawl`, `prefetch_batch_scrape` or `prefetch_batch`. |
 | `skip` | number | `0` | Results to skip, for paging. |
 | `limit` | number | `25` | Results per page. 1–100. |
 
@@ -119,6 +149,33 @@ Stop a running crawl. Pages already fetched stay readable via `prefetch_check_cr
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `id` | string | — | **Required.** The crawl id from `prefetch_crawl`. |
+
+### `prefetch_batch_scrape`
+
+Scrape many known URLs in one job and get each page as markdown. Starts the job and waits for it (`wait_seconds`, default 60), returning the pages if it finishes in time and an id for `prefetch_check_crawl_status` if not. See [`POST /batch/scrape`](/api-reference/endpoint/batch-scrape).
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `urls` | string[] | — | **Required.** 1–500 pages. |
+| `scrape_options` | object | — | How each page is rendered — the options `prefetch_scrape` takes. |
+| `concurrency` | number | `2` | Pages fetched in parallel. 1–5. |
+| `ignore_invalid_urls` | boolean | `false` | Drop invalid URLs instead of failing the batch. |
+
+1 credit per page returned.
+
+### `prefetch_batch`
+
+Run `brand`, `enrich`, `company`, `classify`, `screenshot` or `styleguide` on a list of URLs or bare domains as one job, and get every result back — the same result each single tool returns. Waits like `prefetch_batch_scrape`. See [`POST /batch/{endpoint}`](/api-reference/endpoint/batch).
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `endpoint` | string | — | **Required.** Which tool to run on every URL. |
+| `urls` | string[] | — | **Required.** 1–500 URLs or domains, like `["stripe.com", "linear.app"]`. |
+| `options` | object | — | That tool's own options, applied to every URL — `{"design_tokens": true}` for brand, `{"device": "iphone_15"}` for screenshot. |
+| `concurrency` | number | `2` | URLs run in parallel. 1–5. |
+| `ignore_invalid_urls` | boolean | `false` | Drop invalid URLs instead of failing the batch. |
+
+Each URL costs what one call of that tool costs; failed URLs are free.
 
 ## Brand and company data
 
@@ -176,14 +233,44 @@ Render a page and return a hosted image URL.
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `url` | string | — | **Required.** |
-| `width` | number | `1440` | Viewport width. 320–2560. |
-| `height` | number | `900` | Viewport height. 240–5000. |
-| `format` | string | `jpeg` | `jpeg`, `png`, or `webp`. |
+| `width` | number | `1440` | Viewport width. 320–2560. Ignored with `device`. |
+| `height` | number | `900` | Viewport height. 240–5000. Ignored with `device`. |
+| `format` | string | `jpeg` | `jpeg`, `png`, `webp`, or `pdf`. |
 | `full_page` | boolean | `false` | Capture the whole scrollable page. |
+| `device` | string | — | Render as a phone, tablet or retina desktop: `iphone_15`, `pixel_7`, `ipad`, `desktop_retina`… (see [`/screenshot`](/api-reference/endpoint/screenshot#devices)). |
+| `dark_mode` | boolean | `false` | Ask the page for its dark theme. |
+| `selector` | string | — | Capture only the first element matching this CSS selector. |
+| `wait_for` | number | `0` | Milliseconds to wait after load. Up to 30,000. |
+| `wait_for_selector` | string | — | Wait (up to 10 s) for this CSS selector before capturing. |
+| `block_ads` | boolean | `false` | Block ad and tracker requests while the page loads. |
+| `quality` | number | `85` | JPEG and WebP quality. 1–100. |
 
 <Note>
 This returns a link, not image bytes. Pass the URL on to the user, or to a tool that can fetch images.
 </Note>
+
+### `prefetch_styleguide`
+
+A site's design system, read from the rendered page: colors by role, the type scale, spacing, radii, shadows, button, input, card and link styles, breakpoints and the site's own CSS variables — plus the same as CSS custom properties (`exports.css`) and a Tailwind theme (`exports.tailwind`). Use it to build UI that matches a site. See [`GET /styleguide`](/api-reference/endpoint/styleguide).
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `url` | string | — | **Required.** |
+| `dark_mode` | boolean | `false` | Read the site's dark theme instead of its default one. |
+
+10 credits.
+
+### `prefetch_logo_urls`
+
+Ready-to-embed logo image URLs for up to 50 domains, from the [logo CDN](/api-reference/endpoint/logo-cdn) — put them straight in `<img>` tags or markdown. A domain without a known logo shows a letter mark.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `domains` | string[] | — | **Required.** 1–50 domains or URLs. |
+| `size` | number | `128` | Pixels, square. 16–512. |
+| `format` | string | `png` | `png`, `webp` or `jpeg`. |
+
+Free: logos use your plan's monthly logo quota, not credits.
 
 ## Research
 
@@ -298,10 +385,16 @@ Delete a monitor and its history, stopping all future checks. To stop it for a w
 
 | You want | Use | Credits |
 |---|---|---|
+| Pages about something | `prefetch_search` | 2 per 10 results, +1 per page scraped |
 | One page's content | `prefetch_scrape` | 1 |
 | To know which pages exist | `prefetch_map` | 1 |
-| A few specific pages | `prefetch_map`, then `prefetch_scrape` on each | 3 + 3 each |
-| A whole section of a site | `prefetch_crawl` with `include_paths` | 3 + 3/page |
+| A few specific pages | `prefetch_map`, then `prefetch_scrape` on each | 1 + 1 each |
+| A whole section of a site | `prefetch_crawl` with `include_paths` | 1 per page |
+| Many known pages | `prefetch_batch_scrape` | 1 per page |
+| The merchant behind a card transaction | `prefetch_transaction` | 3 |
+| Companies' logos to show | `prefetch_logo_urls` | 0 |
+| To build UI that matches a site | `prefetch_styleguide` | 10 |
+| The same profile for many companies | `prefetch_batch` with `endpoint: "enrich"` | 12 per company |
 | Brand, company, and industry | `prefetch_enrich` | 12 |
 | Just the brand colors | `prefetch_brand` | 10 |
 | Just the industry | `prefetch_classify` | 5 |

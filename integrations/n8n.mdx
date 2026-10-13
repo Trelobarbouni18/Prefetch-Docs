@@ -1,0 +1,773 @@
+---
+title: "n8n"
+description: "Four n8n workflows to paste into your editor: enrich a list of domains, run a batch that resumes on its webhook, search and summarize the web, and name card-transaction merchants."
+icon: "diagram-project"
+---
+
+n8n workflows are JSON: **copy one of the workflows below and paste it into an empty canvas** (Ctrl+V / ⌘V). Each uses n8n's core nodes only — Code, HTTP Request, Edit Fields, Split Out and Wait.
+
+## Add your API key once
+
+Every HTTP Request node uses a **Header Auth** credential named `Prefetch API key`. Create it the first time you open a pasted workflow: double-click an HTTP Request node → **Credential → Create new**:
+
+| Field | Value |
+|---|---|
+| Name | `X-API-Key` |
+| Value | your Prefetch API key |
+
+Name the credential `Prefetch API key` and the other templates pick it up.
+
+## Enrich a list of domains
+
+Enriches each domain with brand, company and industry data, and keeps the fields a CRM usually wants. Replace the **Domains** node with your source — a Google Sheet, your CRM, a webhook. The HTTP node sends one request at a time (raise the batch size up to your plan's concurrency) and retries what can be retried. 12 credits per domain.
+
+```json enrich-domains.json
+{
+  "name": "Prefetch — Enrich a list of domains",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "6d0f4c2a-1b3e-4f5a-9c7d-0e1f2a3b4c01",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Replace with your own source: a Google Sheet, a CRM, a webhook…\nreturn ['stripe.com', 'linear.app', 'notion.so'].map((domain) => ({ json: { domain } }));"
+      },
+      "id": "6d0f4c2a-1b3e-4f5a-9c7d-0e1f2a3b4c02",
+      "name": "Domains",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.prefetch.io/enrich",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $json.domain }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 0
+            }
+          }
+        }
+      },
+      "id": "6d0f4c2a-1b3e-4f5a-9c7d-0e1f2a3b4c03",
+      "name": "Prefetch enrich",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Prefetch API key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "domain",
+              "value": "={{ $json.data.domain }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "company_name",
+              "value": "={{ ($json.data.company || {}).name }}",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "industry",
+              "value": "={{ ($json.data.classification || {}).category }}",
+              "type": "string"
+            },
+            {
+              "id": "a4",
+              "name": "description",
+              "value": "={{ ($json.data.classification || {}).description }}",
+              "type": "string"
+            },
+            {
+              "id": "a5",
+              "name": "logo",
+              "value": "={{ (($json.data.brand || {}).logos || {}).primary ? $json.data.brand.logos.primary.url : '' }}",
+              "type": "string"
+            },
+            {
+              "id": "a6",
+              "name": "brand_color",
+              "value": "={{ ((($json.data.brand || {}).colors || {}).brand_colors || [])[0] ? $json.data.brand.colors.brand_colors[0].hex : '' }}",
+              "type": "string"
+            },
+            {
+              "id": "a7",
+              "name": "linkedin",
+              "value": "={{ (($json.data.company || {}).social_links || {}).linkedin }}",
+              "type": "string"
+            },
+            {
+              "id": "a8",
+              "name": "emails",
+              "value": "={{ (($json.data.company || {}).emails || []).join(', ') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6d0f4c2a-1b3e-4f5a-9c7d-0e1f2a3b4c04",
+      "name": "Pick fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        660,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Domains",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Domains": {
+      "main": [
+        [
+          {
+            "node": "Prefetch enrich",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prefetch enrich": {
+      "main": [
+        [
+          {
+            "node": "Pick fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
+```
+
+## Batch enrich, resumed by the batch's webhook
+
+For hundreds of domains, one [batch](/api-reference/endpoint/batch) beats hundreds of calls: the workflow starts it with its own resume URL (`$execution.resumeUrl`) as the webhook, sleeps in the **Wait** node until Prefetch calls back with `batch_enrich.completed`, then reads the results and splits them into one item per domain. No polling. 12 credits per domain answered.
+
+```json batch-enrich-with-webhook.json
+{
+  "name": "Prefetch — Batch enrich, resume on webhook",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "7e1a5d3b-2c4f-4a6b-8d9e-1f2a3b4c5d01",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Up to 500 URLs or bare domains per batch.\nconst urls = ['stripe.com', 'linear.app', 'notion.so', 'figma.com', 'vercel.com'];\nreturn [{ json: { urls } }];"
+      },
+      "id": "7e1a5d3b-2c4f-4a6b-8d9e-1f2a3b4c5d02",
+      "name": "Domains",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.prefetch.io/batch/enrich",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ urls: $json.urls, webhook: { url: $execution.resumeUrl, events: ['completed', 'failed'] } }) }}",
+        "options": {}
+      },
+      "id": "7e1a5d3b-2c4f-4a6b-8d9e-1f2a3b4c5d03",
+      "name": "Start batch",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Prefetch API key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "httpMethod": "POST",
+        "limitWaitTime": true,
+        "limitType": "afterTimeInterval",
+        "resumeAmount": 4,
+        "resumeUnit": "hours",
+        "options": {}
+      },
+      "id": "7e1a5d3b-2c4f-4a6b-8d9e-1f2a3b4c5d04",
+      "name": "Wait for the batch",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        0
+      ],
+      "webhookId": "7e1a5d3b-2c4f-4a6b-8d9e-1f2a3b4c5d09"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.prefetch.io/batch/enrich/{{ $('Start batch').item.json.data.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "100"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7e1a5d3b-2c4f-4a6b-8d9e-1f2a3b4c5d05",
+      "name": "Read results",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Prefetch API key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data.data",
+        "options": {}
+      },
+      "id": "7e1a5d3b-2c4f-4a6b-8d9e-1f2a3b4c5d06",
+      "name": "One item per URL",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b1",
+              "name": "url",
+              "value": "={{ $json.url }}",
+              "type": "string"
+            },
+            {
+              "id": "b2",
+              "name": "ok",
+              "value": "={{ $json.ok }}",
+              "type": "boolean"
+            },
+            {
+              "id": "b3",
+              "name": "error_code",
+              "value": "={{ $json.error_code }}",
+              "type": "string"
+            },
+            {
+              "id": "b4",
+              "name": "company_name",
+              "value": "={{ ($json.company || {}).name }}",
+              "type": "string"
+            },
+            {
+              "id": "b5",
+              "name": "industry",
+              "value": "={{ ($json.classification || {}).category }}",
+              "type": "string"
+            },
+            {
+              "id": "b6",
+              "name": "logo",
+              "value": "={{ (($json.brand || {}).logos || {}).primary ? $json.brand.logos.primary.url : '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7e1a5d3b-2c4f-4a6b-8d9e-1f2a3b4c5d07",
+      "name": "Pick fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1320,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Domains",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Domains": {
+      "main": [
+        [
+          {
+            "node": "Start batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start batch": {
+      "main": [
+        [
+          {
+            "node": "Wait for the batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for the batch": {
+      "main": [
+        [
+          {
+            "node": "Read results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read results": {
+      "main": [
+        [
+          {
+            "node": "One item per URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One item per URL": {
+      "main": [
+        [
+          {
+            "node": "Pick fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
+```
+
+<Note>
+Prefetch only calls back to public `https://` addresses, so this works on n8n Cloud or a self-hosted n8n with a public URL — not on `localhost`. **Read results** reads up to 100 domains; for more, add pagination to it (**Options → Pagination**, mode *Response Contains Next URL*, next URL `https://api.prefetch.io{{ $response.body.data.next }}`, complete when `{{ !$response.body.data.next }}`).
+</Note>
+
+## Search the web and summarize the results
+
+Searches the web and has each of the top 5 result pages summarized in the same call, then lists title, URL and summary. 2 credits for the search plus 4 per page summarized.
+
+```json search-and-summarize.json
+{
+  "name": "Prefetch — Search the web and summarize the results",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "8f2b6e4c-3d5a-4b7c-9e0f-2a3b4c5d6e01",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.prefetch.io/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"query\": \"open source CRM for startups\",\n  \"limit\": 5,\n  \"time_range\": \"year\",\n  \"scrape_options\": { \"formats\": [\"summary\"], \"summary_max_words\": 80 }\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "8f2b6e4c-3d5a-4b7c-9e0f-2a3b4c5d6e02",
+      "name": "Prefetch search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Prefetch API key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data.results",
+        "options": {}
+      },
+      "id": "8f2b6e4c-3d5a-4b7c-9e0f-2a3b4c5d6e03",
+      "name": "One item per result",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1",
+              "name": "title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "c2",
+              "name": "url",
+              "value": "={{ $json.url }}",
+              "type": "string"
+            },
+            {
+              "id": "c3",
+              "name": "summary",
+              "value": "={{ $json.scrape ? $json.scrape.summary.text : $json.description }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8f2b6e4c-3d5a-4b7c-9e0f-2a3b4c5d6e04",
+      "name": "Pick fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        660,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Prefetch search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prefetch search": {
+      "main": [
+        [
+          {
+            "node": "One item per result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One item per result": {
+      "main": [
+        [
+          {
+            "node": "Pick fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
+```
+
+## Name the merchants on card transactions
+
+Turns statement lines into merchants — name, website, logo, category and payment processor — and flags payments to people, transfers and fees. 3 credits per line, 1 for a line looked up in the last 7 days.
+
+```json categorize-transactions.json
+{
+  "name": "Prefetch — Name the merchants on card transactions",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "9a3c7f5d-4e6b-4c8d-8f1a-3b4c5d6e7f01",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Replace with your transactions feed.\nreturn [\n  'SQ *BLUE BOTTLE COFFE OAKLAND CA',\n  'PAYPAL *SPOTIFYAB',\n  'AMZN Mktp US*2K4LX9B12',\n  'VENMO *JOHN SMITH',\n].map((descriptor) => ({ json: { descriptor, country: 'US' } }));"
+      },
+      "id": "9a3c7f5d-4e6b-4c8d-8f1a-3b4c5d6e7f02",
+      "name": "Transactions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.prefetch.io/transaction",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "descriptor",
+              "value": "={{ $json.descriptor }}"
+            },
+            {
+              "name": "country",
+              "value": "={{ $json.country }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "9a3c7f5d-4e6b-4c8d-8f1a-3b4c5d6e7f03",
+      "name": "Prefetch transaction",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Prefetch API key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d1",
+              "name": "descriptor",
+              "value": "={{ $json.data.descriptor }}",
+              "type": "string"
+            },
+            {
+              "id": "d2",
+              "name": "kind",
+              "value": "={{ $json.data.kind }}",
+              "type": "string"
+            },
+            {
+              "id": "d3",
+              "name": "merchant",
+              "value": "={{ ($json.data.merchant || {}).name }}",
+              "type": "string"
+            },
+            {
+              "id": "d4",
+              "name": "website",
+              "value": "={{ ($json.data.merchant || {}).domain }}",
+              "type": "string"
+            },
+            {
+              "id": "d5",
+              "name": "logo",
+              "value": "={{ $json.data.logo_url }}",
+              "type": "string"
+            },
+            {
+              "id": "d6",
+              "name": "category",
+              "value": "={{ $json.data.category }}",
+              "type": "string"
+            },
+            {
+              "id": "d7",
+              "name": "processor",
+              "value": "={{ $json.data.payment_processor }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9a3c7f5d-4e6b-4c8d-8f1a-3b4c5d6e7f04",
+      "name": "Pick fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        660,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Transactions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transactions": {
+      "main": [
+        [
+          {
+            "node": "Prefetch transaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prefetch transaction": {
+      "main": [
+        [
+          {
+            "node": "Pick fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
+```
+
+## Errors
+
+When a request fails, the HTTP Request node's error output carries Prefetch's error body: `error_code` says what went wrong and `retryable` whether a retry can help. The templates retry automatically (**Settings → Retry On Fail**); for `retryable: false` errors such as `DNS_RESOLUTION_FAILED`, switch the node's **On Error** setting to *Continue (using error output)* and route those items aside. Failed requests are never charged.

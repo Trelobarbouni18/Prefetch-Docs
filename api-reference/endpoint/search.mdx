@@ -1,0 +1,149 @@
+---
+title: "GET /search"
+description: "Search the web and get each result's title, URL and snippet — optionally with every result page scraped. 2 credits per 10 results."
+openapi: "GET /search"
+---
+
+## Overview
+
+`/search` runs a web search (Google results) and returns the results best first: each one's `url`, `title` and `description` (the snippet the search engine shows). Set `type=news` for recent articles with their publisher and date.
+
+Ask for page content and every result page is scraped in the same request, exactly as [`GET /scrape`](/api-reference/endpoint/scrape) would scrape it — markdown, a summary, links, structured JSON — and returned in `scrape` on its result. One call answers "find pages about X and give me their text".
+
+Use `/search` when you need to **find** pages. When you need a researched answer that cites its sources, use [`POST /answers`](/mcp/tools#prefetch_answer); when you already know the page, use `/scrape`.
+
+## Example requests
+
+<CodeGroup>
+
+```bash Results only
+curl "https://api.prefetch.io/search?query=open+source+CRM&limit=10" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```bash With page content
+curl "https://api.prefetch.io/search?query=stripe+pricing&limit=5&formats=markdown" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```bash POST, news from the past week
+curl -X POST "https://api.prefetch.io/search" \
+  -H "X-API-Key: $PREFETCH_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "series A funding developer tools",
+    "type": "news",
+    "time_range": "week",
+    "limit": 5,
+    "scrape_options": { "formats": ["summary"] }
+  }'
+```
+
+```javascript Node.js
+const res = await fetch("https://api.prefetch.io/search", {
+  method: "POST",
+  headers: { "X-API-Key": process.env.PREFETCH_API_KEY, "Content-Type": "application/json" },
+  body: JSON.stringify({
+    query: "headless CMS comparison",
+    limit: 5,
+    exclude_domains: ["pinterest.com"],
+    scrape_options: { formats: ["markdown"], only_main_content: true },
+  }),
+});
+const { data } = await res.json();
+for (const r of data.results) {
+  console.log(r.position, r.url, r.scrape?.markdown?.content.slice(0, 200) ?? r.scrape_error?.error);
+}
+```
+
+</CodeGroup>
+
+## Example response
+
+```json
+{
+  "success": true,
+  "data": {
+    "query": "stripe pricing",
+    "type": "web",
+    "results": [
+      {
+        "position": 1,
+        "url": "https://stripe.com/pricing",
+        "title": "Pricing & Fees | Stripe",
+        "description": "Find Stripe fees and pricing information. Find information on pricing for payments, billing…",
+        "date": null,
+        "source": null,
+        "image_url": null,
+        "scrape": {
+          "url": "https://stripe.com/pricing",
+          "final_url": "https://stripe.com/pricing",
+          "domain": "stripe.com",
+          "status_code": 200,
+          "metadata": { "title": "Pricing & Fees | Stripe", "language": "en", "content_type": "text/html" },
+          "markdown": { "content": "# Pricing\n\nIntegrated per-transaction pricing…", "char_count": 18233, "word_count": 2611, "truncated": false, "main_content_only": true }
+        }
+      },
+      {
+        "position": 2,
+        "url": "https://www.g2.com/products/stripe/pricing",
+        "title": "Stripe Pricing 2026",
+        "description": "Stripe pricing and plans…",
+        "date": null,
+        "source": null,
+        "image_url": null,
+        "scrape_error": {
+          "error": "The target URL could not be accessed. The site may be blocking automated requests.",
+          "error_code": "TARGET_BLOCKED"
+        }
+      }
+    ],
+    "count": 2,
+    "scraped": 1,
+    "warnings": ["1 result page(s) could not be scraped; see each result's scrape_error. They were not charged."]
+  },
+  "meta": { "requestId": "6f1d2c3b-4a5e-4f60-8b7a-9c0d1e2f3a4b", "durationMs": 8230 }
+}
+```
+
+## Narrowing a search
+
+| Parameter | Does |
+|---|---|
+| `type` | `web` (default) or `news`. News results carry `source` (the publisher), `date` and `image_url`. |
+| `time_range` | `hour`, `day`, `week`, `month` or `year`. |
+| `country` / `language` | Two-letter codes, e.g. `country=de&language=de`. |
+| `location` | A city or region to search from, e.g. `Berlin, Germany`. |
+| `include_domains` | Search only these domains (up to 10). |
+| `exclude_domains` | Leave these out (up to 10). |
+
+Search operators work in `query` as they do on Google: `"exact phrase"`, `-word`, `filetype:pdf`, `site:example.com`.
+
+Results on your account's blocklist are dropped, and the rest renumbered.
+
+## Scraping the results
+
+Ask for content with `formats` on GET (`formats=markdown,links`, plus `only_main_content` and `max_age`), or a `scrape_options` object on POST — every option [`/scrape`](/api-reference/endpoint/scrape) takes. Up to **10** results can be scraped in one request.
+
+Result pages are fetched in parallel within one deadline (45 s by default; `timeout` can shorten it). A page that cannot be fetched — blocked, too slow, not a page — gets a `scrape_error` with an [error code](/concepts/errors) instead of `scrape`, and is **not charged**. The search itself still succeeds.
+
+## Credits
+
+| What | Credits |
+|---|---|
+| The search | **2 per 10 results** returned, rounded up — at least 2 |
+| Each result page scraped | 1, or 4 when `summary`, `json` or `check_prompt_injection` is asked for |
+| Result pages that could not be scraped | 0 |
+
+A 10-result search costs 2 credits; with every page as markdown, 12.
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="GET /scrape" icon="file-lines" href="/api-reference/endpoint/scrape">
+    One page, every format. **1 credit.**
+  </Card>
+  <Card title="POST /batch/scrape" icon="layer-group" href="/api-reference/endpoint/batch-scrape">
+    Hundreds of known URLs as one job.
+  </Card>
+</CardGroup>
