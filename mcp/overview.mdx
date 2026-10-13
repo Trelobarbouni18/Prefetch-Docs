@@ -16,13 +16,12 @@ https://api.prefetch.io/mcp
 
 <Tabs>
   <Tab title="Claude">
-    Works on claude.ai, Claude Desktop, and Claude mobile.
+    Prefetch is listed in the Claude directory. It works on claude.ai, Claude Desktop, and Claude mobile.
 
-    1. Go to **Customize → Connectors** and select **Add custom connector**.
-    2. Paste `https://api.prefetch.io/mcp` and select **Add**.
-    3. Select **Connect**, sign in to Prefetch, and select **Allow access**.
+    1. Open [Prefetch in the Claude directory](https://claude.ai/directory/prefetch) and select **Connect**.
+    2. Sign in to Prefetch and select **Allow access**.
 
-    On Team and Enterprise plans, an Owner adds the connector under **Organization settings → Connectors**. Members then connect with their own Prefetch account.
+    On Team and Enterprise plans, an Owner first adds Prefetch under **Organization settings → Connectors**. Members then connect with their own Prefetch account.
   </Tab>
 
   <Tab title="ChatGPT">
@@ -32,6 +31,10 @@ https://api.prefetch.io/mcp
   </Tab>
 
   <Tab title="Claude Code">
+    If you sign in to Claude Code with your Claude account, connectors you add on claude.ai come with it. Once you've connected Prefetch from the [Claude directory](https://claude.ai/directory/prefetch), it's already listed under `/mcp`.
+
+    Otherwise, add the server directly:
+
     ```bash
     claude mcp add --transport http prefetch https://api.prefetch.io/mcp
     ```
