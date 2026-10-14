@@ -1,6 +1,6 @@
 ---
 title: "PATCH /monitor/{id}"
-description: "Change a monitor — its schedule, goal, targets or webhook — or pause and resume it. Free."
+description: "Change a monitor — its schedule, goal, targets, webhook or email alerts — or pause and resume it. Free."
 openapi: "PATCH /monitor/{id}"
 ---
 
@@ -66,6 +66,7 @@ print(r.json()["data"]["next_run_at"])
 | `judge_enabled` | Turns judging on or off without touching the goal. |
 | `targets` | Replaces the **whole list** — see below. |
 | `webhook` | Replaced. The signing secret is kept unless you send a new `secret` or `"rotate_secret": true`. `null` removes the webhook. |
+| `email` | `to` replaces the list of addresses. Addresses you keep keep their status; new ones are confirmed as on create. `"resend_confirmation": true` emails pending addresses their confirmation again. `null` removes every address. |
 | `status` | `active` or `paused`. |
 
 ## Changing targets

@@ -1,12 +1,12 @@
 ---
 title: "POST /monitor"
-description: "Watch pages on a schedule and get told what changed. Free to create; each check costs 1 credit per page it fetches, plus 1 per change judged against your goal."
+description: "Watch pages on a schedule and get told what changed, by webhook or email. Free to create; each check costs 1 credit per page it fetches, plus 1 per change judged against your goal."
 openapi: "POST /monitor"
 ---
 
 ## Overview
 
-A monitor re-checks pages on a schedule and compares each one with the previous check. Instead of polling a pricing page, a changelog or a policy page yourself, you get a webhook with just the diff when something changes.
+A monitor re-checks pages on a schedule and compares each one with the previous check. Instead of polling a pricing page, a changelog or a policy page yourself, you get a webhook or an email with just the diff when something changes.
 
 <Steps>
   <Step title="Create">
@@ -19,7 +19,7 @@ A monitor re-checks pages on a schedule and compares each one with the previous 
     Each scheduled check fetches every page again and marks it `same`, `new`, `changed`, `removed` or `error`, with a diff.
   </Step>
   <Step title="Get told">
-    Changes that match your goal are POSTed to your webhook. You can also read any check with [`GET /monitor/{id}/checks/{checkId}`](/api-reference/endpoint/monitor-check).
+    Changes that match your goal are POSTed to your webhook and emailed to your addresses. You can also read any check with [`GET /monitor/{id}/checks/{checkId}`](/api-reference/endpoint/monitor-check).
   </Step>
 </Steps>
 
@@ -47,7 +47,8 @@ curl -X POST "https://api.prefetch.io/monitor" \
         "crawl_options": { "limit": 25, "include_paths": ["^/changelog/"] }
       }
     ],
-    "webhook": { "url": "https://you.example.org/hooks/prefetch" }
+    "webhook": { "url": "https://you.example.org/hooks/prefetch" },
+    "email": { "to": ["you@example.com"] }
   }'
 ```
 
@@ -75,6 +76,7 @@ const res = await fetch("https://api.prefetch.io/monitor", {
       },
     ],
     webhook: { url: "https://you.example.org/hooks/prefetch" },
+    email: { to: ["you@example.com"] },
   }),
 });
 
@@ -105,6 +107,7 @@ r = requests.post(
             },
         ],
         "webhook": {"url": "https://you.example.org/hooks/prefetch"},
+        "email": {"to": ["you@example.com"]},
     },
 )
 monitor = r.json()["data"]
@@ -138,6 +141,12 @@ print(monitor["id"], monitor["webhook"]["secret"])
       "metadata": {},
       "events": ["monitor.page", "monitor.check.completed"],
       "secret": "whsec_4f1c9e2a7b3d8e6f0a5c1b9d2e7f3a8c4b6d0e1f9a2c5b7d"
+    },
+    "email": {
+      "to": ["you@example.com"],
+      "recipients": [
+        { "address": "you@example.com", "status": "active", "confirmation_sent_at": null, "confirmed_at": "2026-10-09T10:00:00.000Z", "unsubscribed_at": null }
+      ]
     },
     "retention_days": 30,
     "estimated_credits_per_check": 55,
@@ -227,7 +236,7 @@ Add a `goal` — one plain sentence about what you want to be told — and every
 { "goal": "Alert me when a plan price or its included features change" }
 ```
 
-Each judged page gets `is_meaningful` and a `judgment` with a `reason`. Pages ruled **not meaningful** are still recorded on the check, but don't send a webhook. Good goals restate their scope ("the Pro plan", "the top 10", "API changes") and name exclusions only when they matter.
+Each judged page gets `is_meaningful` and a `judgment` with a `reason`. Pages ruled **not meaningful** are still recorded on the check, but don't send a webhook or an email. Good goals restate their scope ("the Pro plan", "the top 10", "API changes") and name exclusions only when they matter.
 
 Judging is on whenever a goal is set; pass `judge_enabled: false` to keep a goal without judging. The first check's baseline is never judged.
 
@@ -253,6 +262,37 @@ Every request is signed with the monitor's `webhook.secret`. Answer `2xx` within
 }
 ```
 
+## Email alerts
+
+Add `email` to have changes emailed to up to 5 addresses:
+
+```json
+{ "email": { "to": ["you@example.com", "teammate@example.com"] } }
+```
+
+Each check that finds changes sends **one email** to every active address, listing the pages that changed, appeared or were removed, with the judge's reason and the changed lines or fields. The same rules as the `monitor.page` webhook decide what counts: the baseline is never emailed, and with a goal, changes ruled not meaningful are left out. A page that fails to load is counted in the email, not emailed on its own. Up to 20 pages are listed; the rest are counted.
+
+Before anything is sent, each address has to agree to it:
+
+| Address | What happens |
+|---|---|
+| The email of your Prefetch account, or of anyone in your organisation | `active` at once. |
+| Any other address | Sent one confirmation email and `pending` until its owner clicks **Confirm**. The link expires after 7 days. |
+
+Every email has an unsubscribe link, and supports one-click unsubscribe in mail clients that offer it. An address that unsubscribes is shown as `unsubscribed` and gets nothing more from that monitor, even if you keep it in the list. To ask it again, remove the address and add it back.
+
+`email.recipients` in the response shows each address's status. If a pending address never got its confirmation, send it again with a `PATCH`:
+
+```json
+{ "email": { "to": ["teammate@example.com"], "resend_confirmation": true } }
+```
+
+<Note>
+  An address can be asked to confirm at most 3 times a day, from any number of monitors, and an API key can send at most 20 confirmation emails a day. A request that would go over either limit is refused with `429` and changes nothing.
+</Note>
+
+Emails are free: they never cost credits.
+
 ## Credits
 
 Creating, reading and changing a monitor is free. **Each check** is billed to the API key that created the monitor:
@@ -276,6 +316,7 @@ A check never spends more than the key has left. When credits run out partway, i
 | URLs per scrape target | 100 |
 | Pages per check | 500 |
 | Monitors per API key | 50 |
+| Email addresses per monitor | 5 |
 | Shortest schedule | Every 5 minutes |
 | Check history | `retention_days`, 30 by default, up to 365 |
 

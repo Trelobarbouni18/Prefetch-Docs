@@ -2532,6 +2532,24 @@
           }
         }
       },
+      "MonitorEmailRequest": {
+        "type": "object",
+        "required": ["to"],
+        "properties": {
+          "to": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "array", "items": { "type": "string" }, "minItems": 1, "maxItems": 5 }
+            ],
+            "description": "Up to 5 addresses to email when a check finds changes. An address on your Prefetch account receives alerts at once; any other address is sent one confirmation email and receives nothing until it confirms.",
+            "example": ["you@example.com"]
+          },
+          "resend_confirmation": {
+            "type": "boolean",
+            "description": "Update only: send the confirmation email again to addresses that are still `pending`."
+          }
+        }
+      },
       "MonitorRequest": {
         "type": "object",
         "required": [
@@ -2570,6 +2588,9 @@
           },
           "webhook": {
             "$ref": "#/components/schemas/MonitorWebhookRequest"
+          },
+          "email": {
+            "$ref": "#/components/schemas/MonitorEmailRequest"
           },
           "retention_days": {
             "type": "integer",
@@ -2617,6 +2638,15 @@
             ],
             "nullable": true,
             "description": "`null` removes the webhook."
+          },
+          "email": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MonitorEmailRequest"
+              }
+            ],
+            "nullable": true,
+            "description": "Replaces the list of addresses. Addresses you keep keep their status. `null` removes them all."
           },
           "retention_days": {
             "type": "integer",
@@ -2689,6 +2719,40 @@
           }
         }
       },
+      "MonitorEmail": {
+        "type": "object",
+        "nullable": true,
+        "description": "Email alerts: one email per check that finds changes, to every `active` address. `null` when the monitor emails nobody.",
+        "properties": {
+          "to": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Every address, in the form `PATCH` takes back.",
+            "example": ["you@example.com"]
+          },
+          "recipients": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "address": { "type": "string" },
+                "status": {
+                  "type": "string",
+                  "enum": ["active", "pending", "unsubscribed"],
+                  "description": "`active` receives alerts. `pending` was sent a confirmation email and receives nothing until it confirms. `unsubscribed` stopped them from a link in an email."
+                },
+                "confirmation_sent_at": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "When the confirmation email went out. `null` on a pending address means it could not be sent: retry with `resend_confirmation`."
+                },
+                "confirmed_at": { "type": "string", "nullable": true },
+                "unsubscribed_at": { "type": "string", "nullable": true }
+              }
+            }
+          }
+        }
+      },
       "MonitorData": {
         "type": "object",
         "properties": {
@@ -2758,6 +2822,9 @@
           },
           "webhook": {
             "$ref": "#/components/schemas/MonitorWebhook"
+          },
+          "email": {
+            "$ref": "#/components/schemas/MonitorEmail"
           },
           "retention_days": {
             "type": "integer"
@@ -3170,6 +3237,22 @@
                         "type": "integer"
                       },
                       "delivered": {
+                        "type": "integer"
+                      },
+                      "failed": {
+                        "type": "integer"
+                      }
+                    }
+                  },
+                  "email": {
+                    "type": "object",
+                    "nullable": true,
+                    "description": "Alert emails for this check, by outcome. `null` when the monitor emails nobody.",
+                    "properties": {
+                      "pending": {
+                        "type": "integer"
+                      },
+                      "sent": {
                         "type": "integer"
                       },
                       "failed": {
@@ -7330,7 +7413,7 @@
       "post": {
         "operationId": "createMonitor",
         "summary": "Create a monitor",
-        "description": "Watches pages on a schedule and tells you what changed. Each check re-fetches every target — a fixed list of URLs (`scrape`) or a whole site (`crawl`) — and compares each page with the previous check: `same`, `new`, `changed`, `removed` or `error`, with a diff. Give it a `goal` and every change is judged against it, so only meaningful changes reach your webhook.\n\nThe first check records a baseline: every page is `new`, and no `monitor.page` events are sent for it.\n\n**Credit cost: none to create.** Each check bills 1 credit per page it fetches (the `/scrape` rate, 4 on targets tracking `json`), plus 1 per changed page judged against the goal.",
+        "description": "Watches pages on a schedule and tells you what changed. Each check re-fetches every target — a fixed list of URLs (`scrape`) or a whole site (`crawl`) — and compares each page with the previous check: `same`, `new`, `changed`, `removed` or `error`, with a diff. Give it a `goal` and every change is judged against it, so only meaningful changes reach your webhook or inbox.\n\nThe first check records a baseline: every page is `new`, and no `monitor.page` events or emails are sent for it.\n\nWith `email`, each check that finds changes sends one email listing them. An address on your Prefetch account receives alerts at once; any other address confirms from an email first.\n\n**Credit cost: none to create.** Each check bills 1 credit per page it fetches (the `/scrape` rate, 4 on targets tracking `json`), plus 1 per changed page judged against the goal.",
         "tags": [
           "Endpoints"
         ],
@@ -7451,6 +7534,20 @@
                         "monitor.check.completed"
                       ],
                       "secret": "whsec_4f1c9e2a7b3d8e6f0a5c1b9d2e7f3a8c4b6d0e1f9a2c5b7d"
+                    },
+                    "email": {
+                      "to": [
+                        "you@example.com"
+                      ],
+                      "recipients": [
+                        {
+                          "address": "you@example.com",
+                          "status": "active",
+                          "confirmation_sent_at": null,
+                          "confirmed_at": "2026-10-09T10:00:00.000Z",
+                          "unsubscribed_at": null
+                        }
+                      ]
                     },
                     "retention_days": 30,
                     "estimated_credits_per_check": 55,
@@ -7643,6 +7740,20 @@
                             "monitor.check.completed"
                           ],
                           "secret": "whsec_4f1c9e2a7b3d8e6f0a5c1b9d2e7f3a8c4b6d0e1f9a2c5b7d"
+                        },
+                        "email": {
+                          "to": [
+                            "you@example.com"
+                          ],
+                          "recipients": [
+                            {
+                              "address": "you@example.com",
+                              "status": "active",
+                              "confirmation_sent_at": null,
+                              "confirmed_at": "2026-10-09T10:00:00.000Z",
+                              "unsubscribed_at": null
+                            }
+                          ]
                         },
                         "retention_days": 30,
                         "estimated_credits_per_check": 55,
@@ -7847,6 +7958,20 @@
                       ],
                       "secret": "whsec_4f1c9e2a7b3d8e6f0a5c1b9d2e7f3a8c4b6d0e1f9a2c5b7d"
                     },
+                    "email": {
+                      "to": [
+                        "you@example.com"
+                      ],
+                      "recipients": [
+                        {
+                          "address": "you@example.com",
+                          "status": "active",
+                          "confirmation_sent_at": null,
+                          "confirmed_at": "2026-10-09T10:00:00.000Z",
+                          "unsubscribed_at": null
+                        }
+                      ]
+                    },
                     "retention_days": 30,
                     "estimated_credits_per_check": 55,
                     "estimated_credits_per_month": 1155,
@@ -7937,7 +8062,7 @@
       "patch": {
         "operationId": "updateMonitor",
         "summary": "Update a monitor",
-        "description": "Changes any subset of the monitor's fields. `status: \"paused\"` stops its schedule and `\"active\"` resumes it. Replacing `targets` keeps the snapshots of targets that still watch the same URLs. Free.",
+        "description": "Changes any subset of the monitor's fields. `status: \"paused\"` stops its schedule and `\"active\"` resumes it. Replacing `targets` keeps the snapshots of targets that still watch the same URLs. `email.to` replaces the list of addresses; addresses you keep keep their status. Free.",
         "tags": [
           "Endpoints"
         ],
@@ -8063,6 +8188,20 @@
                         "monitor.check.completed"
                       ],
                       "secret": "whsec_4f1c9e2a7b3d8e6f0a5c1b9d2e7f3a8c4b6d0e1f9a2c5b7d"
+                    },
+                    "email": {
+                      "to": [
+                        "you@example.com"
+                      ],
+                      "recipients": [
+                        {
+                          "address": "you@example.com",
+                          "status": "active",
+                          "confirmation_sent_at": null,
+                          "confirmed_at": "2026-10-09T10:00:00.000Z",
+                          "unsubscribed_at": null
+                        }
+                      ]
                     },
                     "retention_days": 30,
                     "estimated_credits_per_check": 55,
@@ -8676,6 +8815,11 @@
                       "webhook": {
                         "pending": 0,
                         "delivered": 2,
+                        "failed": 0
+                      },
+                      "email": {
+                        "pending": 0,
+                        "sent": 1,
                         "failed": 0
                       }
                     },

@@ -73,7 +73,7 @@ Credits are deducted only on successful responses. Every plan's allowance refill
 
 Every endpoint answers in one round trip except `/crawl`. A crawl runs for minutes, so `POST /crawl` returns `202` with a job id and you poll `GET /crawl/{id}` for results. See [POST /crawl](/api-reference/endpoint/crawl).
 
-Monitors run on their own schedule. `POST /monitor` sets one up, and each check's results arrive at your webhook or are read with `GET /monitor/{id}/checks/{checkId}`. See [POST /monitor](/api-reference/endpoint/monitor).
+Monitors run on their own schedule. `POST /monitor` sets one up, and each check's results arrive at your webhook, by email, or are read with `GET /monitor/{id}/checks/{checkId}`. See [POST /monitor](/api-reference/endpoint/monitor).
 
 ## Rate limits
 

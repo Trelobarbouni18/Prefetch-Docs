@@ -296,7 +296,7 @@ Over MCP the default mode is `fast`; over REST it is `ultra`. Failures and timeo
 
 A monitor re-checks pages on a schedule and records what changed — see [`POST /monitor`](/api-reference/endpoint/monitor) for how changes are detected and judged. The tools take a flatter shape than the REST body: `urls` for specific pages and `crawl_url` for a site, instead of a list of targets.
 
-An agent rarely has a webhook to receive changes at, so it reads them back: `prefetch_run_monitor` runs a check and waits for it, and `prefetch_get_monitor_check` shows the latest check by default. Both list only the pages that changed, appeared, disappeared or failed — the judge's verdict first, then any field changes, then the diff — and count the unchanged ones.
+An agent rarely has a webhook to receive changes at, so it reads them back — or passes `email` to have each check that finds changes emailed to a person: `prefetch_run_monitor` runs a check and waits for it, and `prefetch_get_monitor_check` shows the latest check by default. Both list only the pages that changed, appeared, disappeared or failed — the judge's verdict first, then any field changes, then the diff — and count the unchanged ones.
 
 ### `prefetch_create_monitor`
 
@@ -319,6 +319,7 @@ A monitor bills on every check for as long as it is active — 1 credit per page
 | `include_selectors` | string[] | — | CSS selectors to compare instead of the whole main content. |
 | `exclude_selectors` | string[] | — | CSS selectors to ignore — timestamps, rotating banners. |
 | `webhook_url` | string | — | An HTTPS endpoint to POST changes to. |
+| `email` | string[] | — | Up to 5 addresses to email when a check finds changes. Your account's own address works at once; any other address confirms from an email first. |
 | `run_now` | boolean | `false` | Take the first check immediately. It records a baseline — every page is new — so changes show from the second check on. |
 
 ### `prefetch_run_monitor`
@@ -372,6 +373,7 @@ Change a monitor. Fields you leave out stay as they are. Free.
 | `status` | string | — | `paused` stops the schedule and its charges; `active` resumes it. |
 | `urls`, `crawl_url`, … | | — | Replace what the monitor watches. Takes the same fields as `prefetch_create_monitor`. |
 | `webhook_url` | string \| null | — | A new webhook URL, or `null` to stop sending webhooks. |
+| `email` | string[] \| null | — | The full new list of addresses to email, replacing the old one. `null` or `[]` stops emailing. |
 
 ### `prefetch_delete_monitor`
 
