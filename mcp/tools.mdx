@@ -307,7 +307,7 @@ A monitor bills on every check for as long as it is active — 1 credit per page
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `name` | string | — | **Required.** A label, like `"Acme pricing"`. |
-| `schedule` | string | — | **Required.** A phrase — `"every 30 minutes"`, `"hourly"`, `"daily at 9am"`, `"every weekday at 17:00"`, `"weekly"` — or five-field cron. At least 5 minutes apart. |
+| `schedule` | string | — | **Required.** A phrase — `"every 30 minutes"`, `"hourly"`, `"daily at 9am"`, `"every weekday at 17:00"`, `"weekly"` — or five-field cron. As often as the plan allows: hourly on Free, every 5 minutes on Starter and Pro, 2 on Growth, 1 on Scale. |
 | `timezone` | string | `UTC` | IANA timezone for the schedule, like `"America/New_York"`. |
 | `goal` | string | — | What you want to be told about, in one sentence. Each change is judged against it, so noise is filtered out. |
 | `urls` | string[] | — | Pages to watch. 1–100. |

@@ -2233,7 +2233,7 @@
         "properties": {
           "cron": {
             "type": "string",
-            "description": "Five-field cron expression. Runs must be at least 5 minutes apart.",
+            "description": "Five-field cron expression. How close together runs may be depends on the plan: an hour apart on Free, 5 minutes on Starter and Pro, 2 on Growth, 1 on Scale.",
             "example": "*/30 * * * *"
           },
           "text": {

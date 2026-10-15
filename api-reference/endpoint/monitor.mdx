@@ -193,7 +193,7 @@ Write the schedule as a phrase or as five-field cron, in any IANA timezone:
 
 Phrases you can use include `every 30 minutes`, `every 15 minutes starting at :07`, `hourly`, `every 2 hours`, `daily`, `daily at 9am`, `daily at 5:30 PM`, `every weekday at 9am`, `weekly`, `every monday at 8:00` and `monthly`.
 
-- Runs must be **at least 5 minutes apart** — every gap, not just the first.
+- Runs must be **as far apart as your plan requires** — every gap, not just the first: an hour on Free, 5 minutes on Starter and Pro, 2 on Growth, 1 on Scale.
 - Phrases that leave the minute open (`hourly`, `daily`) get a fixed minute of their own, so monitors created at the same time do not all fire at once.
 - The response always shows the cron the monitor actually runs on.
 - Times follow the timezone across daylight-saving changes.
@@ -308,17 +308,27 @@ A check never spends more than the key has left. When credits run out partway, i
   A monitor bills on every check for as long as it is active. A crawl target with `limit: 100` on a 5-minute schedule fetches 28,800 pages a day. Start small, and pause monitors you are not using.
 </Warning>
 
+A monitor whose every page has failed for 10 checks in a row, over at least 24 hours, is paused, and its email recipients are told. Failed pages are never billed, so this only stops retrying a page that is gone or blocks every fetch. Set `status` back to `"active"` once the pages load.
+
 ## Limits
 
 | Limit | Value |
 |---|---|
 | Targets per monitor | 50 |
 | URLs per scrape target | 100 |
-| Pages per check | 500 |
-| Monitors per API key | 50 |
-| Email addresses per monitor | 5 |
-| Shortest schedule | Every 5 minutes |
-| Check history | `retention_days`, 30 by default, up to 365 |
+
+The rest depend on your plan:
+
+| Limit | Free | Starter | Pro | Growth | Scale |
+|---|---|---|---|---|---|
+| Shortest schedule | Hourly | Every 5 minutes | Every 5 minutes | Every 2 minutes | Every minute |
+| Monitors per API key | 5 | 50 | 250 | 1,000 | 5,000 |
+| Pages per check | 10 | 500 | 500 | 500 | 500 |
+| Check history (`retention_days`, 30 by default) | Up to 30 days | Up to 365 | Up to 365 | Up to 365 | Up to 365 |
+| Email addresses per monitor | 1, on your account | 5 | 5 | 5 | 5 |
+| Pages that block bots | Not retried | Retried through a stealth browser and proxies | Retried | Retried | Retried |
+
+A request that asks for more than your plan allows is refused, and the error names the limit. A monitor made on a bigger plan keeps running after a downgrade: a schedule that is now too frequent moves to the fastest your plan allows (its email recipients are told once), and its history is cut to your plan's window.
 
 <Note>
   Monitors need a direct Prefetch API key. They are not available through RapidAPI, which meters usage from a response header — and a scheduled check runs when there is no response to carry one.
