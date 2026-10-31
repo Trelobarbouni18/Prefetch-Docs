@@ -11,6 +11,7 @@ openapi: "GET /company"
 - **Company name** — legal entity name (e.g. "Stripe, Inc.")
 - **Emails** — contact and support email addresses
 - **Addresses** — physical locations including street, city, state, ZIP, country
+- **Key pages** — `links`: the `about`, `pricing`, `careers`, `contact`, `blog` and `docs` pages the homepage links to, each null when it links none
 
 This endpoint uses a hybrid approach: it first attempts a fast static fetch, falling back to headless Chrome only when needed.
 
@@ -67,6 +68,14 @@ print(company["addresses"])
       "social_links": {
         "twitter": "https://twitter.com/stripe",
         "linkedin": "https://linkedin.com/company/stripe"
+      },
+      "links": {
+        "about": "https://stripe.com/about",
+        "pricing": "https://stripe.com/pricing",
+        "careers": "https://stripe.com/jobs",
+        "contact": "https://stripe.com/contact/sales",
+        "blog": "https://stripe.com/blog",
+        "docs": "https://docs.stripe.com/"
       }
     }
   },

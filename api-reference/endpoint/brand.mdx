@@ -21,14 +21,19 @@ Everything sits under `data.brand`, the same key `/enrich` uses — so `data.bra
 
 | Parameter | What it adds | Where it lands |
 |---|---|---|
-| *(default)* | Logo colors only | `brand.colors.brand_colors` |
+| *(default)* | The logo's and favicon's colors, plus the brand colors the page itself sets (`theme-color`, the header bar, the primary buttons). Chromatic colors come first, white/black/greys after | `brand.colors.brand_colors` |
+| *(default)* | The color each role uses on the page: `primary` and `secondary` button fills, `background`, `text` and `link` | `brand.colors.roles` |
 | `screenshotColors=6` | N dominant colors from the page screenshot | `brand.colors.screenshot_colors` |
 | `css=true` | Colors defined in CSS stylesheets | `brand.colors.code_colors` |
 | `html=true` | Colors defined in HTML attributes | `brand.colors.code_colors` |
 | `javascript=true` | Colors defined in JavaScript source | `brand.colors.code_colors` |
 | `filterAchromatic=true` | Excludes near-white, near-black, and greyscale results | — |
 
-You can combine any of these. Note that `css`, `html`, and `javascript` all feed the **same** `code_colors` map — it is keyed by nearest named color, not split per source.
+Logo and favicon colors are reported as the exact color most of their pixels have, and snapped to the exact color the page renders when one is within ΔE 6 of it, so a brand color the CSS sets (`#632CA6`) comes back as that hex rather than a near neighbour.
+
+`social_links` come from the page's links, then its JSON-LD `sameAs`, `rel="me"` and Twitter card tags, and, when none of those name a profile, a footer that only renders once scrolled into view. Each is the profile's plain URL, without tracking parameters or a deep path.
+
+You can combine any of these. Note that `css`, `html`, and `javascript` all feed the **same** `code_colors` map — it is keyed by nearest named color, not split per source. Groups are ordered by how much the site uses them, every spelling and translucent variant of one color (`#000`, `rgb(0,0,0)`, `rgba(0,0,0,.25)`) is a single entry, and transparent values are left out.
 
 ## Design tokens
 

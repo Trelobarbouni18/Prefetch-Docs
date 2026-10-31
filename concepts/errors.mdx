@@ -81,13 +81,14 @@ if (res.ok) {
 | `URL_BLOCKED` | 403 | No | The URL is on your key's blocklist. |
 | `URL_NOT_PERMITTED` | 403 | No | The URL, or a page it redirected to, points at a private or reserved address. |
 | `DNS_RESOLUTION_FAILED` | 422 | No | The domain does not resolve. Check the spelling. |
-| `TARGET_BLOCKED` | 403 | No | The site refused automated access. |
+| `TARGET_BLOCKED` | 403 | No | The site refused automated access, or redirected the request to a search engine or a consent page on another domain instead of serving it. |
 | `TARGET_CONNECTION_FAILED` | 502 | Yes | The site refused or dropped the connection. |
 | `TARGET_TIMEOUT` | 504 | Yes | The site did not respond in time. |
 | `TARGET_SSL_ERROR` | 502 | No | The site's TLS certificate is invalid or expired. |
 | `TARGET_SERVER_ERROR` | 502 | Yes | The site answered with a 5xx error. |
 | `TARGET_CLIENT_ERROR` | 502 | No | The site answered with a 4xx error, such as 404. The message includes the status. |
 | `TARGET_NOT_A_PAGE` | 422 | No | The URL is a file download, not a web page. |
+| `NO_LINKS_FOUND` | 422 | No | `/map`: the page links to none of the site's pages and no sitemap lists any. Common on pages that build their links with JavaScript after user input. |
 | `TARGET_UNLOADABLE` | 502 | No | The site's response could not be loaded as a page. |
 | `TARGET_ELEMENT_NOT_FOUND` | 422 | No | `/screenshot` with `selector`: no element on the page matched it within 10 seconds. |
 

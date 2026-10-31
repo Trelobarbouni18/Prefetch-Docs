@@ -11,7 +11,9 @@ openapi: "GET /map"
 - **Sitemaps** — found through `robots.txt` first, then the conventional locations (`/sitemap.xml`, `/sitemap_index.xml`). Sitemap indexes are followed one level deep. Authoritative and cheap: one request can describe a whole site.
 - **On-page links** — every link on the URL you pass. The fallback for sites that publish no sitemap, and the only source that reflects what is actually linked.
 
-A URL found in both appears once. Sitemap provenance wins, because it carries `lastmod` and is the site's own statement about its content, but the anchor text from the page is kept as a title.
+A URL found in both appears once. Sitemap provenance wins, because it carries `lastmod` and is the site's own statement about its content, but the link's label from the page (its `title` or `aria-label`, else its text) is kept as a title.
+
+The first 10 links also get the `<title>` and meta description of their own page, read in a short time budget. A page that does not answer in time keeps its link label and a `null` description. A site that blocks the request for the page you pass gets none of these extra reads.
 
 Use it to plan a crawl, to find one page without guessing its path, or to check what a site has published recently.
 
@@ -75,8 +77,8 @@ for link in r.json()["data"]["links"]:
     "links": [
       {
         "url": "https://stripe.com/pricing",
-        "title": "Pricing",
-        "description": null,
+        "title": "Pricing & Fees | Stripe",
+        "description": "Find Stripe fees and pricing information.",
         "lastmod": "2026-07-02",
         "source": "sitemap"
       },
@@ -110,10 +112,20 @@ for link in r.json()["data"]["links"]:
 | `sitemaps_used` | The sitemap documents that actually produced entries. |
 | `source` on each link | `sitemap` or `links`. |
 | `lastmod` on each link | Present only for sitemap entries whose sitemap declared one. |
+| `title`, `description` on each link | From the page itself for the first 10 links, otherwise the link's label and `null`. |
+
+A map that finds no link to the site's own pages, on the page or in any sitemap, fails with `NO_LINKS_FOUND` (422) instead of returning an empty list. You are not charged for it.
 
 ## Ordering and search
 
-Without `search`, links come back **shortest path first** — so the homepage and top-level sections lead, and the deep long tail follows.
+Without `search`, links come back **most useful first**: the homepage, then key pages (about, pricing, products, docs, blog, careers, contact) and the pages the site's own navigation links to, then the rest, shallowest first. Some links move to the end:
+
+- copies of a page in another language or region (`/de/pricing` when you mapped the English site), which keep only their best-placed version in the ranking
+- error pages (`/404`, `/404.html`)
+- handles and shortlinks (`/@name`, `/sf6`)
+- app sign-ins on other subdomains (`app.`, `login.`)
+
+Nothing is dropped; `limit` decides how much of the list you get.
 
 With `search`, results are **filtered as well as ranked**: links matching nothing are dropped, not just pushed down. A match in the URL path outranks one in the link text.
 

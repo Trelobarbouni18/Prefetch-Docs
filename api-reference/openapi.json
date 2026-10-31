@@ -62,7 +62,7 @@
           },
           "error_code": {
             "type": "string",
-            "enum": ["INVALID_REQUEST", "PAYLOAD_TOO_LARGE", "NOT_FOUND", "CONFLICT", "UNAUTHORIZED", "FORBIDDEN", "CREDITS_EXHAUSTED", "RATE_LIMITED", "CONCURRENCY_LIMITED", "URL_BLOCKED", "URL_NOT_PERMITTED", "DNS_RESOLUTION_FAILED", "TARGET_BLOCKED", "TARGET_CONNECTION_FAILED", "TARGET_TIMEOUT", "TARGET_SSL_ERROR", "TARGET_SERVER_ERROR", "TARGET_CLIENT_ERROR", "TARGET_NOT_A_PAGE", "TARGET_UNLOADABLE", "RESEARCH_INCONCLUSIVE", "TIMEOUT", "SERVICE_BUSY", "SERVICE_UNAVAILABLE", "INTERNAL_ERROR"],
+            "enum": ["INVALID_REQUEST", "PAYLOAD_TOO_LARGE", "NOT_FOUND", "CONFLICT", "UNAUTHORIZED", "FORBIDDEN", "CREDITS_EXHAUSTED", "RATE_LIMITED", "CONCURRENCY_LIMITED", "URL_BLOCKED", "URL_NOT_PERMITTED", "DNS_RESOLUTION_FAILED", "TARGET_BLOCKED", "TARGET_CONNECTION_FAILED", "TARGET_TIMEOUT", "TARGET_SSL_ERROR", "TARGET_SERVER_ERROR", "TARGET_CLIENT_ERROR", "TARGET_NOT_A_PAGE", "NO_LINKS_FOUND", "TARGET_UNLOADABLE", "RESEARCH_INCONCLUSIVE", "TIMEOUT", "SERVICE_BUSY", "SERVICE_UNAVAILABLE", "INTERNAL_ERROR"],
             "description": "What went wrong, for machines. Stable: a code keeps its meaning once published. See [Error handling](/concepts/errors).",
             "example": "CREDITS_EXHAUSTED"
           },
@@ -183,6 +183,40 @@
               "$ref": "#/components/schemas/ColorItem"
             },
             "description": "Dominant colors sampled from the screenshot. Present only when `screenshotColors=N` is passed."
+          },
+          "roles": {
+            "type": "object",
+            "properties": {
+              "primary": {
+                "type": "string",
+                "nullable": true
+              },
+              "secondary": {
+                "type": "string",
+                "nullable": true
+              },
+              "background": {
+                "type": "string",
+                "nullable": true
+              },
+              "text": {
+                "type": "string",
+                "nullable": true
+              },
+              "link": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": ["primary", "secondary", "background", "text", "link"],
+            "description": "The role each color plays on the page, read from its rendered styles: the primary and secondary button fills, the page background, body text and links. Hex, or null where the page gives no clear answer.",
+            "example": {
+              "primary": "#635BFF",
+              "secondary": "#0A2540",
+              "background": "#FFFFFF",
+              "text": "#425466",
+              "link": "#635BFF"
+            }
           }
         },
         "required": [
@@ -729,6 +763,45 @@
           },
           "social_links": {
             "$ref": "#/components/schemas/SocialLinks"
+          },
+          "links": {
+            "type": "object",
+            "properties": {
+              "about": {
+                "type": "string",
+                "nullable": true
+              },
+              "pricing": {
+                "type": "string",
+                "nullable": true
+              },
+              "careers": {
+                "type": "string",
+                "nullable": true
+              },
+              "contact": {
+                "type": "string",
+                "nullable": true
+              },
+              "blog": {
+                "type": "string",
+                "nullable": true
+              },
+              "docs": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": ["about", "pricing", "careers", "contact", "blog", "docs"],
+            "description": "The company's key pages, as its homepage links them. null where the homepage links none.",
+            "example": {
+              "about": "https://stripe.com/about",
+              "pricing": "https://stripe.com/pricing",
+              "careers": "https://stripe.com/jobs",
+              "contact": "https://stripe.com/contact/sales",
+              "blog": "https://stripe.com/blog",
+              "docs": "https://docs.stripe.com/"
+            }
           }
         },
         "required": [
@@ -2306,7 +2379,7 @@
             "default": [
               "markdown"
             ],
-            "description": "`markdown` diffs the page text line by line. `json` extracts the fields described by `json_prompt` or `json_schema` on every check and diffs them field by field, so a page is `changed` only when a tracked field changes. Both together report `changed` when either surface changed."
+            "description": "`markdown` diffs the page text line by line. `json` extracts the fields described by `json_prompt` or `json_schema` and diffs them field by field, so a page is `changed` only when a tracked field changes. The extraction is re-read (and its AI surcharge charged) only when the page's text changed, and list items are matched by identity (an `id`, `url`, `name` or `title` field), so one item inserted into a list is one `added` field. Both together report `changed` when either surface changed."
           },
           "json_prompt": {
             "type": "string",
@@ -2316,6 +2389,33 @@
           "json_schema": {
             "type": "object",
             "description": "For the `json` mode: a JSON Schema for the extraction."
+          },
+          "ignore_text": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Up to 25 phrases: lines containing one are left out of the comparison. Plain text, case and spacing ignored, `*` matching any run of characters. Regular expressions are not accepted.",
+            "example": ["people are viewing", "viewed * times"]
+          },
+          "ignore_order": {
+            "type": "boolean",
+            "default": false,
+            "description": "Lines that only moved are not a change: a re-sorted list, testimonials shown in another order."
+          },
+          "notify_on": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["added", "removed", "changed"]
+            },
+            "description": "Which kinds of change notify: lines (or json fields) added, removed or changed, and, for a crawl, pages that appear (`added`) or disappear (`removed`); a tracked price, number, visual area or keyword that moves is a change. Default: all three. A change of another kind is recorded on the check, not judged or announced.",
+            "example": ["added"]
+          },
+          "only_new_content": {
+            "type": "boolean",
+            "default": false,
+            "description": "Notify only when a change brings text the page has not shown in its recent history (its last ~1,000 distinct lines), so content that cycles (a carousel, rotating offers, A/B variants) stays quiet."
           }
         }
       },
@@ -2466,6 +2566,80 @@
           }
         }
       },
+      "MonitorSearchTarget": {
+        "type": "object",
+        "title": "Search target",
+        "description": "Runs web searches on every check. A result the target has not returned before is `new` (with a goal, judged against it, so only results that match are announced); results returned before are `same`. Billed at the /search rate per query.",
+        "required": ["type", "queries"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable target id. Generated when omitted.",
+            "example": "tgt_1a2b3c4d5e6f7a8b"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["search"]
+          },
+          "queries": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "1–5 web searches, run on every check (`query`, one string, is accepted too). Search operators work.",
+            "example": ["acme corp funding round"]
+          },
+          "search_options": {
+            "type": "object",
+            "description": "The options GET /search takes, applied to every query.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["web", "news"],
+                "default": "web"
+              },
+              "limit": {
+                "type": "integer",
+                "default": 10,
+                "description": "Results read from each search (1–20)."
+              },
+              "country": {
+                "type": "string",
+                "nullable": true
+              },
+              "language": {
+                "type": "string",
+                "nullable": true
+              },
+              "location": {
+                "type": "string",
+                "nullable": true
+              },
+              "time_range": {
+                "type": "string",
+                "enum": ["hour", "day", "week", "month", "year"],
+                "nullable": true
+              },
+              "include_domains": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "exclude_domains": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "scrape_results": {
+            "type": "boolean",
+            "description": "Read each new result's page (billed at the /scrape rate) so the judge sees the page, not just its snippet. Default: true when the monitor judges, otherwise false."
+          }
+        }
+      },
       "MonitorTarget": {
         "oneOf": [
           {
@@ -2473,13 +2647,17 @@
           },
           {
             "$ref": "#/components/schemas/MonitorCrawlTarget"
+          },
+          {
+            "$ref": "#/components/schemas/MonitorSearchTarget"
           }
         ],
         "discriminator": {
           "propertyName": "type",
           "mapping": {
             "scrape": "#/components/schemas/MonitorScrapeTarget",
-            "crawl": "#/components/schemas/MonitorCrawlTarget"
+            "crawl": "#/components/schemas/MonitorCrawlTarget",
+            "search": "#/components/schemas/MonitorSearchTarget"
           }
         }
       },
@@ -2525,6 +2703,12 @@
           "secret": {
             "type": "string",
             "description": "Signing secret, 16–128 printable characters. Generated when omitted, and kept across updates unless you replace it."
+          },
+          "notify_errors_after": {
+            "type": "integer",
+            "default": 1,
+            "description": "Send a page's error event once it has failed this many checks in a row (1–10), so a page that fails once and recovers sends nothing.",
+            "example": 2
           },
           "rotate_secret": {
             "type": "boolean",
@@ -2711,6 +2895,11 @@
                 "monitor.check.completed"
               ]
             }
+          },
+          "notify_errors_after": {
+            "type": "integer",
+            "description": "Consecutive failed checks before a page's error event is sent.",
+            "example": 1
           },
           "secret": {
             "type": "string",
@@ -3211,9 +3400,34 @@
               "json": {
                 "type": "object",
                 "nullable": true
+              },
+              "search": {
+                "type": "object",
+                "description": "Search targets: the search that returned the result, and what it said about it.",
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  },
+                  "position": {
+                    "type": "integer",
+                    "nullable": true
+                  },
+                  "description": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "date": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "source": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
               }
             },
-            "description": "JSON mode: the full current extraction."
+            "description": "JSON mode: the full current extraction. Search targets: the search result."
           }
         }
       },
@@ -3514,6 +3728,7 @@
                   "TARGET_SERVER_ERROR",
                   "TARGET_CLIENT_ERROR",
                   "TARGET_NOT_A_PAGE",
+                  "NO_LINKS_FOUND",
                   "TARGET_UNLOADABLE",
                   "TARGET_ELEMENT_NOT_FOUND",
                   "RESEARCH_INCONCLUSIVE",
@@ -4612,7 +4827,7 @@
           },
           "concurrency": {
             "type": "integer",
-            "description": "URLs run in parallel (1–5). Default: 2."
+            "description": "URLs run in parallel (1–5). Default: 2. Batches of brand, enrich, screenshot and styleguide run at most 3 at a time, and default to 3."
           },
           "ignore_invalid_urls": {
             "type": "boolean",

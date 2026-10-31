@@ -101,7 +101,7 @@ for (const item of status.data) {
 
 They are checked before anything is queued: an invalid option is a `400` naming it.
 
-Also: `concurrency` (URLs in parallel, 1–5, default 2), `ignore_invalid_urls` (drop malformed or blocklisted URLs, listed in `invalid_urls`, instead of rejecting the batch), and `webhook`. Duplicates — including the same site under another spelling — run once.
+Also: `concurrency` (URLs in parallel, 1–5, default 2; brand, enrich, screenshot and styleguide batches run at most 3 at a time and default to 3, because each item renders the page and takes a screenshot), `ignore_invalid_urls` (drop malformed or blocklisted URLs, listed in `invalid_urls`, instead of rejecting the batch), and `webhook`. Duplicates — including the same site under another spelling — run once.
 
 ## Webhooks
 

@@ -166,14 +166,27 @@ The status is `201 Created`. Keep the `webhook.secret` — you need it to [verif
 
 ## What to watch
 
-A monitor has up to 50 **targets**, of two kinds. You can mix them.
+A monitor has up to 50 **targets**, of three kinds. You can mix them.
 
 | Target | Watches | Each check |
 |---|---|---|
 | `scrape` | A fixed list of up to 100 URLs | Fetches each page the way [`GET /scrape`](/api-reference/endpoint/scrape) would, rendering JavaScript and getting past bot protection |
 | `crawl` | A site, or a section of one | Re-crawls it with the same options as [`POST /crawl`](/api-reference/endpoint/crawl), so pages that appear or disappear are reported too |
+| `search` | Up to 5 web searches | Runs each search the way [`GET /search`](/api-reference/endpoint/search) would. A result the target has not returned before is `new`; one it has is `same` |
 
-One check fetches at most **500 pages** across all targets — every scrape URL plus every crawl's `limit`.
+One check fetches at most **500 pages** across all targets — every scrape URL, every crawl's `limit`, and every search's result `limit`.
+
+A search target watches the web rather than one site — news about a company, new posts on a topic:
+
+```json
+{
+  "type": "search",
+  "queries": ["acme corp funding round", "acme corp acquires"],
+  "search_options": { "type": "news", "limit": 10, "time_range": "week" }
+}
+```
+
+With a goal, each new result's page is read and judged, so only results that match it are announced (pass `scrape_results: false` to judge on the search snippet alone). Without a goal, every new result is announced. Results are recognised by URL, ignoring tracking parameters, and are never reported `removed`: a page dropping out of the results did not go anywhere.
 
 <Note>
   A crawl can only report a page as `removed` when it runs out of pages to visit. A crawl that stops at its `limit` cannot tell a page that was taken down from one it never reached, so it reports no removals. Give a crawl target a `limit` comfortably above the section's size if removals matter to you.
@@ -210,7 +223,7 @@ Each page of each check gets one status:
 | `removed` | A page the monitor knew answered 404 or 410, or a crawl that ran to completion no longer finds it. Reported once. |
 | `error` | Could not be checked. The last good snapshot is kept, so the next good check compares against it. |
 
-By default the page's **markdown** is compared, and `diff.text` holds a unified diff with the same hunks structured in `diff.hunks`. Whitespace and line-ending churn never counts as a change.
+By default the page's **markdown** is compared, and `diff.text` holds a unified diff with the same hunks structured in `diff.hunks`. Rendering noise never counts as a change: whitespace and line endings, invisible characters and non-breaking spaces, and the tracking, session and signature parameters in link URLs (`utm_source`, `fbclid`, `jsessionid`, signed CDN URLs). A page that loads but renders no text at all is reported as an `error`, not as every line removed.
 
 To watch specific facts instead of the whole text, use the **json** mode. Describe the fields, and each check extracts them and compares them field by field:
 
@@ -224,8 +237,24 @@ To watch specific facts instead of the whole text, use the **json** mode. Descri
 
 A page is then `changed` only when a tracked field changes, and `diff.fields` says exactly which one: `plans[0].price: "$19/mo" → "$24/mo"`. Pass `json_schema` instead of, or as well as, `json_prompt` to fix the shape. Use `"modes": ["json", "markdown"]` to get both diffs.
 
+The extraction is read again only when the page's text changed: an unchanged page keeps its last extraction, so a model reading identical text a little differently is never a change (and costs nothing). List items are matched by identity — an `id`, `url`, `name` or `title` field — so one job inserted at the top of a list is one `added` field, not every job shifted.
+
+### Cutting noise
+
+Most false alarms come from page furniture: a "last updated" date, a rotating testimonial, a visitor counter. These `change_tracking` options keep them quiet:
+
+| Option | What it does |
+|---|---|
+| `ignore_text` | Up to 25 phrases; lines containing one are left out of the comparison. Plain text, case-insensitive, `*` for anything: `["people are viewing", "viewed * times"]`. |
+| `ignore_dates` | Dates, times and "3 minutes ago" are masked out before comparing. |
+| `ignore_order` | Lines that only moved are not a change. |
+| `notify_on` | Which kinds of change notify: `added`, `removed`, `changed` lines or fields (for a crawl, pages that appear or disappear; a tracked price or number that moves is `changed`). `["added"]` tells you about new job posts, not filled ones. |
+| `only_new_content` | Notify only when a change brings text the page has not shown in its recent history, so content that cycles (a carousel, A/B variants) stays quiet. |
+
+`ignore_text`, `ignore_dates` and `ignore_order` change only what is compared: a change still shows the page as it reads. `notify_on` and `only_new_content` decide whether a change found notifies; the page is still recorded as `changed`, with `diff.alert` saying why it was held back. Changing one of these options re-baselines the target's pages silently instead of reporting them all changed.
+
 <Tip>
-  Most false alarms come from page furniture: a "last updated" date, a rotating testimonial, a visitor counter. Leave them out with `scrape_options.exclude_selectors`, or switch to the json mode and track only what you care about. Images are left out of the comparison by default, because their URLs change with every deploy.
+  You can also leave parts of the page out with `scrape_options.exclude_selectors`, or switch to the json mode and track only what you care about. Images are left out of the comparison by default, because their URLs change with every deploy.
 </Tip>
 
 ## Goals and judging
@@ -240,6 +269,12 @@ Each judged page gets `is_meaningful` and a `judgment` with a `reason`. Pages ru
 
 Judging is on whenever a goal is set; pass `judge_enabled: false` to keep a goal without judging. The first check's baseline is never judged.
 
+- The goal decides what matters: if it asks for something that is usually noise (a timestamp, a counter), it gets it; if it says to ignore something, that thing never counts.
+- The page's content is treated as data, never as instructions — text on a page cannot talk the judge out of an alert.
+- On a long diff the judge reads the hunks most relevant to your goal, not just the first ones.
+- `meaningful_changes` quote the page exactly; a quote the judge was not shown is dropped.
+- A page that flips back to a version it has shown before is not judged again: the earlier verdict is reused, free.
+
 ## Webhooks
 
 With a `webhook`, two events are POSTed to you:
@@ -250,6 +285,8 @@ With a `webhook`, two events are POSTed to you:
 | [`monitor.check.completed`](/api-reference/endpoint/monitor-webhook-check) | A check finished, with its summary counts |
 
 Every request is signed with the monitor's `webhook.secret`. Answer `2xx` within 10 seconds; failures are retried after 1, 5 and 15 minutes. The webhook URL must use `https://`.
+
+A page that fails sends one `monitor.page` event, when it starts failing. Set `notify_errors_after` (1–10) to send it only once a page has failed that many checks in a row, so a site that blips once and recovers sends nothing.
 
 ```json
 {
@@ -297,8 +334,9 @@ Emails are free: they never cost credits.
 
 Creating, reading and changing a monitor is free. **Each check** is billed to the API key that created the monitor:
 
-- **1 credit per page fetched** — the [`/scrape`](/api-reference/endpoint/scrape) rate, or 4 on targets tracking `json`.
-- **1 credit per page judged** against your goal — changed, new or removed pages only.
+- **1 credit per page fetched** — the [`/scrape`](/api-reference/endpoint/scrape) rate, plus 3 when a `json` target's extraction runs (only when the page's text changed).
+- **2 credits per search** a `search` target runs — the [`/search`](/api-reference/endpoint/search) rate — plus 1 per new result read.
+- **1 credit per page judged** against your goal — changed, new or removed pages only. A verdict reused for a change judged before is free.
 
 Pages that fail to load are never charged, and neither are skipped checks. `estimated_credits_per_month` is an upper bound: it assumes every page is fetched and judged on every check.
 
@@ -316,6 +354,7 @@ A monitor whose every page has failed for 10 checks in a row, over at least 24 h
 |---|---|
 | Targets per monitor | 50 |
 | URLs per scrape target | 100 |
+| Searches per search target | 5, of up to 20 results each |
 
 The rest depend on your plan:
 
