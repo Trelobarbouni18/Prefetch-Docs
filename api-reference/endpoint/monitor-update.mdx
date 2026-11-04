@@ -1,6 +1,7 @@
 ---
 title: "PATCH /monitor/{id}"
-description: "Change a monitor — its schedule, goal, targets, webhook or email alerts — or pause and resume it. Free."
+sidebarTitle: "Update a monitor"
+description: "Change a monitor, its schedule, goal, targets, webhook or email alerts, or pause and resume it. Free."
 openapi: "PATCH /monitor/{id}"
 ---
 
@@ -14,7 +15,7 @@ Send only the fields you want to change; everything else stays as it is. The res
 { "status": "paused" }
 ```
 
-A paused monitor keeps its settings and history but runs no scheduled checks, so it costs nothing. Set `"status": "active"` to resume. The next check runs at the next scheduled time — runs missed while paused are not replayed. A check can still be run by hand while paused, with [`POST /monitor/{id}/run`](/api-reference/endpoint/monitor-run).
+A paused monitor keeps its settings and history but runs no scheduled checks, so it costs nothing. Set `"status": "active"` to resume. The next check runs at the next scheduled time: runs missed while paused are not replayed. A check can still be run by hand while paused, with [`POST /monitor/{id}/run`](/api-reference/endpoint/monitor-run).
 
 ## Example request
 
@@ -64,7 +65,7 @@ print(r.json()["data"]["next_run_at"])
 | `schedule` | Replaced; the next run is recalculated. |
 | `goal` | Replaced. Setting a goal turns judging on; `null` clears it and turns judging off. |
 | `judge_enabled` | Turns judging on or off without touching the goal. |
-| `targets` | Replaces the **whole list** — see below. |
+| `targets` | Replaces the **whole list**. See below. |
 | `webhook` | Replaced. The signing secret is kept unless you send a new `secret` or `"rotate_secret": true`. `null` removes the webhook. |
 | `email` | `to` replaces the list of addresses. Addresses you keep keep their status; new ones are confirmed as on create. `"resend_confirmation": true` emails pending addresses their confirmation again. `null` removes every address. |
 | `status` | `active` or `paused`. |
@@ -74,13 +75,13 @@ print(r.json()["data"]["next_run_at"])
 Each target keeps its own snapshots, so what you get on the next check depends on whether a target is still the same target:
 
 - A target you send with its existing `id` keeps its snapshots.
-- A target without an `id` that watches **the same URLs** as an existing one inherits that target's id, and its snapshots, automatically. Changing only its options — adding an `exclude_selectors`, say — keeps its history.
+- A target without an `id` that watches **the same URLs** as an existing one inherits that target's id, and its snapshots, automatically. Changing only its options, such as adding `exclude_selectors`, keeps its history.
 - Any other target is new. Its first check is a silent baseline: every page is `new`, and nothing is announced.
 
 Snapshots of targets you leave out are deleted.
 
 <Note>
-  Changing what a target compares — its selectors, or switching it to the json mode — can make the next check report pages as `changed` once, because the old snapshot was taken the old way. From the check after that, the comparison is like for like again.
+  Changing what a target compares (its selectors, or switching it to json mode) can make the next check report pages as `changed` once, because the old snapshot was taken the old way. From the check after that, the comparison is like for like again.
 </Note>
 
 ## Rotating the signing secret

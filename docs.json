@@ -3,11 +3,11 @@
   "theme": "mint",
   "appearance": {
     "default": "dark",
-    "strict": true
+    "strict": false
   },
   "name": "Prefetch API",
   "colors": {
-    "primary": "#F7B00A",
+    "primary": "#8A5A00",
     "light": "#F7B00A",
     "dark": "#F7B00A"
   },
@@ -19,8 +19,12 @@
   },
   "favicon": "/favicon.svg",
   "fonts": {
-    "heading": { "family": "Space Grotesk" },
-    "body": { "family": "Inter" }
+    "heading": {
+      "family": "Space Grotesk"
+    },
+    "body": {
+      "family": "Inter"
+    }
   },
   "styling": {
     "codeblocks": {
@@ -30,28 +34,108 @@
   "thumbnails": {
     "appearance": "dark",
     "background": "/images/og-background.png",
-    "fonts": { "family": "Space Grotesk" }
+    "fonts": {
+      "family": "Space Grotesk"
+    }
   },
   "css": "/custom.css",
   "navigation": {
     "tabs": [
       {
-        "tab": "Home",
+        "tab": "Docs",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get started",
             "pages": [
               "index",
-              "quickstart"
+              "quickstart",
+              "agent-quickstart"
             ]
           },
           {
-            "group": "Core concepts",
+            "group": "Agents and MCP",
+            "pages": [
+              "mcp/overview",
+              "mcp/tools"
+            ]
+          },
+          {
+            "group": "Company data",
+            "pages": [
+              "company-data/resolve",
+              "company-data/enrich",
+              "company-data/brand",
+              "company-data/company",
+              "company-data/classify",
+              "company-data/styleguide",
+              "company-data/logo-cdn",
+              "company-data/transaction"
+            ]
+          },
+          {
+            "group": "Web data",
+            "pages": [
+              "web-data/scrape",
+              "web-data/search",
+              "web-data/map",
+              "web-data/crawl",
+              "web-data/screenshot",
+              "web-data/answers"
+            ]
+          },
+          {
+            "group": "Jobs and monitoring",
+            "pages": [
+              "jobs/batches",
+              {
+                "group": "Monitors",
+                "pages": [
+                  "monitors/overview",
+                  "monitors/targets",
+                  "monitors/schedules",
+                  "monitors/change-detection",
+                  "monitors/goals",
+                  "monitors/alerts",
+                  "monitors/limits"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Platform",
             "pages": [
               "concepts/authentication",
               "concepts/credits",
               "concepts/rate-limits",
-              "concepts/errors"
+              "concepts/errors",
+              "concepts/webhooks",
+              "concepts/async-jobs",
+              "concepts/caching"
+            ]
+          },
+          {
+            "group": "Going to production",
+            "pages": [
+              "concepts/production-checklist",
+              "concepts/troubleshooting",
+              "concepts/security"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Recipes",
+        "groups": [
+          {
+            "group": "Recipes",
+            "pages": [
+              "recipes/overview",
+              "recipes/enrich-signups",
+              "recipes/merchant-feed",
+              "recipes/competitor-pricing",
+              "recipes/on-brand-ui",
+              "recipes/company-directory",
+              "recipes/docs-to-markdown"
             ]
           }
         ]
@@ -68,23 +152,17 @@
               "integrations/zapier",
               "integrations/make"
             ]
-          }
-        ]
-      },
-      {
-        "tab": "MCP",
-        "groups": [
+          },
           {
-            "group": "Agents",
+            "group": "Migrate",
             "pages": [
-              "mcp/overview",
-              "mcp/tools"
+              "migrate/firecrawl"
             ]
           }
         ]
       },
       {
-        "tab": "API Reference",
+        "tab": "API reference",
         "groups": [
           {
             "group": "Overview",
@@ -93,42 +171,47 @@
             ]
           },
           {
-            "group": "Discovery",
+            "group": "Find a company",
             "pages": [
               "api-reference/endpoint/resolve",
-              "api-reference/endpoint/transaction",
-              "api-reference/endpoint/search"
+              "api-reference/endpoint/transaction"
             ]
           },
           {
-            "group": "Endpoints",
+            "group": "Company data",
             "pages": [
-              "api-reference/endpoint/brand",
-              "api-reference/endpoint/classify",
-              "api-reference/endpoint/company",
-              "api-reference/endpoint/screenshot",
               "api-reference/endpoint/enrich",
+              "api-reference/endpoint/brand",
+              "api-reference/endpoint/company",
+              "api-reference/endpoint/classify",
               "api-reference/endpoint/styleguide"
             ]
           },
           {
-            "group": "Web extraction",
+            "group": "Web data",
             "pages": [
               "api-reference/endpoint/scrape",
+              "api-reference/endpoint/search",
               "api-reference/endpoint/map",
-              "api-reference/endpoint/crawl",
-              "api-reference/endpoint/crawl-status",
-              "api-reference/endpoint/crawl-cancel",
-              "api-reference/endpoint/crawl-errors",
-              "api-reference/endpoint/batch-scrape",
-              "api-reference/endpoint/batch-scrape-status",
-              "api-reference/endpoint/batch-scrape-errors",
-              "api-reference/endpoint/batch-scrape-cancel"
+              "api-reference/endpoint/screenshot"
             ]
           },
           {
-            "group": "Batch",
+            "group": "Crawls",
             "pages": [
+              "api-reference/endpoint/crawl",
+              "api-reference/endpoint/crawl-status",
+              "api-reference/endpoint/crawl-errors",
+              "api-reference/endpoint/crawl-cancel"
+            ]
+          },
+          {
+            "group": "Batches",
+            "pages": [
+              "api-reference/endpoint/batch-scrape",
+              "api-reference/endpoint/batch-scrape-status",
+              "api-reference/endpoint/batch-scrape-errors",
+              "api-reference/endpoint/batch-scrape-cancel",
               "api-reference/endpoint/batch",
               "api-reference/endpoint/batch-status",
               "api-reference/endpoint/batch-errors",
@@ -136,15 +219,7 @@
             ]
           },
           {
-            "group": "Logo CDN",
-            "pages": [
-              "api-reference/endpoint/logo-cdn",
-              "api-reference/endpoint/logo-token",
-              "api-reference/endpoint/logo-token-rotate"
-            ]
-          },
-          {
-            "group": "Monitoring",
+            "group": "Monitors",
             "pages": [
               "api-reference/endpoint/monitor",
               "api-reference/endpoint/monitor-list",
@@ -162,12 +237,36 @@
                 ]
               }
             ]
+          },
+          {
+            "group": "Logo CDN",
+            "pages": [
+              "api-reference/endpoint/logo-token",
+              "api-reference/endpoint/logo-token-rotate"
+            ]
+          },
+          {
+            "group": "Service",
+            "pages": [
+              "api-reference/endpoint/health",
+              "api-reference/endpoint/ready"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Changelog",
+        "groups": [
+          {
+            "group": "Changelog",
+            "pages": [
+              "changelog"
+            ]
           }
         ]
       }
     ],
-    "global": {
-    }
+    "global": {}
   },
   "logo": {
     "light": "/logo/light.svg",
@@ -176,57 +275,119 @@
   "navbar": {
     "links": [
       {
+        "label": "Pricing",
+        "href": "https://prefetch.io/#pricing-section"
+      },
+      {
+        "label": "Support",
+        "href": "mailto:hi@prefetch.io"
+      },
+      {
         "label": "Dashboard",
         "href": "https://prefetch.io/dashboard"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Get API Key",
+      "label": "Get API key",
       "href": "https://prefetch.io/account"
     }
   },
   "contextual": {
     "options": [
-      "claude",
       "copy",
       "view",
+      "claude",
       "chatgpt",
       "perplexity",
       "cursor",
       "vscode"
     ]
   },
+  "redirects": [
+    {
+      "source": "/api-reference/endpoint/logo-cdn",
+      "destination": "/company-data/logo-cdn"
+    }
+  ],
   "footer": {
     "links": [
       {
         "header": "Product",
         "items": [
-          { "label": "Website", "href": "https://prefetch.io" },
-          { "label": "Brand Catalog", "href": "https://prefetch.io/brands" },
-          { "label": "Dashboard", "href": "https://prefetch.io/dashboard" }
+          {
+            "label": "Website",
+            "href": "https://prefetch.io"
+          },
+          {
+            "label": "Brand catalog",
+            "href": "https://prefetch.io/brands"
+          },
+          {
+            "label": "Pricing",
+            "href": "https://prefetch.io/#pricing-section"
+          },
+          {
+            "label": "Dashboard",
+            "href": "https://prefetch.io/dashboard"
+          }
         ]
       },
       {
-        "header": "Resources",
+        "header": "Docs",
         "items": [
-          { "label": "Quickstart", "href": "/quickstart" },
-          { "label": "API Reference", "href": "/api-reference/introduction" },
-          { "label": "MCP Server", "href": "/mcp/overview" }
+          {
+            "label": "Quickstart",
+            "href": "/quickstart"
+          },
+          {
+            "label": "Recipes",
+            "href": "/recipes/overview"
+          },
+          {
+            "label": "API reference",
+            "href": "/api-reference/introduction"
+          },
+          {
+            "label": "MCP server",
+            "href": "/mcp/overview"
+          },
+          {
+            "label": "Changelog",
+            "href": "/changelog"
+          }
         ]
       },
       {
         "header": "Company",
         "items": [
-          { "label": "Book a Demo", "href": "https://cal.com/nestoras.design" },
-          { "label": "Contact", "href": "mailto:hi@prefetch.io" },
-          { "label": "Privacy", "href": "https://prefetch.io/privacy" },
-          { "label": "Terms", "href": "https://prefetch.io/terms" }
+          {
+            "label": "Book a demo",
+            "href": "https://cal.com/nestoras.design"
+          },
+          {
+            "label": "Contact",
+            "href": "mailto:hi@prefetch.io"
+          },
+          {
+            "label": "Security",
+            "href": "/concepts/security"
+          },
+          {
+            "label": "Privacy",
+            "href": "https://prefetch.io/privacy"
+          },
+          {
+            "label": "Terms",
+            "href": "https://prefetch.io/terms"
+          }
         ]
       }
     ]
   },
   "integrations": {
-    "ga4": { "measurementId": "G-GVKTFNYJ7B" }
+    "ga4": {
+      "measurementId": "G-GVKTFNYJ7B"
+    }
   }
 }

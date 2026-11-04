@@ -132,8 +132,13 @@
           },
           "name": {
             "type": "string",
-            "description": "Nearest human-readable color name.",
-            "example": "Blue Violet"
+            "description": "A human-readable name for the color, such as `Medium Slate Blue` or `midnightblue`.",
+            "example": "Medium Slate Blue"
+          },
+          "type": {
+            "type": "string",
+            "description": "How the brand uses the color, when known: `accent`, `brand`, `dark`, `light` or `background`.",
+            "example": "accent"
           },
           "source": {
             "type": "string",
@@ -255,6 +260,21 @@
             "type": "number",
             "nullable": true,
             "description": "Intrinsic height of the logo in pixels."
+          },
+          "type": {
+            "type": "string",
+            "description": "What the image is, when known, such as `logo`.",
+            "example": "logo"
+          },
+          "format": {
+            "type": "string",
+            "description": "The image format, when known, such as `svg` or `png`.",
+            "example": "svg"
+          },
+          "background": {
+            "type": "string",
+            "description": "The logo's background, when known, such as `transparent`.",
+            "example": "transparent"
           }
         },
         "required": ["url"]
@@ -652,25 +672,25 @@
         "properties": {
           "iab_id": {
             "type": "string",
-            "description": "IAB subcategory ID.",
-            "example": "IAB13-11"
+            "description": "IAB subcategory ID, in the IAB Content Taxonomy 1.0 format.",
+            "example": "IAB3-4"
           },
           "iab_parent_id": {
             "type": "string",
             "nullable": true,
             "description": "IAB parent category ID.",
-            "example": "IAB13"
+            "example": "IAB3"
           },
           "category": {
             "type": "string",
             "description": "IAB parent category name.",
-            "example": "Personal Finance"
+            "example": "Business"
           },
           "subcategory": {
             "type": "string",
             "nullable": true,
             "description": "IAB subcategory name.",
-            "example": "Financial Planning"
+            "example": "Business Software"
           },
           "description": {
             "type": "string",
@@ -740,6 +760,34 @@
             "description": "Legal entity name of the company.",
             "example": "Stripe, Inc."
           },
+          "display_name": {
+            "type": "string",
+            "nullable": true,
+            "description": "The short name people use for the company.",
+            "example": "Stripe"
+          },
+          "parentCompany": {
+            "type": "string",
+            "nullable": true,
+            "description": "The parent company, when known."
+          },
+          "employeeCount": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Approximate number of employees, when known.",
+            "example": 8000
+          },
+          "foundedYear": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The year the company was founded, when known.",
+            "example": 2010
+          },
+          "isNsfw": {
+            "type": "boolean",
+            "description": "Whether the site's content is not safe for work.",
+            "example": false
+          },
           "emails": {
             "type": "array",
             "items": {
@@ -754,11 +802,24 @@
           "addresses": {
             "type": "array",
             "items": {
-              "type": "string"
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "raw": { "type": "string", "description": "The address as written." },
+                    "street": { "type": "string", "nullable": true },
+                    "city": { "type": "string", "nullable": true },
+                    "state": { "type": "string", "nullable": true },
+                    "postal_code": { "type": "string", "nullable": true },
+                    "country": { "type": "string", "nullable": true }
+                  }
+                },
+                { "type": "string" }
+              ]
             },
-            "description": "Physical addresses found on the site.",
+            "description": "Physical addresses found on the site. Each is usually an object with `raw` and its parts, any of which can be null. Handle a plain string too.",
             "example": [
-              "354 Oyster Point Blvd, South San Francisco, CA 94080"
+              { "raw": "South San Francisco, California, United States", "street": null, "city": "South San Francisco", "state": "California", "postal_code": null, "country": "United States" }
             ]
           },
           "social_links": {
@@ -5572,10 +5633,10 @@
                     "url": "https://stripe.com",
                     "domain": "stripe.com",
                     "classification": {
-                      "iab_id": "IAB13-11",
-                      "iab_parent_id": "IAB13",
-                      "category": "Personal Finance",
-                      "subcategory": "Financial Planning",
+                      "iab_id": "IAB3-4",
+                      "iab_parent_id": "IAB3",
+                      "category": "Business",
+                      "subcategory": "Business Software",
                       "description": "Stripe provides payment processing infrastructure for internet businesses.",
                       "tagline_description": "Payment infrastructure for the internet.",
                       "long_description": "Stripe provides payment processing infrastructure for internet businesses, enabling companies to accept payments, manage subscriptions, and handle global commerce operations.",
@@ -10508,7 +10569,7 @@
                               {
                                 "color": "rgb(99, 91, 255)",
                                 "hex": "#635BFF",
-                                "name": "Blurple"
+                                "name": "Medium Slate Blue"
                               }
                             ]
                           }
@@ -10519,8 +10580,8 @@
                           "addresses": []
                         },
                         "classification": {
-                          "iab_id": "IAB13",
-                          "category": "Personal Finance"
+                          "iab_id": "IAB3-4",
+                          "category": "Business"
                         }
                       }
                     ]

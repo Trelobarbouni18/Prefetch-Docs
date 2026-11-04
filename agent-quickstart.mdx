@@ -1,0 +1,60 @@
+---
+title: "Agent quickstart"
+description: "Paste one prompt into Claude Code, Cursor or another coding agent, and it sets Prefetch up for you: key, MCP connection or app code, and a first verified call."
+icon: "robot"
+---
+
+Copy this prompt into your coding agent. It asks you for your API key, sets up Prefetch the way your project needs, and checks that a first call works.
+
+```text Prompt for your coding agent
+Set up the Prefetch API (https://prefetch.io) in this project.
+
+Docs index: https://docs.prefetch.io/llms.txt (full text: https://docs.prefetch.io/llms-full.txt).
+Read only the pages you need.
+
+1. Ask me for my Prefetch API key. I get it from https://prefetch.io/dashboard.
+   Never print it, log it, or commit it.
+2. Store it as PREFETCH_API_KEY: in .env for application code (make sure .env is in .gitignore),
+   or in this agent's MCP config if I only want to use Prefetch from chat.
+3. Ask me which I want, then do it:
+   a. MCP for this agent: add the remote MCP server https://api.prefetch.io/mcp
+      (Claude Code: `claude mcp add --transport http prefetch https://api.prefetch.io/mcp`,
+      then authenticate from /mcp; Cursor: add it to .cursor/mcp.json).
+   b. Application code: call the REST API with the X-API-Key header. There is no SDK; use the
+      project's existing HTTP client. Every response is {success, data, meta}; on failure branch
+      on error_code and retry only when retryable is true.
+4. Verify: call GET https://api.prefetch.io/classify?url=https://stripe.com (5 credits) and
+   show me data.classification.category.
+5. Tell me what you changed, and link the docs pages for the endpoints I'm likely to use.
+```
+
+## What the agent will do
+
+<Steps>
+  <Step title="Ask for your key">
+    Agents can't sign up for you. Create a key on the [dashboard](https://prefetch.io/dashboard) and paste it when asked.
+  </Step>
+  <Step title="Pick a setup">
+    **MCP** gives the agent Prefetch tools in chat: scrape, enrich, crawl, monitor and more. **App code** adds REST calls to your project. See [MCP server](/mcp/overview) and the [API reference](/api-reference/introduction).
+  </Step>
+  <Step title="Verify">
+    One `/classify` call proves the key and the connection work. It costs 5 credits.
+  </Step>
+</Steps>
+
+## Docs for agents
+
+- [`llms.txt`](https://docs.prefetch.io/llms.txt): an index of every page.
+- [`llms-full.txt`](https://docs.prefetch.io/llms-full.txt): every page in one file.
+- Every page has a menu to copy it as markdown, or open it in Claude, ChatGPT or Cursor.
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="MCP server" icon="plug" href="/mcp/overview">
+    Connect Claude, ChatGPT, Cursor or any MCP client.
+  </Card>
+  <Card title="Recipes" icon="book-open" href="/recipes/overview">
+    Each recipe has a prompt you can hand to your agent.
+  </Card>
+</CardGroup>

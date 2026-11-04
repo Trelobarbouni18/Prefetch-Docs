@@ -1,0 +1,190 @@
+---
+title: "Brand"
+description: "Colors, logos, fonts, images, social links and design tokens for any website. 10 credits."
+icon: "palette"
+---
+
+`/brand` returns a site's brand assets under `data.brand`:
+
+- **Colors:** the brand palette, plus optional colors from a screenshot and from source code
+- **Logos:** the primary logo, secondary candidates, favicon and app icons
+- **Fonts:** the font families the site uses
+- **Images:** the Open Graph and Twitter images, brand assets and a screenshot
+- **Social links:** profile URLs, keyed by platform
+- **Design tokens** (opt-in): what each color is for, the type, and button and input styles
+
+`data.brand` is the same block [`/enrich`](/company-data/enrich) returns, so `data.brand.colors` reads the same from either one.
+
+## Example requests
+
+<CodeGroup>
+
+```bash Default
+curl "https://api.prefetch.io/brand?url=https://stripe.com" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```bash With screenshot colors
+curl "https://api.prefetch.io/brand?url=https://stripe.com&screenshotColors=6" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```bash Every color source
+curl "https://api.prefetch.io/brand?url=https://stripe.com&screenshotColors=8&css=true&html=true&filterAchromatic=true" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```javascript Node.js
+const res = await fetch("https://api.prefetch.io/brand?url=https://stripe.com", {
+  headers: { "X-API-Key": process.env.PREFETCH_API_KEY },
+});
+const { data } = await res.json();
+
+console.log(data.brand.colors.brand_colors[0].hex); // "#635BFF"
+console.log(data.brand.logos.primary.url);
+console.log(data.brand.fonts.families);             // ["Sohne Var", "SF Pro Display"]
+```
+
+```python Python
+import os, requests
+
+r = requests.get(
+    "https://api.prefetch.io/brand",
+    params={"url": "https://stripe.com"},
+    headers={"X-API-Key": os.environ["PREFETCH_API_KEY"]},
+)
+brand = r.json()["data"]["brand"]
+print(brand["colors"]["brand_colors"][0]["hex"])  # "#635BFF"
+print(brand["logos"]["primary"]["url"])
+```
+
+</CodeGroup>
+
+## Example response
+
+A real response for `stripe.com`, shortened where marked with `…`:
+
+```json
+{
+  "success": true,
+  "data": {
+    "domain": "stripe.com",
+    "url": "https://stripe.com/",
+    "brand": {
+      "colors": {
+        "brand_colors": [
+          { "hex": "#635BFF", "name": "Medium Slate Blue", "type": "accent", "color": "rgb(99, 91, 255)" },
+          { "hex": "#001020", "name": "Black", "type": "brand", "color": "rgb(0, 16, 32)" },
+          { "hex": "#0A2540", "name": "Midnight Blue", "type": "dark", "color": "rgb(10, 37, 64)" },
+          { "hex": "#F8F8F8", "name": "White Smoke", "type": "background", "color": "rgb(248, 248, 248)" },
+          { "hex": "#FFFFFF", "name": "White", "type": "light", "color": "rgb(255, 255, 255)" }
+        ]
+      },
+      "fonts": { "families": ["Sohne Var", "SF Pro Display"] },
+      "logos": {
+        "primary": { "url": "https://curated.prefetch.io/1fcd…/primary.svg", "type": "logo", "format": "svg", "background": "transparent" },
+        "secondary": [
+          { "url": "https://curated.prefetch.io/1fcd…/secondary_1.svg", "type": "logo", "format": "svg", "background": "transparent", "source_type": "logo" }
+        ],
+        "favicon_url": "https://curated.prefetch.io/1fcd…/favicon.png",
+        "icon_url": "https://curated.prefetch.io/1fcd…/icon.svg",
+        "apple_touch_icon": "https://curated.prefetch.io/1fcd…/apple_touch_icon.jpg"
+      },
+      "images": {
+        "og_image": "https://curated.prefetch.io/1fcd…/og_image.jpg",
+        "twitter_image": "https://curated.prefetch.io/1fcd…/og_image.jpg",
+        "assets": [{ "url": "https://curated.prefetch.io/1fcd…/asset_1779921418029.jpg", "alt": null, "type": "banner", "width": null, "height": null }],
+        "screenshot_url": "https://curated.prefetch.io/1fcd…/screenshot.jpg"
+      },
+      "social_links": {
+        "twitter": "https://twitter.com/stripe",
+        "linkedin": "https://linkedin.com/company/stripe",
+        "facebook": "https://facebook.com/StripeHQ",
+        "instagram": null,
+        "youtube": "https://youtube.com/stripe",
+        "github": "https://github.com/stripe",
+        "tiktok": null
+      }
+    }
+  },
+  "meta": {
+    "requestId": "d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a",
+    "durationMs": 288
+  }
+}
+```
+
+Each color carries `hex`, `color` (as `rgb()`) and a human-readable `name`, such as `Medium Slate Blue` or `midnightblue`. Curated answers also say how the brand uses each color in `type`: `accent`, `brand`, `dark`, `light` or `background`. The first entry is the main brand color.
+
+<Note>
+Well-known brands are answered from curated data in milliseconds. Other sites are read live, which takes 5 to 20 seconds, and the fields can differ a little. Treat every field as optional.
+</Note>
+
+## Color options
+
+By default you get the brand palette. Add options to pull colors from more places:
+
+| Parameter | Adds | Lands in |
+|---|---|---|
+| *(default)* | The logo's and favicon's colors, and the brand colors the page sets itself (`theme-color`, the header, the primary buttons). Chromatic colors first, white, black and greys after. | `brand.colors.brand_colors` |
+| *(default)* | The color each role uses on the page: `primary` and `secondary` button fills, `background`, `text` and `link` | `brand.colors.roles` |
+| `screenshotColors=6` | N dominant colors from a screenshot of the page (2–12) | `brand.colors.screenshot_colors` |
+| `css=true` | Colors defined in stylesheets | `brand.colors.code_colors` |
+| `html=true` | Colors defined in HTML attributes | `brand.colors.code_colors` |
+| `javascript=true` | Colors defined in JavaScript | `brand.colors.code_colors` |
+| `filterAchromatic=true` | Drops near-white, near-black and grey results | |
+
+`css`, `html` and `javascript` all feed one `code_colors` map, keyed by the nearest named color rather than by source. Groups are ordered by how much the site uses them. Every spelling of one color (`#000`, `rgb(0,0,0)`, `rgba(0,0,0,.25)`) is one entry, and transparent values are left out.
+
+Logo and favicon colors are the exact color most of their pixels have. When that's within ΔE 6 of a color the page renders, it snaps to the page's color, so a brand color the CSS sets (`#632CA6`) comes back as that hex rather than a near neighbor.
+
+`social_links` come from the page's links, then its JSON-LD `sameAs`, `rel="me"` and Twitter card tags. If none of those name a profile, Prefetch reads the footer after scrolling it into view. Each link is the profile's plain URL, without tracking parameters.
+
+`/brand` takes camelCase parameters. Batches and MCP take the snake_case spelling (`screenshot_colors`).
+
+## Design tokens
+
+`brand_colors` tells you what a brand's colors are. `designTokens=true` tells you what each one is **for**, read from the page as it renders:
+
+- **Colors by role:** `primary` (the most prominent button's fill), `secondary`, `background`, `text`, `heading` and `link`, plus whether the page is `light` or `dark`
+- **Typography:** body and heading font stacks, weights, line height, and the h1 to h3 and body sizes
+- **Components:** the primary and secondary button (fill, label color, border, radius, weight) and the first text input
+- **`border_radius`:** the primary button's rounding, a good guide to the whole site's
+
+The block lands at `brand.design_tokens`. It's best effort: a field the page gives no reliable answer for is `null`. Requests with `designTokens=true` are always read live, never from curated data.
+
+```bash
+curl "https://api.prefetch.io/brand?url=https://stripe.com&designTokens=true" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```json
+"design_tokens": {
+  "color_scheme": "light",
+  "colors": { "primary": "#533AFD", "secondary": null, "background": "#FFFFFF", "text": "#50617A", "heading": "#061B31", "link": "#533AFD" },
+  "typography": {
+    "body": { "font_family": "sohne-var", "font_stack": ["sohne-var", "SF Pro Display", "sans-serif"], "font_size": "16px", "font_weight": 400, "line_height": null },
+    "heading": { "font_family": "sohne-var", "font_stack": ["sohne-var", "SF Pro Display", "sans-serif"], "font_weight": 300 },
+    "sizes": { "h1": "48px", "h2": "32px", "h3": "26px", "body": "16px" }
+  },
+  "components": {
+    "button_primary": { "background": "#533AFD", "text_color": "#FFFFFF", "border_color": null, "border_radius": "4px", "font_weight": 400 },
+    "button_secondary": { "background": null, "text_color": "#FFFFFF", "border_color": null, "border_radius": "4px", "font_weight": 400 },
+    "input": null
+  },
+  "border_radius": "4px"
+}
+```
+
+For a full design system with spacing, shadows and ready-to-use CSS and Tailwind exports, use [`/styleguide`](/company-data/styleguide).
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="Logo CDN" icon="image" href="/company-data/logo-cdn">
+    Just need logos in your UI? Embed them without an API call.
+  </Card>
+  <Card title="API reference" icon="code" href="/api-reference/endpoint/brand">
+    Every parameter, and a playground to try it.
+  </Card>
+</CardGroup>

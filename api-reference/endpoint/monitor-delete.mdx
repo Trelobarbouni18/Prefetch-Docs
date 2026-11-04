@@ -1,5 +1,6 @@
 ---
 title: "DELETE /monitor/{id}"
+sidebarTitle: "Delete a monitor"
 description: "Delete a monitor, its check history and its pending webhooks. Stops all future charges. Free."
 openapi: "DELETE /monitor/{id}"
 ---
@@ -8,7 +9,7 @@ openapi: "DELETE /monitor/{id}"
 
 Deletes the monitor together with its checks, page snapshots and any webhook deliveries still pending. Nothing more is fetched or billed.
 
-To stop a monitor for a while instead, pause it with [`PATCH /monitor/{id}`](/api-reference/endpoint/monitor-update) — a paused monitor costs nothing and keeps its history.
+To stop a monitor for a while instead, pause it with [`PATCH /monitor/{id}`](/api-reference/endpoint/monitor-update): a paused monitor costs nothing and keeps its history.
 
 ## Example request
 

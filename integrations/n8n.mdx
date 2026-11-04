@@ -4,7 +4,7 @@ description: "Four n8n workflows to paste into your editor: enrich a list of dom
 icon: "diagram-project"
 ---
 
-n8n workflows are JSON: **copy one of the workflows below and paste it into an empty canvas** (Ctrl+V / ⌘V). Each uses n8n's core nodes only — Code, HTTP Request, Edit Fields, Split Out and Wait.
+n8n workflows are JSON: **copy one of the workflows below and paste it into an empty canvas** (Ctrl+V / ⌘V). Each uses n8n's core nodes only: Code, HTTP Request, Edit Fields, Split Out and Wait.
 
 ## Add your API key once
 
@@ -19,11 +19,11 @@ Name the credential `Prefetch API key` and the other templates pick it up.
 
 ## Enrich a list of domains
 
-Enriches each domain with brand, company and industry data, and keeps the fields a CRM usually wants. Replace the **Domains** node with your source — a Google Sheet, your CRM, a webhook. The HTTP node sends one request at a time (raise the batch size up to your plan's concurrency) and retries what can be retried. 12 credits per domain.
+Enriches each domain with brand, company and industry data, and keeps the fields a CRM usually wants. Replace the **Domains** node with your source: a Google Sheet, your CRM, a webhook. The HTTP node sends one request at a time (raise the batch size up to your plan's concurrency) and retries what can be retried. 12 credits per domain.
 
 ```json enrich-domains.json
 {
-  "name": "Prefetch — Enrich a list of domains",
+  "name": "Prefetch: Enrich a list of domains",
   "nodes": [
     {
       "parameters": {},
@@ -201,11 +201,11 @@ Enriches each domain with brand, company and industry data, and keeps the fields
 
 ## Batch enrich, resumed by the batch's webhook
 
-For hundreds of domains, one [batch](/api-reference/endpoint/batch) beats hundreds of calls: the workflow starts it with its own resume URL (`$execution.resumeUrl`) as the webhook, sleeps in the **Wait** node until Prefetch calls back with `batch_enrich.completed`, then reads the results and splits them into one item per domain. No polling. 12 credits per domain answered.
+For hundreds of domains, one [batch](/jobs/batches) beats hundreds of calls: the workflow starts it with its own resume URL (`$execution.resumeUrl`) as the webhook, sleeps in the **Wait** node until Prefetch calls back with `batch_enrich.completed`, then reads the results and splits them into one item per domain. No polling. 12 credits per domain answered.
 
 ```json batch-enrich-with-webhook.json
 {
-  "name": "Prefetch — Batch enrich, resume on webhook",
+  "name": "Prefetch: Batch enrich, resume on webhook",
   "nodes": [
     {
       "parameters": {},
@@ -452,7 +452,7 @@ For hundreds of domains, one [batch](/api-reference/endpoint/batch) beats hundre
 ```
 
 <Note>
-Prefetch only calls back to public `https://` addresses, so this works on n8n Cloud or a self-hosted n8n with a public URL — not on `localhost`. **Read results** reads up to 100 domains; for more, add pagination to it (**Options → Pagination**, mode *Response Contains Next URL*, next URL `https://api.prefetch.io{{ $response.body.data.next }}`, complete when `{{ !$response.body.data.next }}`).
+Prefetch only calls back to public `https://` addresses, so this works on n8n Cloud or a self-hosted n8n with a public URL, not on `localhost`. **Read results** reads up to 100 domains; for more, add pagination to it (**Options → Pagination**, mode *Response Contains Next URL*, next URL `https://api.prefetch.io{{ $response.body.data.next }}`, complete when `{{ !$response.body.data.next }}`).
 </Note>
 
 ## Search the web and summarize the results
@@ -461,7 +461,7 @@ Searches the web and has each of the top 5 result pages summarized in the same c
 
 ```json search-and-summarize.json
 {
-  "name": "Prefetch — Search the web and summarize the results",
+  "name": "Prefetch: Search the web and summarize the results",
   "nodes": [
     {
       "parameters": {},
@@ -596,11 +596,11 @@ Searches the web and has each of the top 5 result pages summarized in the same c
 
 ## Name the merchants on card transactions
 
-Turns statement lines into merchants — name, website, logo, category and payment processor — and flags payments to people, transfers and fees. 3 credits per line, 1 for a line looked up in the last 7 days.
+Turns statement lines into merchants (name, website, logo, category and payment processor) and flags payments to people, transfers and fees. 3 credits per line, 1 for a line looked up in the last 7 days.
 
 ```json categorize-transactions.json
 {
-  "name": "Prefetch — Name the merchants on card transactions",
+  "name": "Prefetch: Name the merchants on card transactions",
   "nodes": [
     {
       "parameters": {},

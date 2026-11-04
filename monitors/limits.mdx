@@ -1,0 +1,56 @@
+---
+title: "Limits and credits"
+description: "What a monitor check costs, what happens when credits run out, and what each plan allows."
+icon: "gauge-high"
+---
+
+## What a check costs
+
+Creating, reading, changing and deleting a monitor is free. **Each check** is billed to the API key that created the monitor:
+
+| What | Credits |
+|---|---|
+| Each page fetched | 1, the [`/scrape`](/web-data/scrape) rate |
+| A `json` target's extraction | +3, and only when the page's text changed |
+| Each search a `search` target runs | 2, the [`/search`](/web-data/search) rate, +1 per new result read |
+| Each page judged against your goal | 1. Only changed, new or removed pages are judged. A verdict reused from before is free. |
+
+Pages that fail to load are never charged, and neither are skipped checks.
+
+`estimated_credits_per_check` and `estimated_credits_per_month` on every monitor are upper bounds: they assume every page is fetched and judged on every check. `actual_credits` on a finished check is what you paid.
+
+For example, a check of 18 pages where one page tracks `json` and changed, and 3 pages were judged, costs 18 + 3 + 3 = 24 credits.
+
+## When credits run out
+
+A check never spends more than its key has left. If credits run out partway, the check stops and reports `partial`. If the key has none at all, the check is recorded as `skipped_no_credits`, and the monitor keeps its schedule and resumes as soon as credits refill.
+
+## Automatic pausing
+
+A monitor whose every page has failed for 10 checks in a row, over at least 24 hours, is paused, and its email recipients are told. Failed pages are never billed, so this only stops it retrying a page that's gone or blocks every fetch. Set `status` back to `"active"` once the pages load.
+
+## Limits
+
+| Limit | Value |
+|---|---|
+| Targets per monitor | 50 |
+| URLs per scrape target | 100 |
+| Searches per search target | 5, of up to 20 results each |
+| Pages per check, across all targets | 500 |
+
+The rest depend on your plan:
+
+| Limit | Free | Starter | Pro | Growth | Scale |
+|---|---|---|---|---|---|
+| Shortest schedule | Hourly | Every 5 minutes | Every 5 minutes | Every 2 minutes | Every minute |
+| Monitors per API key | 5 | 50 | 250 | 1,000 | 5,000 |
+| Pages per check | 10 | 500 | 500 | 500 | 500 |
+| Check history (`retention_days`, 30 by default) | Up to 30 days | Up to 365 | Up to 365 | Up to 365 | Up to 365 |
+| Email addresses per monitor | 1, your account's | 5 | 5 | 5 | 5 |
+| Pages that block bots | Not retried | Retried through a stealth browser and proxies | Retried | Retried | Retried |
+
+A request that asks for more than your plan allows is refused, and the error names the limit.
+
+A monitor made on a bigger plan keeps running after a downgrade. A schedule that's now too frequent moves to the fastest your plan allows, and its email recipients are told once. Its history is cut to your plan's window.
+
+A check that runs longer than 30 minutes stops and reports `partial`.

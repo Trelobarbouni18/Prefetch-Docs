@@ -1,0 +1,49 @@
+---
+title: "Security and data handling"
+description: "How Prefetch protects your account, which sites it will and won't fetch, how it treats robots.txt, and how long results are kept."
+icon: "shield-halved"
+---
+
+## Your account
+
+- **API keys** stay on your server. Each key can have an expiry date and a credit limit, and you can revoke it on the [dashboard](https://prefetch.io/dashboard). See [Authentication](/concepts/authentication).
+- **Connected apps** such as Claude and ChatGPT sign in with OAuth. A connected app can call every tool as you, and its calls use your credits. It can't see your password, payment details or API keys, and it can't change your plan. Disconnect it under **Connected Apps** and its next call fails.
+- **The logo token** is publishable. It serves logo images and nothing else. Rotate it if someone else is using your quota.
+
+## What Prefetch won't fetch
+
+- **Private and reserved addresses.** Requests to `10.x.x.x`, `192.168.x.x`, `127.x.x.x`, `169.254.x.x` and similar ranges are refused, including domains that resolve to them and redirects that lead to them.
+- **Bare IP addresses and reserved TLDs** such as `.local` and `.internal`.
+- **URLs on your key's blocklist.**
+
+See [Blocked URLs](/concepts/errors#blocked-urls).
+
+## robots.txt
+
+[Crawls](/web-data/crawl) obey `robots.txt` by default: both `Disallow` rules and `Crawl-delay`. You can turn that off with `respect_robots_txt: false`. `/map` reads `robots.txt` only to find sitemaps, and fetches at most one page of the site.
+
+## Untrusted page content
+
+Pages are written by strangers, and much of what Prefetch returns ends up in front of a language model. Set `check_prompt_injection=true` on [`/scrape`](/web-data/scrape#prompt-injection-check), crawls and batch scrapes, and a model checks the page for text aimed at AI assistants. The page is still returned, with a verdict you can act on.
+
+Monitor goals are judged the same way: page content is treated as data, never as instructions.
+
+## Language models
+
+`summary`, `json`, the prompt-injection check, monitor judging, `/transaction` and `/answers` use a language model to read page text. Every other format is the page itself.
+
+## How long results are kept
+
+| Data | Kept for |
+|---|---|
+| Crawl and batch results | Until the job's `expires_at`, 24 hours after it was created |
+| Monitor checks and snapshots | The monitor's `retention_days`: 30 by default, up to 365 on paid plans |
+| Stored page copies used by `max_age` | Up to 30 days. Requests that send `headers` are never stored. |
+| `/scrape` screenshots | A short-lived URL. Copy the image if you need to keep it. |
+| Webhook secrets for crawls and batches | Shown once, in the response that creates the job |
+
+Deleting a monitor deletes its checks, snapshots and pending webhook deliveries.
+
+## Reporting a security issue
+
+Email [hi@prefetch.io](mailto:hi@prefetch.io). Please don't open a public issue.

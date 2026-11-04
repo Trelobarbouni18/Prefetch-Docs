@@ -1,0 +1,20 @@
+| Endpoint | Credits |
+|---|---|
+| `GET /resolve` | 1. 3 when a live lookup runs (`live=true`). 0 when nothing matches. |
+| `GET /transaction` | 3. 1 for a line looked up in the last 7 days. +10 with `include_brand`. |
+| `GET /enrich` | 12 |
+| `GET /brand` | 10 |
+| `GET /styleguide` | 10 |
+| `GET /company` | 5 |
+| `GET /classify` | 5 |
+| `GET /scrape` | 1. +3 when you ask for `summary`, `json` or `check_prompt_injection`. |
+| `GET /search` | 2 per 10 results, rounded up. Each result page scraped costs what `/scrape` costs. |
+| `GET /map` | 1 |
+| `GET /screenshot` | 1 |
+| `POST /answers` | 10 in `fast` mode. 100 in `ultra` mode, the REST default. |
+| `POST /crawl` | Free to submit. 1 per page returned, or 4 with `summary`, `json` or `check_prompt_injection`. |
+| `POST /batch/scrape` | Free to submit. 1 per page returned, or 4 with `summary`, `json` or `check_prompt_injection`. |
+| `POST /batch/{endpoint}` | Free to submit. Each URL answered costs what one call of that endpoint costs. |
+| Monitor checks | 1 per page fetched, +3 when a `json` extraction runs, +1 per page judged against a goal. A search target costs 2 per search, +1 per new result read. |
+| Logo CDN images | No credits. Each plan includes a monthly logo quota. |
+| Everything else | Free: job status, errors and cancel calls, managing monitors, `/logo/token`, `/health` and `/ready`. |

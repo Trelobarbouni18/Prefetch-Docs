@@ -4,8 +4,8 @@
    Prefetch brand theme for Mintlify
    Mirrors prefetch.io: plum / cream / amber palette, square Win98
    bevels, Space Grotesk for UI chrome, Inter for copy, Source Code Pro
-   for code. The docs ship dark-only (appearance.strict in docs.json),
-   so brand rules are scoped to `.dark`.
+   for code. Brand rules for the dark theme are scoped to `.dark`; the
+   light theme at the end of this file keeps the same fonts and accents.
    ══════════════════════════════════════════════════════════════════ */
 
 /* ── Brand tokens (values taken from prefetch.io) ─────────────────── */
@@ -27,7 +27,7 @@
   --pf-fail: #8a2d2d;
   --pf-line: rgba(229, 226, 211, 0.12);
   --pf-text: rgba(229, 226, 211, 0.7);
-  --pf-text-dim: rgba(229, 226, 211, 0.55);
+  --pf-text-dim: rgba(229, 226, 211, 0.62);
 
   --pf-display: 'Space Grotesk', sans-serif;
   --pf-mono: 'Source Code Pro', ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -191,20 +191,20 @@ html.dark,
   height: 30px !important;
 }
 
-/* Search trigger: cream field with the prefetch.io inset bevel */
+/* Search trigger: a dark inset field, so the amber CTA stays the loudest thing in the bar */
 .dark #search-bar-entry {
   height: 36px;
-  background-color: var(--pf-cream) !important;
-  box-shadow: var(--pf-bevel-field) !important;
+  background-color: var(--pf-deep) !important;
+  box-shadow: var(--pf-bevel-inset) !important;
   filter: none !important;
-  color: rgba(42, 17, 36, 0.6) !important;
+  color: var(--pf-text) !important;
   font-family: var(--pf-display);
 }
 .dark #search-bar-entry:hover {
-  background-color: #efece1 !important;
+  background-color: var(--pf-frame) !important;
 }
 .dark #search-bar-entry svg {
-  color: rgba(42, 17, 36, 0.55) !important;
+  color: var(--pf-text) !important;
 }
 .dark #search-bar-entry > span {
   padding: 1px 6px;
@@ -223,7 +223,6 @@ html.dark,
 .dark #navbar .navbar-link a {
   font-family: var(--pf-display);
   font-weight: 500;
-  text-transform: uppercase;
   color: var(--pf-cream) !important;
 }
 .dark #navbar .navbar-link a:hover {
@@ -240,7 +239,6 @@ html.dark,
   font-family: var(--pf-display);
   font-size: 14px;
   font-weight: 700;
-  text-transform: uppercase;
   text-decoration: none;
 }
 .dark #topbar-cta-button a:hover {
@@ -257,12 +255,10 @@ html.dark,
   color: var(--pf-bg) !important;
 }
 
-/* Tab row: uppercase Space Grotesk with prefetch.io's amber "+" marker */
+/* Tab row: Space Grotesk in sentence case, with prefetch.io's amber "+" marker */
 .dark .nav-tabs-item {
   font-family: var(--pf-display);
   font-weight: 500 !important;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
   text-shadow: none !important;
   color: rgba(229, 226, 211, 0.7) !important;
 }
@@ -284,10 +280,8 @@ html.dark,
 /* ── Sidebar ──────────────────────────────────────────────────────── */
 .dark .sidebar-group-header {
   font-family: var(--pf-display);
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 700 !important;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
   color: var(--pf-cream) !important;
 }
 .dark #navigation-items li > a {
@@ -327,10 +321,8 @@ html.dark,
 /* ── Page header ──────────────────────────────────────────────────── */
 .dark #header .eyebrow {
   font-family: var(--pf-display);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
   color: var(--pf-amber) !important;
 }
 .dark #page-title {
@@ -361,9 +353,8 @@ html.dark,
 }
 .dark #page-context-menu-button span {
   font-family: var(--pf-display);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  text-transform: uppercase;
 }
 .dark #page-context-menu-button:hover,
 .dark #page-context-menu > button[aria-haspopup="menu"]:hover {
@@ -469,13 +460,8 @@ html.dark,
   content: none;
 }
 
-/* Markdown lists render without a class; component lists (tabs etc.) have one */
-.dark #content ul:not([class]) {
-  list-style-type: square;
-}
-.dark #content ul:not([class]) > li::marker {
-  color: var(--pf-amber);
-}
+/* Bullets come from Mintlify's own list styling, which draws its own marker;
+   adding a ::marker here doubled them. Numbered lists keep the brand marker. */
 .dark #content ol:not([class]) > li::marker {
   color: var(--pf-text-dim);
   font-family: var(--pf-display);
@@ -596,8 +582,6 @@ html.dark,
   font-family: var(--pf-display);
   font-size: 12px;
   font-weight: 700 !important;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 .dark [data-component-part="tab-button"]:hover {
   color: var(--pf-cream) !important;
@@ -1022,8 +1006,6 @@ html.dark [data-component-part="code-block-root"].code-block-background {
   font-family: var(--pf-display);
   font-size: 12px;
   font-weight: 700 !important;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 .dark .toc-item > a {
   font-family: var(--pf-display);
@@ -1058,8 +1040,6 @@ html.dark [data-component-part="code-block-root"].code-block-background {
   color: var(--pf-cream) !important;
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
 }
 .dark #footer a[class*="text-sm"] {
   color: rgba(229, 226, 211, 0.6) !important;
@@ -1088,8 +1068,6 @@ html.dark [data-component-part="code-block-root"].code-block-background {
   font-family: var(--pf-display);
   font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 /* Breadcrumb bar under the mobile navbar */
 .dark #navbar button.h-14 {
@@ -1104,7 +1082,6 @@ html.dark [data-component-part="code-block-root"].code-block-background {
   color: var(--pf-cream) !important;
   font-family: var(--pf-display);
   font-weight: 500;
-  text-transform: uppercase;
 }
 .dark nav[aria-label="Mobile menu"] li.navbar-link a:hover {
   background-color: rgba(229, 226, 211, 0.06) !important;
@@ -1122,44 +1099,49 @@ html.dark [data-component-part="code-block-root"].code-block-background {
   color: var(--pf-bg) !important;
 }
 
-/* ── Home page hero (index.mdx) ───────────────────────────────────── */
-.dark .pf-hero {
-  padding: 3.5rem 0 2.75rem;
-  text-align: center;
-}
-.dark .pf-hero .pf-hero-title {
-  margin: 0 0 1.25rem;
-  color: var(--pf-cream);
+/* ── Light theme ──────────────────────────────────────────────────────
+   Mintlify's light defaults with the brand fonts and accents. Amber text
+   uses #8a5a00 (5.7:1 on the cream background); the amber fill stays on
+   buttons, where text on it is plum. Code blocks keep the dark palette.
+   ─────────────────────────────────────────────────────────────────── */
+html:not(.dark) .nav-tabs-item,
+html:not(.dark) .sidebar-group-header,
+html:not(.dark) #navigation-items li > a,
+html:not(.dark) #navbar .navbar-link a {
   font-family: var(--pf-display);
-  font-size: 3rem;
+}
+html:not(.dark) .sidebar-group-header {
+  font-size: 13px;
+  font-weight: 700 !important;
+  color: var(--pf-bg) !important;
+}
+html:not(.dark) #header .eyebrow {
+  font-family: var(--pf-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: #8a5a00 !important;
+}
+html:not(.dark) #page-title {
   font-weight: 500;
   letter-spacing: -0.025em;
-  line-height: 1.1;
-  text-transform: uppercase;
+  color: var(--pf-bg) !important;
 }
-.dark .pf-hero .pf-hero-title span {
-  color: var(--pf-amber);
+html:not(.dark) .nav-tabs-item[data-active="true"]::before {
+  content: "+";
+  margin-right: -2px;
+  color: #8a5a00;
 }
-.dark .pf-hero .pf-hero-subtitle {
-  max-width: 560px;
-  margin: 0 auto;
-  color: rgba(229, 226, 211, 0.6);
+html:not(.dark) #topbar-cta-button a {
+  background: var(--pf-amber);
+  box-shadow: var(--pf-bevel-action);
+  color: var(--pf-bg) !important;
   font-family: var(--pf-display);
-  font-size: 1.125rem;
-  letter-spacing: 0.025em;
-  line-height: 1.6;
-}
-.dark .pf-section-label {
-  margin: 2.75rem 0 1rem;
-  color: var(--pf-cream);
-  font-family: var(--pf-display);
-  font-size: 0.8125rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
-@media (max-width: 640px) {
-  .dark .pf-hero .pf-hero-title {
-    font-size: 2.25rem;
-  }
+html:not(.dark) #topbar-cta-button a span {
+  color: var(--pf-bg) !important;
+}
+html:not(.dark) #topbar-cta-button a span.absolute,
+html:not(.dark) #topbar-cta-button a svg {
+  display: none !important;
 }

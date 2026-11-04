@@ -1,0 +1,112 @@
+---
+title: "Enrich signups and leads"
+description: "Turn a work email into a prefilled company profile with name, logo, brand color and industry, for 12 credits per new company."
+icon: "user-plus"
+---
+
+When someone signs up with `maria@linear.app`, you already know where they work. One [`/enrich`](/company-data/enrich) call turns that domain into a company name, logo, brand color, industry and description, so you can prefill their workspace, route the lead, or score it against your ideal customer profile.
+
+**Cost:** 12 credits per new company. Cache by domain, and teammates who sign up later cost nothing.
+
+## 1. Get the domain from the email
+
+Skip personal addresses. There's no company behind `gmail.com`.
+
+```javascript
+const PERSONAL = new Set(["gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "live.com", "yahoo.com", "icloud.com", "me.com", "proton.me", "protonmail.com", "aol.com", "gmx.com"]);
+
+function companyDomain(email) {
+  const domain = email.split("@")[1]?.trim().toLowerCase();
+  return domain && !PERSONAL.has(domain) ? domain : null;
+}
+```
+
+## 2. Enrich the domain, once
+
+<CodeGroup>
+
+```javascript Node.js
+const cache = new Map(); // use your database in production
+
+async function enrich(domain) {
+  if (cache.has(domain)) return cache.get(domain);
+
+  const res = await fetch(`https://api.prefetch.io/enrich?url=${encodeURIComponent(domain)}`, {
+    headers: { "X-API-Key": process.env.PREFETCH_API_KEY },
+  });
+  const body = await res.json();
+  if (!body.success) return null; // not charged; sign the user up without a profile
+
+  const { company, brand, classification } = body.data;
+  const profile = {
+    domain,
+    name: company?.display_name ?? company?.name ?? null,
+    logo: brand?.logos?.primary?.url ?? null,
+    color: brand?.colors?.brand_colors?.[0]?.hex ?? null,
+    industry: classification?.category ?? null,
+    description: classification?.tagline_description ?? null,
+  };
+  cache.set(domain, profile);
+  return profile;
+}
+```
+
+```python Python
+import os, requests
+
+cache = {}  # use your database in production
+
+def enrich(domain):
+    if domain in cache:
+        return cache[domain]
+
+    body = requests.get(
+        "https://api.prefetch.io/enrich",
+        params={"url": domain},
+        headers={"X-API-Key": os.environ["PREFETCH_API_KEY"]},
+        timeout=60,
+    ).json()
+    if not body["success"]:
+        return None  # not charged; sign the user up without a profile
+
+    d = body["data"]
+    company, brand, cls = d.get("company") or {}, d.get("brand") or {}, d.get("classification") or {}
+    colors = (brand.get("colors") or {}).get("brand_colors") or []
+    profile = {
+        "domain": domain,
+        "name": company.get("display_name") or company.get("name"),
+        "logo": ((brand.get("logos") or {}).get("primary") or {}).get("url"),
+        "color": colors[0]["hex"] if colors else None,
+        "industry": cls.get("category"),
+        "description": cls.get("tagline_description"),
+    }
+    cache[domain] = profile
+    return profile
+```
+
+</CodeGroup>
+
+## 3. Use it without blocking signup
+
+Well-known companies answer in milliseconds from curated data. Others take 5 to 20 seconds while the site is read. Don't make the user wait:
+
+- Create the account straight away, and enrich in a background job.
+- Show the prefilled values as suggestions the user can edit, and keep their edits when you refresh.
+- Treat every field as optional.
+
+## Variations
+
+- **Leads from a CRM:** for hundreds of existing records, send them as one [`POST /batch/enrich`](/jobs/batches) instead of a loop.
+- **Only need the industry?** [`/classify`](/company-data/classify) costs 5 credits.
+- **Only a company name, no email?** [`/resolve`](/company-data/resolve) finds the domain first, for 1 credit.
+
+## Prompt for your coding agent
+
+```text
+Add company enrichment to our signup flow using the Prefetch API (docs: https://docs.prefetch.io/recipes/enrich-signups).
+When a user signs up, take the domain from their email, skip personal email domains, and call
+GET https://api.prefetch.io/enrich?url=<domain> with the X-API-Key header (key in PREFETCH_API_KEY).
+Run it in a background job, cache results by domain in our database, and store: display name, primary logo URL,
+first brand color hex, IAB category and tagline. Show the values as editable suggestions in onboarding.
+Treat every field as optional, and don't retry errors unless the response says retryable: true.
+```

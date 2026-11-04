@@ -1,19 +1,18 @@
 ---
 title: "Logo CDN"
-description: "Any company's logo as an image URL: logo.prefetch.io/stripe.com?token=… Put it straight in an <img> tag. No credits — every plan includes a monthly quota."
+description: "Any company's logo as an image URL you put straight in an <img> tag. No credits: every plan includes a monthly logo quota."
+icon: "image"
 ---
-
-## Overview
 
 ```html
 <img src="https://logo.prefetch.io/stripe.com?token=pk_YOUR_TOKEN" alt="Stripe" width="64" height="64" />
 ```
 
-The logo CDN serves any domain's logo as an image, from Cloudflare's network. Use it wherever you show companies — customer lists, transaction feeds, CRM records, search results — without storing a single image yourself.
+The logo CDN serves any domain's logo as an image, from Cloudflare's network. Use it wherever you show companies, such as customer lists, transaction feeds, CRM records and search results, without storing a single image yourself.
 
 - **No credits.** Logo requests don't touch your credit balance: each plan includes a monthly quota of them.
 - **Embeddable.** The `token` is a *publishable* token: it serves logo images and nothing else, so it is safe in your HTML. It is not your API key.
-- **Always an image.** A domain whose logo isn't known yet gets a letter mark in a stable color, and its logo is looked up in the background — the next request usually has it.
+- **Always an image.** A domain whose logo isn't known yet gets a letter mark in a stable color, and its logo is looked up in the background. The next request usually has it.
 
 ## Your token
 
@@ -37,7 +36,7 @@ curl "https://api.prefetch.io/logo/token" -H "X-API-Key: $PREFETCH_API_KEY"
 }
 ```
 
-There is one token per organisation, and it stays the same when you rotate API keys, so logos already on your pages keep working. If someone else is using your token against your quota, [rotate it](/api-reference/endpoint/logo-token-rotate) — every logo embedded with the old one stops loading at once.
+There's one token per organization, and it stays the same when you rotate API keys, so logos already on your pages keep working. If someone else is using your token against your quota, [rotate it](/api-reference/endpoint/logo-token-rotate). Every logo embedded with the old token stops loading at once.
 
 ## Parameters
 
@@ -47,15 +46,15 @@ https://logo.prefetch.io/<domain>?token=<token>[&size=128][&format=png][&theme=l
 
 | Parameter | Default | Values |
 |---|---|---|
-| `<domain>` | — | Any domain: `stripe.com`, `www.stripe.com` and `https://stripe.com/pricing` all mean `stripe.com`. |
-| `token` | — | Your publishable token. Required. |
+| `<domain>` | required | Any domain: `stripe.com`, `www.stripe.com` and `https://stripe.com/pricing` all mean `stripe.com`. |
+| `token` | required | Your publishable token. |
 | `size` | `128` | 16–512 pixels. Logos are square, centred on a transparent background. |
 | `format` | `png` | `png`, `webp` or `jpeg` (`jpg` works too). |
 | `theme` | `light` | The background a JPEG is flattened onto (`light` is white, `dark` near-black). PNG and WebP stay transparent. |
 | `greyscale` | `false` | `true` for a grey logo. |
 | `fallback` | `monogram` | What a domain without a known logo gets: `monogram` (the letter mark), `404`, or `transparent` (an empty image). |
 
-Unknown values fall back to the default rather than failing: a broken image helps nobody.
+Unknown values fall back to the default instead of failing, because a broken image helps nobody.
 
 ## Examples
 
@@ -103,7 +102,7 @@ In order: Prefetch's curated brand data; the icons the site declares for itself 
 | Scale | 10,000,000 |
 | Enterprise | Unlimited |
 
-Months are calendar months (UTC); the count resets on the 1st. Only images served count — an invalid token, a quota refusal or a `fallback=404` does not, and browsers cache each logo for a day, so repeat views are free. Past the quota, requests get `429` until the 1st or an upgrade.
+Months are calendar months (UTC), and the count resets on the 1st. Only images served count. An invalid token, a quota refusal or a `fallback=404` doesn't count, and browsers cache each logo for a day, so repeat views are free. Past the quota, requests get `429` until the 1st or until you upgrade.
 
 ## Errors
 
@@ -111,6 +110,17 @@ Months are calendar months (UTC); the count resets on the 1st. Only images serve
 |---|---|
 | `400` | The path is not a domain. |
 | `401` | No token, or not a valid one (a rotated token, for example). |
-| `429` | The organisation's monthly logo quota is used up. |
+| `429` | Your organization's monthly logo quota is used up. |
 
 Errors are JSON with an `error` message. The logo CDN is not available through RapidAPI.
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="Build a company directory" icon="address-book" href="/recipes/company-directory">
+    A recipe for a searchable list of companies with logos.
+  </Card>
+  <Card title="Brand" icon="palette" href="/company-data/brand">
+    Need colors, fonts and every logo variant? Use `/brand`.
+  </Card>
+</CardGroup>

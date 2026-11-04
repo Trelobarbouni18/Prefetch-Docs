@@ -1,0 +1,44 @@
+---
+title: "Schedules"
+description: "Set how often a monitor checks, as a plain phrase or five-field cron, in any timezone."
+icon: "calendar"
+---
+
+Write the schedule as a phrase or as five-field cron, in any IANA timezone:
+
+```json
+{ "schedule": { "text": "every weekday at 9am", "timezone": "America/New_York" } }
+```
+
+```json
+{ "schedule": { "cron": "*/30 * * * *" } }
+```
+
+Phrases you can use include `every 30 minutes`, `every 15 minutes starting at :07`, `hourly`, `every 2 hours`, `daily`, `daily at 9am`, `daily at 5:30 PM`, `every weekday at 9am`, `weekly`, `every monday at 8:00` and `monthly`.
+
+## Rules
+
+- Runs must be **as far apart as your plan requires**, for every gap, not just the first:
+
+  | Plan | Shortest gap |
+  |---|---|
+  | Free | 1 hour |
+  | Starter, Pro | 5 minutes |
+  | Growth | 2 minutes |
+  | Scale | 1 minute |
+
+- Phrases that leave the minute open (`hourly`, `daily`) get a fixed minute of their own, so monitors created at the same time don't all fire at once.
+- The response always shows the cron the monitor actually runs on, in `schedule.cron`.
+- Times follow the timezone across daylight-saving changes.
+
+## One check at a time
+
+A monitor runs one check at a time. A check that comes due while the previous one is still running is recorded as `skipped_overlap` instead of running alongside it, and isn't charged.
+
+## Running a check now
+
+[`POST /monitor/{id}/run`](/api-reference/endpoint/monitor-run) runs a check outside the schedule, without moving it. Use it to take the first baseline right after you create a monitor, or to try a new goal. It works on paused monitors too.
+
+## Pausing
+
+Set `"status": "paused"` with [`PATCH /monitor/{id}`](/api-reference/endpoint/monitor-update). A paused monitor keeps its settings and history but runs no checks, so it costs nothing. Set `"status": "active"` to resume. Runs missed while paused aren't made up.

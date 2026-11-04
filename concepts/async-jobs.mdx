@@ -1,0 +1,113 @@
+---
+title: "Async jobs"
+description: "How crawls, batches and monitor checks run in the background: submit, poll, page through results, and read them before they expire."
+icon: "hourglass-half"
+---
+
+Most Prefetch endpoints answer in one round trip. Four kinds of work take longer, so they run as background jobs:
+
+| Job | Start it with | Read it with |
+|---|---|---|
+| [Crawl](/web-data/crawl) | `POST /crawl` | `GET /crawl/{id}` |
+| [Batch scrape](/jobs/batches) | `POST /batch/scrape` | `GET /batch/scrape/{id}` |
+| [Batch of another endpoint](/jobs/batches) | `POST /batch/{endpoint}` | `GET /batch/{endpoint}/{id}` |
+| [Monitor check](/monitors/overview) | A schedule, or `POST /monitor/{id}/run` | `GET /monitor/{id}/checks/{checkId}` |
+
+## The flow
+
+<Steps>
+  <Step title="Submit">
+    The request returns `202 Accepted` with a job id straight away. Crawl and batch ids start with `crw_`. Monitor check ids start with `chk_`.
+  </Step>
+  <Step title="Wait">
+    Poll the read endpoint every few seconds, or pass a [`webhook`](/concepts/webhooks) and have results pushed to you.
+  </Step>
+  <Step title="Read">
+    Each response holds progress plus one page of results. Follow `next` until it's `null`.
+  </Step>
+</Steps>
+
+## Statuses
+
+| Status | Meaning |
+|---|---|
+| `pending` | Queued, not started. A monitor check says `queued`. |
+| `running` | In progress. Results finished so far are already readable. |
+| `completed` | Finished. |
+| `failed` | Stopped on an error. `error` says why. Results stored before it stopped stay readable. |
+| `cancelled` | You stopped it with `DELETE`. |
+
+Keep polling while the status is `pending`, `queued` or `running`.
+
+<Note>
+`total` is the number of pages known **so far**. A crawl finds pages as it goes, so `total` rises until the crawl runs out of links or reaches `limit`. Check `status` to know when a job is done, not `completed === total`.
+</Note>
+
+## Pagination
+
+Results come a page at a time, in the order they finished. Each response carries `next`, a path to the following page, such as `/crawl/crw_9f2c…?skip=25&limit=25`. You can also set `skip` and `limit` yourself.
+
+<CodeGroup>
+
+```javascript Node.js
+const base = "https://api.prefetch.io";
+const headers = { "X-API-Key": process.env.PREFETCH_API_KEY };
+
+// Wait for the job to finish
+let job;
+do {
+  await new Promise((r) => setTimeout(r, 5000));
+  ({ data: job } = await (await fetch(`${base}/crawl/${id}`, { headers })).json());
+} while (job.status === "pending" || job.status === "running");
+
+// Then read every page of results
+const results = [...job.data];
+for (let next = job.next; next; ) {
+  const { data } = await (await fetch(base + next, { headers })).json();
+  results.push(...data.data);
+  next = data.next;
+}
+```
+
+```python Python
+import os, time, requests
+
+base = "https://api.prefetch.io"
+headers = {"X-API-Key": os.environ["PREFETCH_API_KEY"]}
+
+while True:
+    job = requests.get(f"{base}/crawl/{job_id}", headers=headers).json()["data"]
+    if job["status"] not in ("pending", "running"):
+        break
+    time.sleep(5)
+
+results, nxt = list(job["data"]), job["next"]
+while nxt:
+    page = requests.get(base + nxt, headers=headers).json()["data"]
+    results.extend(page["data"])
+    nxt = page["next"]
+```
+
+</CodeGroup>
+
+The same loop works for batches: swap the path for `/batch/scrape/{id}` or `/batch/enrich/{id}`.
+
+## Expiry
+
+Crawl and batch results stay readable until the job's `expires_at`, 24 hours after the job was created. Copy what you need before then. Monitor checks are kept for the monitor's `retention_days`.
+
+## Failed and skipped items
+
+One failed page never fails the whole job. Each result carries `ok`, and a failed one carries an [`error_code`](/concepts/errors#error-codes). The `/errors` endpoints list failures and, for crawls, every URL that was skipped and why:
+
+- [`GET /crawl/{id}/errors`](/api-reference/endpoint/crawl-errors)
+- [`GET /batch/scrape/{id}/errors`](/api-reference/endpoint/batch-scrape-errors)
+- [`GET /batch/{endpoint}/{id}/errors`](/api-reference/endpoint/batch-errors)
+
+## Billing
+
+Submitting is free. Results are charged as they complete: when you poll, or when the job ends, whichever comes first, and never twice. Polling often costs nothing extra. Failed items are free. See [Credits](/concepts/credits#crawls-and-batches).
+
+## Over MCP
+
+The MCP tools submit a job and wait for it, up to `wait_seconds` (60 by default). If it finishes in time, you get the results straight away. If not, you get the id to pass to `prefetch_check_crawl_status`. See [How crawling works](/mcp/overview#how-crawling-works).

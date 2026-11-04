@@ -1,12 +1,13 @@
 ---
 title: "GET /batch/scrape/{id}"
+sidebarTitle: "Get batch scrape status"
 description: "Poll a batch scrape for progress and read its pages. Charges 1 credit for each page completed since your last call."
 openapi: "GET /batch/scrape/{id}"
 ---
 
 ## Overview
 
-The same response as [`GET /crawl/{id}`](/api-reference/endpoint/crawl-status), with `kind: "batch"`: progress, plus a page of scraped pages in completion order. Follow `next` until it is `null` to read every page. Results stay readable for **24 hours** after the batch finishes.
+The same response as [`GET /crawl/{id}`](/api-reference/endpoint/crawl-status), with `kind: "batch"`: progress, plus a page of scraped pages in completion order. Follow `next` until it is `null` to read every page. Results stay readable until `expires_at`, **24 hours** after the batch was created.
 
 Each page carries `ok`. A failed page has `ok: false`, an `error`, and an [`error_code`](/concepts/errors#error-codes), and is not charged.
 

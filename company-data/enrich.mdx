@@ -1,0 +1,170 @@
+---
+title: "Enrich a company"
+description: "Brand assets, company details and IAB industry for any domain, in one request. 12 credits."
+icon: "layer-group"
+---
+
+`/enrich` returns everything Prefetch knows about the company behind a URL: its [brand](/company-data/brand), its [company details](/company-data/company) and its [industry](/company-data/classify). The page is loaded once, so it costs less than calling the three separately.
+
+| Approach | Credits | Requests |
+|---|---|---|
+| `/enrich` | 12 | 1 |
+| `/brand` + `/company` + `/classify` | 20 | 3 |
+
+Each block sits under the same key its own endpoint uses: `data.brand`, `data.company` and `data.classification`. Code written for `/brand` or `/classify` reads an `/enrich` response unchanged. The one difference is `social_links`, which sits on `data.company` here and on `data.brand` in `/brand`.
+
+## Example requests
+
+<CodeGroup>
+
+```bash cURL
+curl "https://api.prefetch.io/enrich?url=https://stripe.com" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```bash With screenshot colors and CSS
+curl "https://api.prefetch.io/enrich?url=https://stripe.com&screenshotColors=6&css=true" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```javascript Node.js
+const res = await fetch("https://api.prefetch.io/enrich?url=https://stripe.com", {
+  headers: { "X-API-Key": process.env.PREFETCH_API_KEY },
+});
+const { data } = await res.json();
+
+console.log(data.company.display_name);              // "Stripe"
+console.log(data.classification.category);           // "Business"
+console.log(data.brand.colors.brand_colors[0].hex);  // "#635BFF"
+console.log(data.brand.logos.primary.url);
+```
+
+```python Python
+import os, requests
+
+r = requests.get(
+    "https://api.prefetch.io/enrich",
+    params={"url": "https://stripe.com"},
+    headers={"X-API-Key": os.environ["PREFETCH_API_KEY"]},
+)
+data = r.json()["data"]
+print(data["company"]["display_name"])        # "Stripe"
+print(data["classification"]["category"])     # "Business"
+print(data["brand"]["logos"]["primary"]["url"])
+```
+
+</CodeGroup>
+
+## Example response
+
+A real response for `stripe.com`, shortened where marked with `…`:
+
+```json
+{
+  "success": true,
+  "data": {
+    "domain": "stripe.com",
+    "url": "https://stripe.com/",
+    "brand": {
+      "colors": {
+        "brand_colors": [
+          { "hex": "#635BFF", "name": "Medium Slate Blue", "type": "accent", "color": "rgb(99, 91, 255)" },
+          { "hex": "#0A2540", "name": "Midnight Blue", "type": "dark", "color": "rgb(10, 37, 64)" },
+          { "hex": "#FFFFFF", "name": "White", "type": "light", "color": "rgb(255, 255, 255)" }
+        ]
+      },
+      "fonts": { "families": ["Sohne Var", "SF Pro Display"] },
+      "logos": {
+        "primary": { "url": "https://curated.prefetch.io/1fcd…/primary.svg", "type": "logo", "format": "svg", "background": "transparent" },
+        "secondary": [
+          { "url": "https://curated.prefetch.io/1fcd…/secondary_1.svg", "type": "logo", "format": "svg", "background": "transparent", "source_type": "logo" }
+        ],
+        "favicon_url": "https://curated.prefetch.io/1fcd…/favicon.png",
+        "icon_url": "https://curated.prefetch.io/1fcd…/icon.svg",
+        "apple_touch_icon": "https://curated.prefetch.io/1fcd…/apple_touch_icon.jpg"
+      },
+      "images": {
+        "og_image": "https://curated.prefetch.io/1fcd…/og_image.jpg",
+        "twitter_image": "https://curated.prefetch.io/1fcd…/og_image.jpg",
+        "assets": [{ "url": "https://curated.prefetch.io/1fcd…/asset_1779921418029.jpg", "alt": null, "type": "banner", "width": null, "height": null }],
+        "screenshot_url": "https://curated.prefetch.io/1fcd…/screenshot.jpg"
+      }
+    },
+    "company": {
+      "name": "Stripe, Inc.",
+      "display_name": "Stripe",
+      "parentCompany": null,
+      "employeeCount": 8000,
+      "foundedYear": 2010,
+      "isNsfw": false,
+      "emails": ["support@stripe.com"],
+      "addresses": [
+        { "raw": "South San Francisco, California, United States", "street": null, "city": "South San Francisco", "state": "California", "postal_code": null, "country": "United States" }
+      ],
+      "social_links": {
+        "twitter": "https://twitter.com/stripe",
+        "linkedin": "https://linkedin.com/company/stripe",
+        "facebook": "https://facebook.com/StripeHQ",
+        "instagram": null,
+        "youtube": "https://youtube.com/stripe",
+        "github": "https://github.com/stripe",
+        "tiktok": null
+      }
+    },
+    "classification": {
+      "iab_id": "IAB3-4",
+      "iab_parent_id": "IAB3",
+      "category": "Business",
+      "subcategory": "Business Software",
+      "description": "A payments and financial-technology platform that lets businesses accept and process online and in-person payments, manage billing and subscriptions, issue cards, and move money across borders via APIs and prebuilt tools. …",
+      "tagline_description": "A developer-first payments and financial infrastructure platform for online and in-person commerce.",
+      "long_description": "Stripe is a global technology company that provides infrastructure for online payments and financial services. It was founded in 2010 by Irish brothers Patrick and John Collison. …",
+      "stock_tickers": [],
+      "isins": []
+    }
+  },
+  "meta": {
+    "requestId": "e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9a0b",
+    "durationMs": 312
+  }
+}
+```
+
+<Note>
+Well-known companies like Stripe are answered from curated data in milliseconds. Other sites are read live, which takes 5 to 20 seconds, and the fields can differ a little. Treat every field as optional. See [Caching](/concepts/caching#company-data-curated-first).
+</Note>
+
+## Parameters
+
+`/enrich` takes the same options as [`/brand`](/company-data/brand#color-options). Like `/brand`, its parameters are camelCase. Batches and MCP take the snake_case spelling (`screenshot_colors`).
+
+| Parameter | Default | Description |
+|---|---|---|
+| `url` | required | The site to enrich |
+| `screenshotColors` | none | Also sample N dominant colors from a screenshot (2–12) |
+| `css` | `false` | Also extract colors from stylesheets |
+| `html` | `false` | Also extract colors from HTML attributes |
+| `javascript` | `false` | Also extract colors from JavaScript |
+| `filterAchromatic` | `false` | Drop near-white, near-black and grey colors |
+| `designTokens` | `false` | Add `brand.design_tokens`. See [design tokens](/company-data/brand#design-tokens). |
+| `screenshotWidth`, `screenshotHeight` | `1440`, `900` | Viewport for the screenshot used for colors and `screenshot_url` (320–3000) |
+| `screenshotFormat` | `jpeg` | `jpeg`, `png` or `pdf` |
+| `screenshotFullPage` | `false` | Capture the whole scrollable page |
+| `disableAdblocker` | `false` | Turn off the built-in ad blocker |
+
+The screenshot settings here only shape the screenshot `/enrich` takes for itself. To capture pages, use [`/screenshot`](/web-data/screenshot), which has its own options and limits.
+
+## For many domains
+
+Send up to 500 domains as one job with [`POST /batch/enrich`](/jobs/batches). Each domain costs the same 12 credits, and you don't have to manage concurrency yourself.
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="Enrich signups and leads" icon="user-plus" href="/recipes/enrich-signups">
+    A complete recipe: from a work email to a prefilled profile.
+  </Card>
+  <Card title="API reference" icon="code" href="/api-reference/endpoint/enrich">
+    Every parameter, and a playground to try it.
+  </Card>
+</CardGroup>

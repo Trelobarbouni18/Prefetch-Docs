@@ -1,12 +1,13 @@
 ---
 title: "GET /batch/{endpoint}/{id}"
+sidebarTitle: "Get batch status"
 description: "Progress and results of a batch, a page at a time. Each answered URL carries what a single call returns."
 openapi: "GET /batch/{endpoint}/{id}"
 ---
 
 ## Overview
 
-Returns the batch's progress and a page of answered URLs, in completion order. Each item carries every field the single endpoint returns for that URL — `domain`, `brand`, `company`, `classification`, `screenshot_url`, `styleguide`… — plus the batch's own bookkeeping:
+Returns the batch's progress and a page of answered URLs, in completion order. Each item carries every field the single endpoint returns for that URL (`domain`, `brand`, `company`, `classification`, `screenshot_url`, `styleguide`…), plus the batch's own bookkeeping:
 
 | Field | Meaning |
 |---|---|
@@ -14,7 +15,7 @@ Returns the batch's progress and a page of answered URLs, in completion order. E
 | `error`, `error_code` | Why, as one of the API's [error codes](/concepts/errors). |
 | `status_code` | 200 for an answered URL. |
 
-Follow `next` until it is `null` to read every result. Results stay readable for 24 hours after the batch is created.
+Follow `next` until it is `null` to read every result. Results stay readable until `expires_at`, 24 hours after the batch was created.
 
 ## Example request
 
@@ -53,9 +54,9 @@ curl "https://api.prefetch.io/batch/enrich/crw_7c2e9a4b1d0f4e6a8b3c5d7e9f1a2b3c?
         "error": null,
         "error_code": null,
         "domain": "stripe.com",
-        "brand": { "colors": { "brand_colors": [{ "color": "rgb(99, 91, 255)", "hex": "#635BFF", "name": "Blurple" }] } },
+        "brand": { "colors": { "brand_colors": [{ "color": "rgb(99, 91, 255)", "hex": "#635BFF", "name": "Medium Slate Blue" }] } },
         "company": { "name": "Stripe, Inc.", "emails": [], "addresses": [] },
-        "classification": { "iab_id": "IAB13", "category": "Personal Finance" }
+        "classification": { "iab_id": "IAB3-4", "category": "Business" }
       }
     ]
   },

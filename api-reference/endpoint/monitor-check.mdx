@@ -1,12 +1,13 @@
 ---
 title: "GET /monitor/{id}/checks/{checkId}"
+sidebarTitle: "Get a check"
 description: "What one check found, page by page: status, diff, and the judge's verdict. Free."
 openapi: "GET /monitor/{id}/checks/{checkId}"
 ---
 
 ## Overview
 
-Returns one check with a page of its per-page results. Each page carries its status, a diff when it changed, the judge's verdict when the monitor has a goal, and — in json mode — the full current extraction.
+Returns one check with a page of its per-page results. Each page carries its status, a diff when it changed, the judge's verdict when the monitor has a goal, and, in json mode, the full current extraction.
 
 Pass `status=changed` to see only the pages that changed. Results are paginated: follow `next` until it is `null`.
 
@@ -80,7 +81,7 @@ for page in check["pages"]:
         "status": "changed",
         "status_code": 200,
         "error": null,
-        "title": "Pricing — Example",
+        "title": "Pricing | Example",
         "previous_check_id": "chk_51b0c2d3e4f5a6b7c8d9e0f1a2b3c4d5",
         "is_meaningful": true,
         "judgment": {
@@ -119,9 +120,9 @@ for page in check["pages"]:
 | Status | Meaning |
 |---|---|
 | `queued` | Waiting for a worker. |
-| `running` | In progress — `pages` already holds what it has recorded. |
+| `running` | In progress: `pages` already holds what it has recorded. |
 | `completed` | Every page was checked. |
-| `partial` | Some pages errored, or the check stopped early on credits or its 30-minute limit. Its results are real but incomplete — `error` says why. |
+| `partial` | Some pages errored, or the check stopped early on credits or its 30-minute limit. Its results are real but incomplete: `error` says why. |
 | `failed` | No page could be checked. |
 | `skipped_overlap` | The previous check was still running when this one came due. |
 | `skipped_no_credits` | The key that owns the monitor had no credits left, or was revoked. Never charged. |
@@ -130,7 +131,7 @@ for page in check["pages"]:
 
 | Field | Meaning |
 |---|---|
-| `status` | `same`, `new`, `changed`, `removed` or `error` — see [detecting changes](/api-reference/endpoint/monitor#detecting-changes). |
+| `status` | `same`, `new`, `changed`, `removed` or `error`. See [detecting changes](/monitors/change-detection). |
 | `diff.text`, `diff.hunks` | Markdown mode: the unified diff, and the same hunks as structured lines. |
 | `diff.fields` | Json mode: each changed field by JSON path, with `previous`, `current` and `change` (`added`, `removed` or `changed`). |
 | `diff.truncated` | The diff was larger than the stored cap. `added_lines` and `removed_lines` still count all of it. |

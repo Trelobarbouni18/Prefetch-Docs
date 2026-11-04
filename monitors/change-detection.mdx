@@ -1,0 +1,63 @@
+---
+title: "Detecting changes"
+description: "How a monitor decides a page changed: text diffs, tracked JSON fields, and the options that keep noise out."
+icon: "code-compare"
+---
+
+Each page in each check gets one status:
+
+| Status | Meaning |
+|---|---|
+| `same` | Fetched again, and nothing changed. |
+| `new` | Seen for the first time: on the first check, or a page that appeared since. |
+| `changed` | Fetched again, and the content differs. The page carries a `diff`. |
+| `removed` | A page the monitor knew answered 404 or 410, or a crawl that ran to completion no longer finds it. Reported once. |
+| `error` | Couldn't be checked. The last good snapshot is kept, so the next good check compares against it. |
+
+## Text mode
+
+By default the page's **markdown** is compared. `diff.text` holds a unified diff, and `diff.hunks` has the same hunks as structured lines.
+
+Rendering noise never counts as a change: whitespace and line endings, invisible characters and non-breaking spaces, and the tracking, session and signature parameters in link URLs (`utm_source`, `fbclid`, `jsessionid`, signed CDN URLs). A page that loads but renders no text at all is reported as an `error`, not as every line removed.
+
+## JSON mode
+
+To watch specific facts instead of the whole text, use **json** mode. Describe the fields, and each check extracts them and compares them one by one:
+
+```json
+{
+  "type": "scrape",
+  "urls": ["https://example.com/pricing"],
+  "change_tracking": { "modes": ["json"], "json_prompt": "Each plan: name, monthly price, headline features" }
+}
+```
+
+A page is then `changed` only when a tracked field changes, and `diff.fields` says exactly which one: `plans[0].price: "$19/mo" → "$24/mo"`. Pass `json_schema` instead of, or as well as, `json_prompt` to fix the shape. Use `"modes": ["json", "markdown"]` to get both diffs.
+
+The extraction runs again only when the page's text changed. An unchanged page keeps its last extraction, so a model reading identical text a little differently is never a change, and costs nothing. List items are matched by identity (an `id`, `url`, `name` or `title` field), so one job inserted at the top of a list is one `added` field, not every job shifted.
+
+## Cutting noise
+
+Most false alarms come from page furniture: a "last updated" date, a rotating testimonial, a visitor counter. These `change_tracking` options keep them quiet:
+
+| Option | What it does |
+|---|---|
+| `ignore_text` | Up to 25 phrases. Lines that contain one are left out of the comparison. Plain text, case-insensitive, with `*` for anything: `["people are viewing", "viewed * times"]`. |
+| `ignore_dates` | Masks dates, times and "3 minutes ago" before comparing. |
+| `ignore_order` | Lines that only moved aren't a change. |
+| `notify_on` | Which kinds of change notify you: `added`, `removed` or `changed` lines or fields. For a crawl, that's pages that appear or disappear. `["added"]` tells you about new job posts, not filled ones. |
+| `only_new_content` | Notify only when a change brings text the page hasn't shown recently, so content that cycles (a carousel, A/B variants) stays quiet. |
+
+`ignore_text`, `ignore_dates` and `ignore_order` change only what's compared. A change still shows the page as it reads.
+
+`notify_on` and `only_new_content` decide whether a change notifies you. The page is still recorded as `changed`, and `diff.alert` says why it was held back.
+
+Changing any of these options re-baselines the target's pages silently, instead of reporting them all as changed.
+
+<Tip>
+You can also leave parts of the page out with `scrape_options.exclude_selectors`, or switch to json mode and track only what you care about. Images are left out of the comparison by default, because their URLs change with every deploy.
+</Tip>
+
+## Reading a change
+
+[`GET /monitor/{id}/checks/{checkId}?status=changed`](/api-reference/endpoint/monitor-check) lists the pages that changed in one check, with their diffs, the judge's verdict and, in json mode, the full current extraction.

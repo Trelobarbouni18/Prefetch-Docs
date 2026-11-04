@@ -1,0 +1,45 @@
+---
+title: "Caching and freshness"
+description: "When Prefetch fetches a page live, when it answers from stored or curated data, and how to control it."
+icon: "clock-rotate-left"
+---
+
+Prefetch answers some requests from data it already has. That's faster, and you choose how fresh is fresh enough.
+
+## Pages: live by default
+
+`/scrape`, `/search` (for scraped results), crawls and batch scrapes fetch every page live unless you say otherwise.
+
+Set `max_age` in milliseconds, up to 30 days, to accept a stored copy fetched at most that long ago:
+
+```bash
+curl "https://api.prefetch.io/scrape?url=https://stripe.com/pricing&max_age=3600000" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+- A stored copy answers any mix of formats and comes back faster. It costs the same as a live fetch.
+- `metadata.cache_state` says what happened: `hit` or `miss`. A hit carries `metadata.cached_at`.
+- Requests that send `headers` are never stored or served from storage.
+
+MCP and REST share the same request cache, so a page fetched over one can be answered from cache over the other.
+
+## Company data: curated first
+
+`/enrich`, `/brand`, `/company`, `/classify` and batches of them answer well-known companies from curated data, in milliseconds. Other sites are read live, which takes 5 to 20 seconds.
+
+Curated answers can carry fewer fields than a live read. Two kinds of request are always read live:
+
+- `/brand` or `/enrich` with `designTokens=true`
+- `/styleguide`, although a repeat request can come from the request cache
+
+## Lookups that remember
+
+| Endpoint | What's reused |
+|---|---|
+| [`/resolve`](/company-data/resolve) | A name verified by a live lookup is added to the index, so the next lookup of that name is instant. |
+| [`/transaction`](/company-data/transaction) | The same line, country and MCC looked up in the last 7 days costs 1 credit instead of 3. |
+| [Logo CDN](/company-data/logo-cdn) | Logos are cached at the edge for a week, and in browsers for a day. Repeat views don't count against your quota. |
+
+## Caching on your side
+
+Most brand and company data changes rarely. Store it for days, and refresh it on a schedule or when a user asks. For pages that change, a [monitor](/monitors/overview) tells you when to fetch again, instead of re-fetching on a timer.

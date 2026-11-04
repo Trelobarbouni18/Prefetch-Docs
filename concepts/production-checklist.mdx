@@ -1,0 +1,51 @@
+---
+title: "Production checklist"
+description: "What to check before you send real traffic to Prefetch: keys, errors, retries, concurrency, timeouts, webhooks and costs."
+icon: "list-check"
+---
+
+Test three cases before you launch: a site that works, a site that can't be read, and a result with missing fields. Then work through this list.
+
+## Keys
+
+- [ ] Keys live on your server or in a secret store, never in browser code or a repository.
+- [ ] Development and production use separate keys.
+- [ ] Each key has a credit limit, so a bug can't spend your whole balance.
+- [ ] Browser-side logos use the [logo CDN](/company-data/logo-cdn) token, not your API key.
+
+## Errors and retries
+
+- [ ] Your code branches on `error_code`, not on the `error` message.
+- [ ] You retry only when `retryable` is `true`, with exponential backoff, and you honor `Retry-After`.
+- [ ] Missing fields are handled. Curated and live answers can differ, and many fields can be `null`.
+
+See [Error handling](/concepts/errors).
+
+## Throughput
+
+- [ ] Parallel requests stay at or under your plan's [concurrency limit](/concepts/rate-limits).
+- [ ] Lists of more than a few dozen URLs go through a [batch](/jobs/batches), not a loop.
+- [ ] Your HTTP client allows at least 60 seconds per request. Most endpoints finish within 55.
+
+## Webhooks
+
+- [ ] Your handler verifies `X-Prefetch-Signature` against the raw body.
+- [ ] It answers `2xx` within 10 seconds and does slow work afterward.
+- [ ] It skips deliveries it has already handled.
+
+See [Webhooks](/concepts/webhooks).
+
+## Costs
+
+- [ ] You store brand and company data instead of fetching it on every page view. See [Caching](/concepts/caching).
+- [ ] Each monitor's `estimated_credits_per_month` fits your budget, and monitors you don't need are paused.
+- [ ] Crawls have a sensible `limit` and `include_paths`.
+
+## Content from the web
+
+- [ ] If page text reaches a language model, treat it as untrusted. Turn on `check_prompt_injection` for pages you don't control. See [Security](/concepts/security).
+
+## Observability
+
+- [ ] You log `meta.requestId`, the status and the `error_code` for every failed call.
+- [ ] Someone watches the [changelog](/changelog).

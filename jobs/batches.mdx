@@ -1,0 +1,186 @@
+---
+title: "Batches"
+description: "Run scrape, enrich, brand, company, classify, screenshot or styleguide on up to 500 URLs as one job. Free to submit; each URL costs what one call costs."
+icon: "layer-group"
+---
+
+A batch runs one endpoint over a list of URLs, up to 500, as a single background job. You send one request instead of hundreds, and Prefetch manages concurrency for you.
+
+| Path | Each URL is answered as | Credits per URL |
+|---|---|---|
+| `POST /batch/scrape` | [`/scrape`](/web-data/scrape), configured with `scrape_options` | 1, or 4 with `summary`, `json` or `check_prompt_injection` |
+| `POST /batch/enrich` | [`/enrich`](/company-data/enrich) | 12 |
+| `POST /batch/brand` | [`/brand`](/company-data/brand) | 10 |
+| `POST /batch/styleguide` | [`/styleguide`](/company-data/styleguide) | 10 |
+| `POST /batch/company` | [`/company`](/company-data/company) | 5 |
+| `POST /batch/classify` | [`/classify`](/company-data/classify) | 5 |
+| `POST /batch/screenshot` | [`/screenshot`](/web-data/screenshot) | 1 |
+
+Each URL is answered exactly as a single call would answer it: curated data first, then a live read. A batch scrape fetches only the URLs you list. It follows no links and reads no sitemap. To discover pages, use a [crawl](/web-data/crawl).
+
+## Example requests
+
+<CodeGroup>
+
+```bash Enrich a list of domains
+curl -X POST "https://api.prefetch.io/batch/enrich" \
+  -H "X-API-Key: $PREFETCH_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "urls": ["stripe.com", "linear.app", "notion.so"],
+    "webhook": "https://example.com/hooks/prefetch"
+  }'
+```
+
+```bash Scrape a list of pages
+curl -X POST "https://api.prefetch.io/batch/scrape" \
+  -H "X-API-Key: $PREFETCH_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "urls": ["https://stripe.com/pricing", "https://stripe.com/docs"],
+    "scrape_options": { "formats": ["markdown"], "only_main_content": true }
+  }'
+```
+
+```bash Brand kits with design tokens
+curl -X POST "https://api.prefetch.io/batch/brand" \
+  -H "X-API-Key: $PREFETCH_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "urls": ["https://vercel.com", "https://figma.com"],
+    "options": { "design_tokens": true },
+    "concurrency": 3
+  }'
+```
+
+```javascript Node.js (submit and poll)
+const base = "https://api.prefetch.io";
+const headers = { "X-API-Key": process.env.PREFETCH_API_KEY, "Content-Type": "application/json" };
+
+const submit = await fetch(`${base}/batch/enrich`, {
+  method: "POST",
+  headers,
+  body: JSON.stringify({ urls: ["stripe.com", "linear.app", "notion.so"] }),
+});
+const { data: job } = await submit.json();
+
+let status;
+do {
+  await new Promise((r) => setTimeout(r, 5000));
+  ({ data: status } = await (await fetch(`${base}/batch/enrich/${job.id}`, { headers })).json());
+} while (status.status === "pending" || status.status === "running");
+
+for (const item of status.data) {
+  console.log(item.url, item.ok ? item.company?.name : item.error_code);
+}
+```
+
+```python Python (submit and poll)
+import os, time, requests
+
+base = "https://api.prefetch.io"
+headers = {"X-API-Key": os.environ["PREFETCH_API_KEY"]}
+
+job = requests.post(
+    f"{base}/batch/enrich",
+    headers=headers,
+    json={"urls": ["stripe.com", "linear.app", "notion.so"]},
+).json()["data"]
+
+while True:
+    time.sleep(5)
+    status = requests.get(f"{base}/batch/enrich/{job['id']}", headers=headers).json()["data"]
+    if status["status"] not in ("pending", "running"):
+        break
+
+for item in status["data"]:
+    print(item["url"], item["company"]["name"] if item["ok"] else item["error_code"])
+```
+
+</CodeGroup>
+
+## Example response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "crw_7c2e9a4b1d0f4e6a8b3c5d7e9f1a2b3c",
+    "status": "pending",
+    "endpoint": "enrich",
+    "url_count": 3,
+    "invalid_urls": [],
+    "created_at": "2026-10-13T09:14:03.221Z",
+    "expires_at": "2026-10-14T09:14:03.221Z"
+  },
+  "meta": { "requestId": "1d2c3b4a-5e6f-4a7b-8c9d-0e1f2a3b4c5d", "durationMs": 212 }
+}
+```
+
+Batch ids start with `crw_`, like crawl ids, because batches run on the same job system. Read results with `GET /batch/{endpoint}/{id}`, for example `GET /batch/enrich/crw_7c2e…`. See [Async jobs](/concepts/async-jobs) for polling, pagination and expiry.
+
+## Results
+
+Each result carries every field the single endpoint returns for that URL (`domain`, `brand`, `company`, `classification`, `screenshot_url`, `styleguide`, `markdown`…), plus:
+
+| Field | Meaning |
+|---|---|
+| `ok` | `false` when the URL couldn't be answered. You aren't charged for it. |
+| `error`, `error_code` | Why, as one of the API's [error codes](/concepts/errors). |
+| `status_code` | `200` for an answered URL. |
+
+`GET /batch/{endpoint}/{id}/errors` lists only the URLs that failed, so you can resubmit the retryable ones.
+
+## Options
+
+### Endpoint options
+
+For `/batch/{endpoint}`, `options` are that endpoint's own parameters, applied to every URL. Both snake_case and camelCase work, as typed JSON or as strings:
+
+| Endpoint | Example `options` |
+|---|---|
+| brand, enrich | `{ "design_tokens": true, "css": true, "screenshot_colors": 5 }` |
+| screenshot | `{ "device": "iphone_15", "dark_mode": true, "format": "webp" }` |
+| styleguide | `{ "dark_mode": true }` |
+| company, classify | none |
+
+For `/batch/scrape`, use `scrape_options` instead. It takes everything [`/scrape`](/web-data/scrape) takes.
+
+Options are checked before anything is queued. An invalid option is a `400` that names it.
+
+### Job options
+
+| Option | Default | Meaning |
+|---|---|---|
+| `concurrency` | 2 | URLs run in parallel, 1 to 5. Brand, enrich, screenshot and styleguide batches render every page, so they run at most 3 at a time and default to 3. |
+| `ignore_invalid_urls` | `false` | Drop malformed or blocklisted URLs, listed in `invalid_urls`, instead of rejecting the whole batch with a `400`. |
+| `webhook` | none | Get each result pushed to you. See below. |
+
+Duplicates, including the same site under another spelling (`www.`, a trailing slash), run once.
+
+## Webhooks
+
+`webhook` works as it does for [crawls](/web-data/crawl#webhooks). Events are named for the endpoint: `batch_enrich.started`, `batch_enrich.page` (one per URL, carrying its result), `batch_enrich.completed` and `batch_enrich.failed`, or `batch_scrape.*` for a batch scrape. Each delivery is signed with the secret returned when the batch is created. See [Webhooks](/concepts/webhooks).
+
+Webhooks aren't available through RapidAPI. Poll the status endpoint instead.
+
+## Credits
+
+Submitting is free. Each URL answered costs what one call of that endpoint costs, charged as URLs complete, and never twice. Failed URLs are free.
+
+A `/batch/{endpoint}` job your key can't pay for in full is refused up front with `CREDITS_EXHAUSTED`, and the message says how many URLs fit. A 500-domain `/batch/enrich` can cost up to 6,000 credits.
+
+## Over MCP
+
+`prefetch_batch` and `prefetch_batch_scrape` submit a batch and wait for it, returning the results if it finishes in time and an id for `prefetch_check_crawl_status` if not.
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="Build a company directory" icon="address-book" href="/recipes/company-directory">
+    A recipe that enriches hundreds of domains with one batch.
+  </Card>
+  <Card title="API reference" icon="code" href="/api-reference/endpoint/batch">
+    Every parameter, and a playground to try it.
+  </Card>
+</CardGroup>

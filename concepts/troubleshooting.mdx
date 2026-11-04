@@ -1,0 +1,75 @@
+---
+title: "Troubleshooting"
+description: "Fixes for the most common Prefetch problems: auth errors, 429s, empty pages, small crawls, missing webhooks and noisy monitors."
+icon: "screwdriver-wrench"
+---
+
+Start with the response. Every error carries an `error_code` and a `retryable` flag, and every response carries `meta.requestId`. Quote the `requestId` if you [contact support](mailto:hi@prefetch.io).
+
+## Authentication
+
+| You see | Fix |
+|---|---|
+| `401` `"API key required"` | Send the key in the `X-API-Key` header. REST endpoints don't read `Authorization: Bearer`. Only `/mcp` does. |
+| `403` `"Invalid API key"` | The key isn't the one on your [dashboard](https://prefetch.io/dashboard). Check the environment variable your code actually reads. |
+| `403` `CREDITS_EXHAUSTED` | The key has used its credits. [Top up](/concepts/credits#top-ups) or wait for the refill. |
+| `403` `FORBIDDEN` | The key can't use this feature. Monitors, for example, need a direct Prefetch key, not a RapidAPI subscription. Webhooks, MCP and the logo CDN aren't available through RapidAPI either. |
+
+## Too many requests
+
+| You see | Fix |
+|---|---|
+| `429` `CONCURRENCY_LIMITED` | More requests are running than your plan allows. Run fewer in parallel, or send one [batch](/jobs/batches) instead. |
+| `429` `RATE_LIMITED` | Free plan, over 30 a minute. Wait `retryAfterSeconds`. |
+
+See [Rate limits](/concepts/rate-limits).
+
+## A page comes back empty or incomplete
+
+- **The content loads late.** Add `wait_for` (milliseconds) or `wait_for_selector` so the page finishes rendering first.
+- **The main content was hard to find.** A `warnings` entry says the full page body was returned instead. Name the content with `include_selectors`, or drop clutter with `exclude_selectors`.
+- **The site blocks bots** (`TARGET_BLOCKED`). Retrying won't help. Some sites refuse every automated request.
+- **It's a file, not a page** (`TARGET_NOT_A_PAGE`). PDFs are read as documents. Other downloads aren't.
+- **`summary` or `json` is `null`.** The language model step failed on its own. The reason is in `warnings`, and the rest of the scrape is still there.
+- **A `json` field is `null`.** The value isn't on the page. Prefetch never fills fields in from a model's own knowledge.
+
+## A crawl returns fewer pages than expected
+
+Call [`GET /crawl/{id}/errors`](/api-reference/endpoint/crawl-errors). It counts every skipped URL by reason:
+
+| Large count | Usually means |
+|---|---|
+| `limit` | The crawl ran out of budget. Raise `limit`. |
+| `out-of-scope` | Links pointed above the start URL's path. Set `crawl_entire_domain: true`. |
+| `depth` | Pages are deeper than `max_depth`. Raise it, or seed from the sitemap. |
+| `not-included`, `excluded` | Your `include_paths` or `exclude_paths` patterns are too strict. They match the path and query, not the hostname. |
+| `robots` | The site's `robots.txt` disallows them. |
+
+## `/map` fails with `NO_LINKS_FOUND`
+
+The page links to none of the site's own pages, and no sitemap lists any. This is common on apps that build their links with JavaScript after user input. Try `sitemap=only`, or map a different page on the site.
+
+## Webhooks don't arrive
+
+- The URL must be public and use `https://`. `localhost` never works. Use a tunnel while you develop.
+- Answer with a `2xx` within 10 seconds, and do slow work after you respond.
+- Webhooks aren't available through RapidAPI keys.
+- Missed one? The status endpoint always has every result. See [Webhooks](/concepts/webhooks).
+
+## A monitor is noisy or quiet
+
+| Problem | Fix |
+|---|---|
+| Alerts for timestamps, counters or rotating banners | Use `ignore_text`, `ignore_dates` or `exclude_selectors`. See [cutting noise](/monitors/change-detection#cutting-noise). |
+| You only care about a few facts | Switch the target to `json` mode and track just those fields. |
+| No alerts on the first check | Expected. The first check records a baseline. Changes show from the second check. |
+| Changes are recorded but not sent | The judge ruled them not meaningful for your goal. Read `judgment.reason` on the check, and sharpen the [goal](/monitors/goals). |
+| Checks say `skipped_no_credits` | The key that created the monitor ran out of credits. The monitor resumes when they refill. |
+
+## Logos show a letter mark
+
+The logo CDN shows a letter mark while it looks a new domain's logo up in the background. The next request usually has the real logo. Use `fallback=404` or `fallback=transparent` to handle it yourself.
+
+## Still stuck?
+
+Email [hi@prefetch.io](mailto:hi@prefetch.io) with the `requestId`, the request you sent, and what you expected.

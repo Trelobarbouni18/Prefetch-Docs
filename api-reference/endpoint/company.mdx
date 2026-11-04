@@ -1,87 +1,14 @@
 ---
 title: "GET /company"
-description: "Extract legal company name, contact emails, and physical addresses from a website. Costs 5 credits."
+sidebarTitle: "Company"
+description: "Legal name, contact emails, addresses and key pages for the company behind a website. 5 credits."
 openapi: "GET /company"
 ---
 
-## Overview
+Returns the organization behind a site under `data.company`.
 
-`/company` scrapes a website to identify the legal entity behind it. It looks for structured data (JSON-LD, schema.org), footer content, contact pages, and other signals to extract:
+**5 credits.** Failed requests are never charged.
 
-- **Company name** — legal entity name (e.g. "Stripe, Inc.")
-- **Emails** — contact and support email addresses
-- **Addresses** — physical locations including street, city, state, ZIP, country
-- **Key pages** — `links`: the `about`, `pricing`, `careers`, `contact`, `blog` and `docs` pages the homepage links to, each null when it links none
-
-This endpoint uses a hybrid approach: it first attempts a fast static fetch, falling back to headless Chrome only when needed.
-
-## Example request
-
-<CodeGroup>
-
-```bash cURL
-curl "https://api.prefetch.io/company?url=https://stripe.com" \
-  -H "X-API-Key: $PREFETCH_API_KEY"
-```
-
-```javascript Node.js
-const res = await fetch(
-  "https://api.prefetch.io/company?url=https://stripe.com",
-  { headers: { "X-API-Key": process.env.PREFETCH_API_KEY } }
-);
-const { success, data } = await res.json();
-console.log(data.company.name);   // "Stripe, Inc."
-console.log(data.company.emails); // ["support@stripe.com"]
-```
-
-```python Python
-import requests, os
-
-r = requests.get(
-    "https://api.prefetch.io/company",
-    params={"url": "https://stripe.com"},
-    headers={"X-API-Key": os.environ["PREFETCH_API_KEY"]},
-)
-company = r.json()["data"]["company"]
-print(company["name"])
-print(company["addresses"])
-```
-
-</CodeGroup>
-
-## Example response
-
-```json
-{
-  "success": true,
-  "data": {
-    "domain": "stripe.com",
-    "url": "https://stripe.com",
-    "company": {
-      "name": "Stripe, Inc.",
-      "emails": [
-        "support@stripe.com"
-      ],
-      "addresses": [
-        "354 Oyster Point Blvd, South San Francisco, CA 94080"
-      ],
-      "social_links": {
-        "twitter": "https://twitter.com/stripe",
-        "linkedin": "https://linkedin.com/company/stripe"
-      },
-      "links": {
-        "about": "https://stripe.com/about",
-        "pricing": "https://stripe.com/pricing",
-        "careers": "https://stripe.com/jobs",
-        "contact": "https://stripe.com/contact/sales",
-        "blog": "https://stripe.com/blog",
-        "docs": "https://docs.stripe.com/"
-      }
-    }
-  },
-  "meta": {
-    "requestId": "b9e1a2f3-4c5d-6e7f-8a9b-0c1d2e3f4a5b",
-    "durationMs": 3210
-  }
-}
-```
+<Card title="Guide: Company" icon="book-open" href="/company-data/company">
+  Every field, curated and live answers, and examples.
+</Card>

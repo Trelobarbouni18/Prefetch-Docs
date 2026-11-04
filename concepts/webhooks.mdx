@@ -1,0 +1,164 @@
+---
+title: "Webhooks"
+description: "Get crawl, batch and monitor results pushed to you: events, payloads, signature verification and retries."
+icon: "bell"
+---
+
+Crawls, batches and monitors can POST their results to your server as they happen, so you don't have to poll. This page covers what every Prefetch webhook has in common.
+
+## Events
+
+| Source | Events | Set up with |
+|---|---|---|
+| [Crawl](/web-data/crawl) | `crawl.started`, `crawl.page`, `crawl.completed`, `crawl.failed` | `webhook` on `POST /crawl` |
+| [Batch scrape](/jobs/batches) | `batch_scrape.started`, `batch_scrape.page`, `batch_scrape.completed`, `batch_scrape.failed` | `webhook` on `POST /batch/scrape` |
+| [Batch](/jobs/batches) | `batch_<endpoint>.started`, `.page`, `.completed` and `.failed`, for example `batch_enrich.page` | `webhook` on `POST /batch/{endpoint}` |
+| [Monitor](/monitors/alerts) | [`monitor.page`](/api-reference/endpoint/monitor-webhook-page), [`monitor.check.completed`](/api-reference/endpoint/monitor-webhook-check) | `webhook` on `POST /monitor` |
+
+A `.page` event carries one result: a crawled page, or one URL's answer in a batch. Failed pages are sent too, with `ok: false`.
+
+## Configure a webhook
+
+Pass an `https://` URL, or an object:
+
+```json
+{
+  "webhook": {
+    "url": "https://example.com/hooks/prefetch",
+    "events": ["page", "completed"],
+    "headers": { "Authorization": "Bearer your-token" },
+    "metadata": { "job": "docs-sync" }
+  }
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `url` | Where to POST. It must be a public `https://` address. |
+| `events` | Which events to send. Leave it out to get all of them. Crawls and batches take short names (`page`, `completed`); monitors take full names (`monitor.page`). |
+| `headers` | Sent with every delivery. Use them to authenticate Prefetch to your server. |
+| `metadata` | Echoed back in every payload, up to 4 KB. Use it to tie a delivery to your own job. |
+
+Webhooks aren't available through RapidAPI, which can only bill a response. Poll the status endpoint instead.
+
+## Payload
+
+Crawl and batch deliveries share one envelope:
+
+```json
+{
+  "success": true,
+  "type": "crawl.page",
+  "id": "whd_3f9a1c7e5b2d4f6a8c0e1b3d",
+  "created_at": "2026-10-11T09:14:09.512Z",
+  "crawl_id": "crw_9f2c1a7b4e0d4c3a8b1e5f7d2c9a0b3e",
+  "data": { "url": "https://docs.stripe.com/payments", "ok": true, "markdown": { "content": "# Payments..." } },
+  "metadata": { "job": "docs-sync" }
+}
+```
+
+`data` is the same object the status endpoint returns for that page. Monitor payloads are described on the [`monitor.page`](/api-reference/endpoint/monitor-webhook-page) and [`monitor.check.completed`](/api-reference/endpoint/monitor-webhook-check) pages.
+
+## Verify signatures
+
+Every delivery carries an `X-Prefetch-Signature` header:
+
+```
+X-Prefetch-Signature: t=1760248862,v1=5f2b8c1e...
+```
+
+`v1` is the hex HMAC-SHA256 of `<t>.<raw request body>`, keyed with the webhook's secret. The timestamp is signed too, so a captured request can't be replayed with a fresh header. Reject anything older than five minutes.
+
+Verify against the **raw** body, before you parse the JSON. Re-serializing it changes the bytes and breaks the signature.
+
+<CodeGroup>
+
+```javascript Node.js (Express)
+import crypto from "node:crypto";
+import express from "express";
+
+const app = express();
+
+app.post("/hooks/prefetch", express.raw({ type: "application/json" }), (req, res) => {
+  const header = req.get("X-Prefetch-Signature") || "";
+  const { t, v1 } = Object.fromEntries(header.split(",").map((kv) => kv.split("=")));
+
+  const fresh = Math.abs(Date.now() / 1000 - Number(t)) <= 300;
+  const expected = crypto
+    .createHmac("sha256", process.env.PREFETCH_WEBHOOK_SECRET)
+    .update(`${t}.${req.body}`)
+    .digest();
+  const given = Buffer.from(v1 || "", "hex");
+
+  if (!fresh || given.length !== expected.length || !crypto.timingSafeEqual(given, expected)) {
+    return res.status(401).send("invalid signature");
+  }
+
+  const event = JSON.parse(req.body);
+  res.sendStatus(200); // acknowledge first, then do the work
+  handle(event);
+});
+```
+
+```python Python (Flask)
+import hashlib, hmac, os, time
+from flask import Flask, request, abort
+
+app = Flask(__name__)
+
+@app.post("/hooks/prefetch")
+def prefetch_webhook():
+    header = request.headers.get("X-Prefetch-Signature", "")
+    parts = dict(kv.split("=", 1) for kv in header.split(",") if "=" in kv)
+    t, v1 = parts.get("t", "0"), parts.get("v1", "")
+
+    expected = hmac.new(
+        os.environ["PREFETCH_WEBHOOK_SECRET"].encode(),
+        f"{t}.".encode() + request.get_data(),
+        hashlib.sha256,
+    ).hexdigest()
+
+    if abs(time.time() - int(t)) > 300 or not hmac.compare_digest(v1, expected):
+        abort(401)
+
+    event = request.get_json()
+    # ... handle the event
+    return "", 200
+```
+
+</CodeGroup>
+
+### Where the secret comes from
+
+| Source | Secret |
+|---|---|
+| Crawl or batch | `webhook.secret` in the `POST` response. That's the only place it appears, so store it. |
+| Monitor | `webhook.secret` on the monitor. Read it again with [`GET /monitor/{id}`](/api-reference/endpoint/monitor-get), and replace it with `"rotate_secret": true` on [`PATCH /monitor/{id}`](/api-reference/endpoint/monitor-update#rotating-the-signing-secret). |
+
+## Respond and retry
+
+Answer with any `2xx` within **10 seconds**, then do slow work afterward. A timeout, a `4xx` or `5xx`, or a redirect counts as a failure and is retried:
+
+| Source | Retries | Then |
+|---|---|---|
+| Crawl and batch | After 2, 10 and 30 seconds | The delivery is dropped |
+| Monitor | After 1, 5 and 15 minutes | The delivery is marked failed |
+
+Crawl and batch deliveries go out in order. Monitor retries carry the same `id`, also sent as the `X-Prefetch-Delivery` header, so store the ids you've handled and skip repeats.
+
+Webhooks are a notification, not the record. The status endpoint always has every page, and a monitor's checks are readable with [`GET /monitor/{id}/checks/{checkId}`](/api-reference/endpoint/monitor-check).
+
+## Monitor headers
+
+| Header | Value |
+|---|---|
+| `X-Prefetch-Event` | The event name, such as `monitor.page` |
+| `X-Prefetch-Delivery` | The delivery id, the same as `id` in the body |
+| `X-Prefetch-Signature` | `t=<unix seconds>,v1=<hex HMAC-SHA256>` |
+| `User-Agent` | `Prefetch-Webhooks/1.0` |
+
+Any `headers` you set on the webhook are sent as well.
+
+## Testing locally
+
+Prefetch only calls public `https://` addresses, so `localhost` won't work. Use a tunnel such as ngrok or Cloudflare Tunnel, or a request inspector, while you build your handler.

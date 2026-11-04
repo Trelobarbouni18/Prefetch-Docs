@@ -1,0 +1,156 @@
+---
+title: "Map a site"
+description: "List every URL a site exposes, from its sitemaps and on-page links, without fetching the pages. 1 credit."
+icon: "sitemap"
+---
+
+`/map` answers "what pages does this site have?" without downloading them. It merges two sources:
+
+- **Sitemaps,** found through `robots.txt` first, then at the usual locations (`/sitemap.xml`, `/sitemap_index.xml`). Sitemap indexes are followed one level deep. One sitemap can describe a whole site, cheaply.
+- **On-page links,** every link on the URL you pass. This is the fallback for sites without a sitemap, and the only source that shows what's actually linked today.
+
+A URL found in both appears once. It's marked as coming from the sitemap, because sitemaps carry `lastmod`, but it keeps the link's label from the page (its `title` or `aria-label`, otherwise its text) as a title.
+
+The first 10 links also get their own page's `<title>` and meta description, read within a short time budget. A page that doesn't answer in time keeps its link label and a `null` description.
+
+Use `/map` to plan a crawl, to find one page without guessing its path, or to see what a site published recently.
+
+## Example requests
+
+<CodeGroup>
+
+```bash Everything
+curl "https://api.prefetch.io/map?url=https://stripe.com" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```bash Search
+curl "https://api.prefetch.io/map?url=https://stripe.com&search=pricing&limit=20" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```bash Sitemaps only
+curl "https://api.prefetch.io/map?url=https://stripe.com&sitemap=only" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```javascript Node.js
+const params = new URLSearchParams({ url: "https://stripe.com", search: "pricing", limit: "20" });
+
+const res = await fetch(`https://api.prefetch.io/map?${params}`, {
+  headers: { "X-API-Key": process.env.PREFETCH_API_KEY },
+});
+const { data } = await res.json();
+
+console.log(`${data.count} of ${data.total_discovered} links`);
+data.links.forEach((l) => console.log(l.url));
+```
+
+```python Python
+import os, requests
+
+r = requests.get(
+    "https://api.prefetch.io/map",
+    params={"url": "https://stripe.com", "search": "pricing", "limit": 20},
+    headers={"X-API-Key": os.environ["PREFETCH_API_KEY"]},
+)
+for link in r.json()["data"]["links"]:
+    print(link["url"], link["source"])
+```
+
+</CodeGroup>
+
+## Example response
+
+```json
+{
+  "success": true,
+  "data": {
+    "url": "https://stripe.com",
+    "domain": "stripe.com",
+    "links": [
+      {
+        "url": "https://stripe.com/pricing",
+        "title": "Pricing & Fees | Stripe",
+        "description": "Find Stripe fees and pricing information.",
+        "lastmod": "2026-07-02",
+        "source": "sitemap"
+      },
+      {
+        "url": "https://stripe.com/enterprise/pricing",
+        "title": null,
+        "description": null,
+        "lastmod": null,
+        "source": "sitemap"
+      }
+    ],
+    "count": 2,
+    "total_discovered": 2,
+    "sources": { "sitemap": 2, "links": 0 },
+    "sitemaps_used": ["https://stripe.com/sitemap/sitemap.xml"]
+  },
+  "meta": {
+    "requestId": "b4e3d2c1-8a7b-4c3d-9e2f-1a3b5c7d9e1f",
+    "durationMs": 1830
+  }
+}
+```
+
+## Reading the response
+
+| Field | Meaning |
+|---|---|
+| `count` | Links returned, after `limit`. |
+| `total_discovered` | Links found before `limit`. A much larger number means you're seeing a slice. |
+| `sources` | How many returned links came from each source. `{"sitemap": 0}` means the site has no usable sitemap. |
+| `sitemaps_used` | The sitemaps that produced entries. |
+| `source` on a link | `sitemap` or `links`. |
+| `lastmod` on a link | Only for sitemap entries whose sitemap declared one. |
+| `title`, `description` on a link | From the page itself for the first 10 links. Otherwise the link's label and `null`. |
+
+A map that finds no link to the site's own pages, on the page or in any sitemap, fails with `NO_LINKS_FOUND` (422) instead of returning an empty list. You aren't charged for it.
+
+## Order and search
+
+Without `search`, links come back **most useful first**: the homepage, then key pages (about, pricing, products, docs, blog, careers, contact) and the pages the site's navigation links to, then the rest, shallowest first. These move to the end:
+
+- copies of a page in another language or region (`/de/pricing` when you mapped the English site), which keep only their best-placed version in the ranking
+- error pages (`/404`, `/404.html`)
+- handles and short links (`/@name`, `/sf6`)
+- app sign-ins on other subdomains (`app.`, `login.`)
+
+Nothing is dropped. `limit` decides how much of the list you get.
+
+With `search`, results are **filtered as well as ranked**: links that match nothing are dropped. A match in the URL path outranks a match in the link text.
+
+## Choosing sources
+
+| `sitemap` | Behavior |
+|---|---|
+| `include` | The default. Fetches the page **and** the sitemaps, then merges them. |
+| `only` | Sitemaps only. It skips the page, so it's faster, and it works even when the homepage blocks bots. |
+| `skip` | On-page links only. Use it when a site's sitemap is stale. |
+
+<Note>
+`robots.txt` is always read for its `Sitemap:` entries. `/map` fetches at most one page of the site, so `Disallow` rules don't affect it.
+</Note>
+
+## Scope
+
+By default the result stays on the site you asked about, subdomains included, and URLs that differ only by query string collapse into one.
+
+- `include_subdomains=false` keeps the exact host. `blog.stripe.com` is left out when you map `stripe.com`.
+- `ignore_query_params=false` keeps `?page=2` and `?page=3` as separate entries.
+
+Links to other sites are never returned.
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="Crawl a site" icon="spider" href="/web-data/crawl">
+    Fetch the pages you found, in one job. **1 credit per page.**
+  </Card>
+  <Card title="API reference" icon="code" href="/api-reference/endpoint/map">
+    Every parameter, and a playground to try it.
+  </Card>
+</CardGroup>

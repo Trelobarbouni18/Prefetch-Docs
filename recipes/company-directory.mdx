@@ -1,0 +1,119 @@
+---
+title: "Build a company directory"
+description: "Enrich hundreds of companies in one batch, store their profiles, and show their logos from the logo CDN at no credit cost."
+icon: "address-book"
+---
+
+A customer list, a partner directory or a portfolio page needs a name, a description and a logo for every company. One [batch](/jobs/batches) enriches up to 500 domains at once, and the [logo CDN](/company-data/logo-cdn) shows their logos without storing a single image.
+
+**Cost:** 12 credits per company enriched, once. Logos cost no credits.
+
+## 1. Enrich every domain in one batch
+
+<CodeGroup>
+
+```javascript Node.js
+const base = "https://api.prefetch.io";
+const headers = { "X-API-Key": process.env.PREFETCH_API_KEY, "Content-Type": "application/json" };
+const domains = ["stripe.com", "linear.app", "notion.so", "figma.com", "vercel.com"];
+
+const { data: job } = await (await fetch(`${base}/batch/enrich`, {
+  method: "POST",
+  headers,
+  body: JSON.stringify({ urls: domains, ignore_invalid_urls: true }),
+})).json();
+
+let status;
+do {
+  await new Promise((r) => setTimeout(r, 5000));
+  ({ data: status } = await (await fetch(`${base}/batch/enrich/${job.id}`, { headers })).json());
+} while (status.status === "pending" || status.status === "running");
+
+// Read every page of results
+const items = [...status.data];
+for (let next = status.next; next; ) {
+  const { data } = await (await fetch(base + next, { headers })).json();
+  items.push(...data.data);
+  next = data.next;
+}
+
+const companies = items.filter((i) => i.ok).map((i) => ({
+  domain: i.domain,
+  name: i.company?.display_name ?? i.company?.name,
+  industry: i.classification?.category,
+  description: i.classification?.tagline_description,
+}));
+```
+
+```python Python
+import os, time, requests
+
+base = "https://api.prefetch.io"
+headers = {"X-API-Key": os.environ["PREFETCH_API_KEY"]}
+domains = ["stripe.com", "linear.app", "notion.so", "figma.com", "vercel.com"]
+
+job = requests.post(f"{base}/batch/enrich", headers=headers,
+                    json={"urls": domains, "ignore_invalid_urls": True}).json()["data"]
+
+while True:
+    time.sleep(5)
+    status = requests.get(f"{base}/batch/enrich/{job['id']}", headers=headers).json()["data"]
+    if status["status"] not in ("pending", "running"):
+        break
+
+items, nxt = list(status["data"]), status["next"]
+while nxt:
+    page = requests.get(base + nxt, headers=headers).json()["data"]
+    items.extend(page["data"])
+    nxt = page["next"]
+
+companies = [
+    {
+        "domain": i["domain"],
+        "name": (i.get("company") or {}).get("display_name"),
+        "industry": (i.get("classification") or {}).get("category"),
+        "description": (i.get("classification") or {}).get("tagline_description"),
+    }
+    for i in items if i["ok"]
+]
+```
+
+</CodeGroup>
+
+Store the results. Batch results expire 24 hours after the batch is created. For more than 500 companies, send several batches. To skip polling, pass a `webhook` and receive each company as a `batch_enrich.page` event. See [Webhooks](/concepts/webhooks).
+
+## 2. Show logos from the CDN
+
+Get your publishable token once:
+
+```bash
+curl "https://api.prefetch.io/logo/token" -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+Then build each logo URL from the domain. The token is safe in browser code:
+
+```jsx
+function CompanyCard({ company }) {
+  const src = `https://logo.prefetch.io/${company.domain}?token=${process.env.NEXT_PUBLIC_PREFETCH_LOGO_TOKEN}&size=96`;
+  return (
+    <div className="company">
+      <img src={src} width={48} height={48} alt="" loading="lazy" />
+      <h3>{company.name}</h3>
+      <p>{company.description}</p>
+    </div>
+  );
+}
+```
+
+A domain without a known logo gets a letter mark, so the grid never shows a broken image.
+
+## Prompt for your coding agent
+
+```text
+Build a company directory page using the Prefetch API (docs: https://docs.prefetch.io/recipes/company-directory).
+Read our list of company domains, send them to POST https://api.prefetch.io/batch/enrich (up to 500 per batch)
+with the X-API-Key header (key in PREFETCH_API_KEY), poll GET /batch/enrich/{id} until the status is completed
+or failed, follow `next` to read every result, and store display name, IAB category and tagline per domain.
+Show each company's logo with https://logo.prefetch.io/<domain>?token=<publishable token>&size=96, where the
+token comes from GET /logo/token and is safe in the browser. Skip results with ok: false.
+```

@@ -1,0 +1,56 @@
+---
+title: "Changelog"
+description: "New endpoints, features and changes to the Prefetch API."
+icon: "clock-rotate-left"
+rss: true
+---
+
+Dates are when each change was documented.
+
+<Update label="November 4, 2026" description="Monitors">
+  - Every monitor now has a `thumbnail_url`: a 640-pixel-wide screenshot of the first page it watches, taken after you create the monitor and again when an edit changes that page.
+</Update>
+
+<Update label="October 31, 2026" description="Monitors, map, brand and company">
+  - **Search targets for monitors.** Watch up to 5 web searches and hear about new results that match your goal. See [Targets](/monitors/targets#search-targets).
+  - **Automatic pausing.** A monitor whose every page fails for 10 checks in a row, over at least 24 hours, is paused and its recipients are told.
+  - **`/map` ranks results** most useful first, and the first 10 links carry their page's title and description. A map that finds nothing fails with `NO_LINKS_FOUND`, free.
+  - **`/brand`** returns the color each role uses on the page in `brand.colors.roles`, and finds social links in more places.
+  - **`/company`** returns the site's key pages in `links`: about, pricing, careers, contact, blog and docs.
+</Update>
+
+<Update label="October 15, 2026" description="Monitors">
+  - Monitor limits now depend on your plan: shortest schedule, monitors per key, pages per check, history and email recipients. See [Limits and credits](/monitors/limits).
+</Update>
+
+<Update label="October 13, 2026" description="New endpoints">
+  - [`/search`](/web-data/search): web search, optionally with every result page scraped.
+  - [`/transaction`](/company-data/transaction): the merchant behind a card transaction line.
+  - [`/styleguide`](/company-data/styleguide): a site's design system, with CSS and Tailwind exports.
+  - [`/batch/{endpoint}`](/jobs/batches): run brand, enrich, company, classify, screenshot or styleguide on up to 500 URLs as one job.
+  - [Logo CDN](/company-data/logo-cdn): any company's logo as an embeddable image, from a monthly quota instead of credits.
+  - [`/screenshot`](/web-data/screenshot) gains devices, element captures, dark mode, ad blocking and WebP.
+</Update>
+
+<Update label="October 11, 2026" description="Batch scrape and crawl errors">
+  - [`/batch/scrape`](/jobs/batches): scrape up to 500 known URLs as one job.
+  - `GET /crawl/{id}/errors` explains a crawl that came back smaller than expected.
+  - Every error now carries a stable `error_code` and a `retryable` flag. See [Error handling](/concepts/errors).
+</Update>
+
+<Update label="October 10, 2026" description="OAuth">
+  - Apps such as Claude and ChatGPT can sign you in with OAuth instead of an API key. See [Authentication](/concepts/authentication#oauth-for-apps).
+</Update>
+
+<Update label="October 9, 2026" description="Monitors and resolve">
+  - [Monitors](/monitors/overview): watch pages and sites on a schedule, judge changes against a goal, and get them by webhook or email.
+  - [`/resolve`](/company-data/resolve): turn a company or brand name into its domain.
+</Update>
+
+<Update label="August 22, 2026" description="MCP server">
+  - The [MCP server](/mcp/overview) at `https://api.prefetch.io/mcp` gives Claude, Cursor and other agents every Prefetch tool, with nothing to install.
+</Update>
+
+<Update label="August 20, 2026" description="Web data">
+  - [`/scrape`](/web-data/scrape), [`/map`](/web-data/map) and [`/crawl`](/web-data/crawl): any page or site as clean markdown, summaries or structured JSON.
+</Update>

@@ -1,0 +1,96 @@
+---
+title: "Classify"
+description: "Put any website into an IAB category, with a description, tagline, stock tickers and ISINs. 5 credits."
+icon: "tags"
+---
+
+`/classify` reads a website and assigns it an [IAB Content Taxonomy](https://www.iab.com/guidelines/content-taxonomy/) category. Everything sits under `data.classification`, the same key [`/enrich`](/company-data/enrich) uses:
+
+- **Category and subcategory:** for example `Business` › `Business Software`
+- **Descriptions:** a short description, a one-line tagline and a longer summary
+- **Stock tickers and ISINs:** for public companies
+
+Static pages are read with a fast fetch. A real browser is used only when the page needs JavaScript to show its content.
+
+It's the cheapest way to answer "what kind of business is this?", for example to score leads against your ideal customer profile.
+
+## Example requests
+
+<CodeGroup>
+
+```bash cURL
+curl "https://api.prefetch.io/classify?url=https://stripe.com" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```javascript Node.js
+const res = await fetch("https://api.prefetch.io/classify?url=https://stripe.com", {
+  headers: { "X-API-Key": process.env.PREFETCH_API_KEY },
+});
+const { data } = await res.json();
+const { category, subcategory } = data.classification;
+console.log(`${category} > ${subcategory}`); // "Business > Business Software"
+```
+
+```python Python
+import os, requests
+
+r = requests.get(
+    "https://api.prefetch.io/classify",
+    params={"url": "https://stripe.com"},
+    headers={"X-API-Key": os.environ["PREFETCH_API_KEY"]},
+)
+classification = r.json()["data"]["classification"]
+print(f"{classification['category']} > {classification['subcategory']}")
+```
+
+</CodeGroup>
+
+## Example response
+
+A real response for `stripe.com`, shortened where marked with `…`:
+
+```json
+{
+  "success": true,
+  "data": {
+    "domain": "stripe.com",
+    "url": "https://stripe.com/",
+    "classification": {
+      "iab_id": "IAB3-4",
+      "iab_parent_id": "IAB3",
+      "category": "Business",
+      "subcategory": "Business Software",
+      "description": "A payments and financial-technology platform that lets businesses accept and process online and in-person payments, manage billing and subscriptions, issue cards, and move money across borders via APIs and prebuilt tools. …",
+      "tagline_description": "A developer-first payments and financial infrastructure platform for online and in-person commerce.",
+      "long_description": "Stripe is a global technology company that provides infrastructure for online payments and financial services. …",
+      "stock_tickers": [],
+      "isins": []
+    }
+  },
+  "meta": {
+    "requestId": "a3f2c1d4-7b6e-4f2a-9c1d-8e3f2a1b4c5d",
+    "durationMs": 196
+  }
+}
+```
+
+## IAB IDs
+
+`iab_id` and `iab_parent_id` use the IAB Content Taxonomy 1.0 ID format. The parent is a category, and the child adds a hyphen and a number:
+
+- `IAB3`: the parent category (Business)
+- `IAB3-4`: the subcategory (Business Software)
+
+Common parent categories include `IAB3` (Business), `IAB4` (Careers), `IAB13` (Personal Finance) and `IAB19` (Technology & Computing).
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="Enrich a company" icon="layer-group" href="/company-data/enrich">
+    Industry, brand and company details in one call. **12 credits.**
+  </Card>
+  <Card title="API reference" icon="code" href="/api-reference/endpoint/classify">
+    Every parameter, and a playground to try it.
+  </Card>
+</CardGroup>
