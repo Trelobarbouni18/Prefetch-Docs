@@ -1,0 +1,57 @@
+---
+title: "Prefetch vs Brandfetch"
+description: "How Prefetch and Brandfetch compare for logos, brand data, merchant lookups and name search, and what Prefetch adds with web data."
+icon: "image"
+---
+
+Brandfetch specializes in brand data: logos in every variant, brand profiles, brand search and transaction lookups. Prefetch covers the same core jobs for domains, and adds web data: scraping, search, crawling and monitors, with one key and one credit balance.
+
+<Note>
+Compared with [Brandfetch's public documentation](https://docs.brandfetch.com) as of November 2026.
+</Note>
+
+## At a glance
+
+| | Prefetch | Brandfetch |
+|---|---|---|
+| Embeddable logo URLs | [Logo CDN](/company-data/logo-cdn) | Logo API |
+| Free logo requests | 100,000 a month on Free, up to 10,000,000 on Scale | 1,000,000 a month, fair use |
+| Logo lookups by | Domain | Domain, stock or ETF ticker, ISIN, crypto symbol |
+| Logo variants | One square logo per domain | Icon, symbol and logo, each in light and dark |
+| Logo sizes and formats | 16 to 512 pixels; PNG, WebP, JPEG; greyscale | 16 to 2048 pixels; WebP, PNG, JPEG, and SVG for logos and symbols |
+| Missing logos | Letter mark, transparent or `404` | Letter mark, Brandfetch mark, transparent or `404` |
+| Brand profile | [`/brand`](/company-data/brand), [`/enrich`](/company-data/enrich) | Brand API |
+| Company details and industry | [`/company`](/company-data/company), IAB [`/classify`](/company-data/classify) | Firmographics in the Brand API |
+| Design system with CSS and Tailwind exports | [`/styleguide`](/company-data/styleguide) | No |
+| Narrative brand context for LLMs: positioning, voice, competitors | No. [`/classify`](/company-data/classify) returns descriptions and a tagline. | Brand Context API |
+| Name → domain | [`/resolve`](/company-data/resolve) | Brand Search API |
+| Card transaction → merchant | [`/transaction`](/company-data/transaction) | Transaction API |
+| Scrape, crawl, search, answers, monitors | Yes | No |
+| Brand batches | [`/batch/brand`](/jobs/batches), [`/batch/enrich`](/jobs/batches), up to 500 domains | Brand API batch |
+| GraphQL | No | Yes |
+| Excel, PowerPoint, Google Sheets, Airtable add-ons | No. [Clay, n8n, Zapier and Make guides](/integrations/overview). | Yes |
+| Pay per request without an account | No | Yes, for agents |
+| MCP | Yes, with OAuth sign-in | Yes |
+| Compliance | Not covered in the docs. Ask [hi@prefetch.io](mailto:hi@prefetch.io). | SOC 2 Type 2, zero data retention |
+
+## How access works
+
+- **Logos:** both use a publishable ID in the URL: `token` on Prefetch, `c` on Brandfetch. Brandfetch requires logo URLs to be embedded in pages, and doesn't permit fetching them from scripts. For logo files on your server, Prefetch's [`/brand`](/company-data/brand) returns logo URLs you can download.
+- **Brand data:** Brandfetch's Brand API includes 100 free requests, then a paid plan. Prefetch's `/brand` costs 10 credits, and the Free plan includes 1,000 credits a month.
+
+## When Brandfetch is the better fit
+
+- You show logos for stocks, ETFs or crypto, by ticker, ISIN or symbol.
+- You need wordmarks and symbols as well as icons, light and dark variants, or SVG from the CDN.
+- You serve more logo requests than Prefetch's plan quotas.
+- You work in Excel, PowerPoint, Google Sheets or Airtable, or prefer GraphQL.
+
+## When Prefetch is the better fit
+
+- You need brand data **and** web data, such as scraping a site you just enriched or monitoring a customer's pricing page.
+- You want a site's full design system as CSS variables and a Tailwind theme.
+- You want IAB industry categories and company details from a domain.
+
+<Card title="Migrate from Clearbit or Brandfetch logos" icon="right-left" href="/migrate/logos">
+  Logo URL parameters, plus the Brand, Search and Transaction APIs.
+</Card>

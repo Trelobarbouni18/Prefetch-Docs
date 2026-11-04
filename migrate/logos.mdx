@@ -1,0 +1,121 @@
+---
+title: "Migrate from Clearbit or Brandfetch logos"
+description: "Replace logo.clearbit.com or cdn.brandfetch.io logo URLs with the Prefetch logo CDN, and move Brandfetch's Brand, Search and Transaction APIs to Prefetch."
+icon: "image"
+---
+
+The Prefetch [logo CDN](/company-data/logo-cdn) serves any domain's logo from a URL you put straight in an `<img>` tag. Logo requests cost no credits: each plan includes a monthly logo quota.
+
+```html
+<img src="https://logo.prefetch.io/stripe.com?token=pk_YOUR_TOKEN&size=64" width="32" height="32" alt="Stripe" />
+```
+
+## Before you start
+
+Get your publishable logo token once. It serves logos and nothing else, so it's safe in browser code:
+
+```bash
+curl "https://api.prefetch.io/logo/token" -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+The response has `token`, your `quota` for the month and how much you've `used`. See [Logo CDN](/company-data/logo-cdn#your-token).
+
+## From Clearbit
+
+Clearbit's Logo API shut down in December 2025, so any `logo.clearbit.com` URL still in your code no longer loads. Its parameters map one to one:
+
+| Clearbit | Prefetch |
+|---|---|
+| `https://logo.clearbit.com/stripe.com` | `https://logo.prefetch.io/stripe.com?token=pk_…` |
+| `size=128` | `size=128` (16 to 512 pixels, square) |
+| `format=png` or `format=jpg` | `format=png`, `jpeg` (`jpg` works too) or `webp` |
+| `greyscale=true` | `greyscale=true` |
+| A missing logo returns `404` | A missing logo returns a letter mark. Add `fallback=404` to keep the old behavior. |
+
+Most code only needs its base URL changed and the token added:
+
+<CodeGroup>
+
+```javascript JavaScript
+const LOGO_TOKEN = process.env.NEXT_PUBLIC_PREFETCH_LOGO_TOKEN;
+
+// Before: `https://logo.clearbit.com/${domain}?size=128`
+export function logoUrl(domain, size = 128) {
+  return `https://logo.prefetch.io/${domain}?token=${LOGO_TOKEN}&size=${size}`;
+}
+
+// Or rewrite stored Clearbit URLs as you read them
+export function fromClearbit(url) {
+  const u = new URL(url);
+  const out = new URL(`https://logo.prefetch.io${u.pathname}`);
+  out.searchParams.set("token", LOGO_TOKEN);
+  for (const key of ["size", "format", "greyscale"]) {
+    if (u.searchParams.has(key)) out.searchParams.set(key, u.searchParams.get(key));
+  }
+  return out.toString();
+}
+```
+
+```python Python
+import os
+from urllib.parse import urlsplit, parse_qs, urlencode
+
+LOGO_TOKEN = os.environ["PREFETCH_LOGO_TOKEN"]
+
+def logo_url(domain, size=128):
+    return f"https://logo.prefetch.io/{domain}?" + urlencode({"token": LOGO_TOKEN, "size": size})
+
+def from_clearbit(url):
+    parts = urlsplit(url)
+    query = {k: v[0] for k, v in parse_qs(parts.query).items() if k in ("size", "format", "greyscale")}
+    return f"https://logo.prefetch.io{parts.path}?" + urlencode({"token": LOGO_TOKEN, **query})
+```
+
+</CodeGroup>
+
+If your UI hid the image or showed initials when Clearbit returned `404`, you can drop that code: the default letter mark already fills the space. Keep it, and add `fallback=404`, if you'd rather draw your own placeholder.
+
+## From the Brandfetch Logo API
+
+| Brandfetch | Prefetch | Notes |
+|---|---|---|
+| `https://cdn.brandfetch.io/nike.com` or `…/domain/nike.com` | `https://logo.prefetch.io/nike.com` | |
+| `?c=BRANDFETCH_CLIENT_ID` | `?token=pk_…` | Both are publishable and safe in browser code. |
+| `/w/128/h/128` | `size=128` | Prefetch logos are square, 16 to 512 pixels, centered on a transparent background. |
+| `/type/icon` (the default) | The default | Prefetch serves one square logo per domain. |
+| `/type/logo`, `/type/symbol` | No equivalent | For other variants, [`/brand`](/company-data/brand) returns `logos.primary` and `logos.secondary`. |
+| `/theme/light`, `/theme/dark` | No equivalent | Brandfetch picks a logo variant for the background. Prefetch's `theme` only sets the color a JPEG is flattened onto. PNG and WebP stay transparent. |
+| `/fallback/lettermark` | `fallback=monogram` (the default) | |
+| `/fallback/transparent` | `fallback=transparent` | |
+| `/fallback/404` | `fallback=404` | |
+| `/fallback/brandfetch` | No equivalent | |
+| File extension: `.png`, `.jpg`, `.webp` (default) or `.svg` | `format=png` (default), `jpeg` or `webp` | Prefetch doesn't serve SVG from the CDN. `/brand` returns SVG logos when the site has them. |
+| Greyscale with a CSS `filter` | `greyscale=true` | |
+| `/ticker/NKE`, `/isin/…`, `/crypto/BTC` | No equivalent | Prefetch looks logos up by domain only. Map tickers to domains on your side first. |
+
+```html
+<!-- Before -->
+<img src="https://cdn.brandfetch.io/domain/nike.com/w/128/h/128/fallback/lettermark/type/icon?c=BRANDFETCH_CLIENT_ID" alt="Nike" />
+
+<!-- After -->
+<img src="https://logo.prefetch.io/nike.com?token=pk_YOUR_TOKEN&size=128" alt="Nike" />
+```
+
+## From Brandfetch's other APIs
+
+| Brandfetch | Prefetch | Notes |
+|---|---|---|
+| Brand API: `GET https://api.brandfetch.io/v2/brands/domain/{domain}` | [`GET /brand?url={domain}`](/company-data/brand) | Logos, colors, fonts, images and social links. [`/enrich`](/company-data/enrich) adds company details and industry for 12 credits. |
+| Brand API by ticker, ISIN or crypto symbol | No equivalent | Prefetch takes a domain or URL. |
+| Brand Search API: `GET /v2/search/{name}` | [`GET /resolve?name={name}`](/company-data/resolve) | Ranked domains with a confidence score. It also completes partial names for typeahead. |
+| Transaction API: `POST /v2/brands/transaction` with `transactionLabel` and `countryCode` | [`POST /transaction`](/company-data/transaction) with `descriptor` and `country` | Returns the merchant, its website, processor, location and a ready-to-use `logo_url`. |
+
+Prefetch authenticates REST calls with an `X-API-Key` header instead of `Authorization: Bearer`. See [Authentication](/concepts/authentication).
+
+## Checklist
+
+- [ ] Get your logo token from `GET /logo/token`.
+- [ ] Replace the base URL and add `token` to every logo URL.
+- [ ] Map `w`/`h` or `size` to `size`, and the file extension to `format`.
+- [ ] Decide on `fallback`: the letter mark, `transparent` or `404`.
+- [ ] Check your plan's [logo quota](/company-data/logo-cdn#quotas). Browsers cache each logo for a day, so repeat views don't count.

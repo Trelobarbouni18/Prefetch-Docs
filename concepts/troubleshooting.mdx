@@ -4,6 +4,8 @@ description: "Fixes for the most common Prefetch problems: auth errors, 429s, em
 icon: "screwdriver-wrench"
 ---
 
+If many requests fail at once, check the [status page](https://prefetch.betteruptime.com/) first.
+
 Start with the response. Every error carries an `error_code` and a `retryable` flag, and every response carries `meta.requestId`. Quote the `requestId` if you [contact support](mailto:hi@prefetch.io).
 
 ## Authentication

@@ -1,0 +1,59 @@
+---
+title: "Compare Prefetch"
+description: "How Prefetch compares with Firecrawl, Context.dev and Brandfetch: what each covers, where each is the better fit, and how to switch."
+icon: "scale-balanced"
+---
+
+Prefetch covers two jobs that usually take two vendors: **company data** (brand, logos, company details, industry, merchants) and **web data** (scraping, search, crawling and monitoring), with one API key and one credit balance.
+
+<Note>
+These pages compare Prefetch with each product's public documentation as of November 2026. Products change, so check their docs before you decide. Spotted something out of date? Email [hi@prefetch.io](mailto:hi@prefetch.io).
+</Note>
+
+## At a glance
+
+| | Prefetch | Firecrawl | Context.dev | Brandfetch |
+|---|---|---|---|---|
+| Scrape, map, crawl, search | Yes | Yes | Yes | No |
+| Batch jobs | Up to 500 URLs | Yes | Up to 100,000 URLs | Brand lookups |
+| Researched answers | Yes | Agent | Yes | No |
+| Monitors with change judging | Yes | Yes | Yes | No |
+| Brand assets (logos, colors, fonts) | Yes | `branding` scrape format | Yes | Yes |
+| Company details and industry | Yes, IAB | No | Yes, EIC | Firmographics |
+| Name → domain | Yes | No | Yes | Yes |
+| Card transaction → merchant | Yes | No | Yes | Yes |
+| Embeddable logo CDN | Yes | No | Yes | Yes |
+| Browser actions | No | Yes | Yes | No |
+| Document parsing | PDFs from a URL | Yes | Yes | No |
+| People and news data | No | No | Yes | No |
+| Official SDKs | No | 9 languages, plus a CLI | 5 languages, plus a CLI | No |
+| MCP server | Yes | Yes | Yes | Yes |
+| Self-hosting | No | Yes, open source | No | No |
+
+## Compare in detail
+
+<CardGroup cols={3}>
+  <Card title="Prefetch vs Firecrawl" icon="fire" href="/compare/firecrawl">
+    Web scraping and crawling, with or without company data.
+  </Card>
+  <Card title="Prefetch vs Context.dev" icon="cube" href="/compare/context-dev">
+    The closest match: web data and brand data in one API.
+  </Card>
+  <Card title="Prefetch vs Brandfetch" icon="image" href="/compare/brandfetch">
+    Logos and brand data, with or without web data.
+  </Card>
+</CardGroup>
+
+## Switching
+
+<CardGroup cols={3}>
+  <Card title="From Firecrawl" icon="right-left" href="/migrate/firecrawl">
+    Endpoint and parameter mapping.
+  </Card>
+  <Card title="From Context.dev" icon="right-left" href="/migrate/context-dev">
+    Endpoint and parameter mapping.
+  </Card>
+  <Card title="From Clearbit or Brandfetch logos" icon="right-left" href="/migrate/logos">
+    Logo URLs, Brand API and Transaction API.
+  </Card>
+</CardGroup>

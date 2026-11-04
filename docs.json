@@ -154,9 +154,20 @@
             ]
           },
           {
+            "group": "Compare",
+            "pages": [
+              "compare/overview",
+              "compare/firecrawl",
+              "compare/context-dev",
+              "compare/brandfetch"
+            ]
+          },
+          {
             "group": "Migrate",
             "pages": [
-              "migrate/firecrawl"
+              "migrate/firecrawl",
+              "migrate/context-dev",
+              "migrate/logos"
             ]
           }
         ]
@@ -279,6 +290,10 @@
         "href": "https://prefetch.io/#pricing-section"
       },
       {
+        "label": "Status",
+        "href": "https://prefetch.betteruptime.com/"
+      },
+      {
         "label": "Support",
         "href": "mailto:hi@prefetch.io"
       },
@@ -328,6 +343,10 @@
             "href": "https://prefetch.io/#pricing-section"
           },
           {
+            "label": "Status",
+            "href": "https://prefetch.betteruptime.com/"
+          },
+          {
             "label": "Dashboard",
             "href": "https://prefetch.io/dashboard"
           }
@@ -343,6 +362,10 @@
           {
             "label": "Recipes",
             "href": "/recipes/overview"
+          },
+          {
+            "label": "Compare",
+            "href": "/compare/overview"
           },
           {
             "label": "API reference",

@@ -1,0 +1,73 @@
+---
+title: "Prefetch vs Firecrawl"
+description: "How Prefetch and Firecrawl compare for scraping, crawling, search and monitoring, and what Prefetch adds with company data."
+icon: "fire"
+---
+
+Firecrawl and Prefetch overlap on web data: scrape, map, crawl, batch scrape, search and monitors work much the same way, down to the endpoint names. The difference is scope. Firecrawl goes deeper on the web, with browser interaction, an agent and document parsing. Prefetch adds company data: brand, company details, industry, merchants and logos.
+
+<Note>
+Compared with [Firecrawl's public documentation](https://docs.firecrawl.dev) as of November 2026.
+</Note>
+
+## At a glance
+
+| | Prefetch | Firecrawl |
+|---|---|---|
+| Scrape to markdown, HTML, links, images, JSON, screenshot | Yes | Yes |
+| Summaries | `summary` format | `summary` format |
+| Map, crawl, batch scrape | Yes | Yes |
+| Web search with page content | Yes | Yes, plus research, developer and government indexes |
+| Monitors with goals and judging | Yes, with webhook and email alerts | Yes, with webhook, email and Slack alerts |
+| Researched answers in your JSON shape | [`/answers`](/web-data/answers) | Agent |
+| Click, type and navigate before scraping | No | Actions, Interact and Browser Sandbox |
+| Parse local files (PDF, DOCX, XLSX…) | No. PDFs served from a URL are read. | Parse |
+| PII redaction | No | Yes |
+| Prompt-injection check | Yes | Yes |
+| Brand identity | [`/brand`](/company-data/brand) and [`/styleguide`](/company-data/styleguide) | `branding` scrape format |
+| Company details, IAB industry, enrichment | [`/company`](/company-data/company), [`/classify`](/company-data/classify), [`/enrich`](/company-data/enrich) | No |
+| Name → domain, transaction → merchant | [`/resolve`](/company-data/resolve), [`/transaction`](/company-data/transaction) | No |
+| Embeddable logo CDN | [Yes](/company-data/logo-cdn) | No |
+| SDKs | None. REST and [OpenAPI](/api-reference/openapi.json). | Python, Node, Go, Java, Ruby, Rust, .NET, PHP, Elixir, plus a CLI |
+| MCP | Yes, with OAuth sign-in | Yes, including a keyless mode |
+| Open source and self-hosting | No | Yes |
+| Compliance | Not covered in the docs. Ask [hi@prefetch.io](mailto:hi@prefetch.io). | SOC 2 Type II, zero data retention, SSO |
+
+## Credits for the same work
+
+Both price web data in credits, and many costs line up. A credit isn't the same price on each, so compare plans as well.
+
+| Work | Prefetch | Firecrawl |
+|---|---|---|
+| Scrape a page | 1 | 1 |
+| JSON extraction from a page | +3 | +4 |
+| Prompt-injection check | +3 | +4 |
+| Map a site | 1 | 1 |
+| Crawl | 1 per page | 1 per page |
+| Search | 2 per 10 results | 2 per 10 results |
+| Free plan | 1,000 credits a month | 1,000 credits a month |
+
+Prefetch never charges a failed request, and charges crawls and batches only for pages returned. See [Credits](/concepts/credits).
+
+## Defaults that differ
+
+- **Caching:** Firecrawl serves pages cached up to 2 days by default. Prefetch fetches live unless you set `max_age`.
+- **Parameters:** Firecrawl uses camelCase, and Prefetch uses snake_case.
+- **Errors:** Prefetch errors carry `error_code` and `retryable`, so code can decide whether to retry.
+
+## When Firecrawl is the better fit
+
+- You need to click, fill forms or log in before you read a page.
+- You need to parse local documents, or redact personal data.
+- You want an official SDK in your language, or to self-host.
+- You need a SOC 2 report today.
+
+## When Prefetch is the better fit
+
+- You need web data **and** company data, without a second vendor or a second balance.
+- You show companies in your product and want logos, colors, industry and merchant names.
+- You want monitor alerts by email as well as webhook.
+
+<Card title="Migrate from Firecrawl" icon="right-left" href="/migrate/firecrawl">
+  Endpoint and parameter mapping, response differences and webhook signatures.
+</Card>

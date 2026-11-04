@@ -25,7 +25,8 @@ Changes to the default branch deploy automatically.
 | `company-data/`, `web-data/`, `jobs/`, `monitors/` | Product guides: how each endpoint works, with examples |
 | `concepts/` | Platform pages: auth, credits, rate limits, errors, webhooks, async jobs, caching, production |
 | `recipes/` | End-to-end examples, each with a prompt for coding agents |
-| `integrations/`, `migrate/` | No-code tools and migration guides |
+| `integrations/` | No-code tools |
+| `compare/`, `migrate/` | Comparisons with other APIs, and migration guides. Recheck competitor facts against their docs when you edit. |
 | `mcp/` | The MCP server and its tools |
 | `api-reference/` | One page per endpoint, generated from `api-reference/openapi.json` |
 | `snippets/` | Shared tables (prices, plans, the error envelope). Edit facts here, once. |

@@ -107,7 +107,7 @@ else:
 |---|---|---|---|
 | `TIMEOUT` | 504 | Yes | The request didn't finish within its time limit (55 seconds for most endpoints). |
 | `SERVICE_BUSY` | 503 | Yes | Prefetch is under heavy load. Retry after the `Retry-After` header. |
-| `SERVICE_UNAVAILABLE` | 503 | Yes | A component is briefly unavailable. |
+| `SERVICE_UNAVAILABLE` | 503 | Yes | A component is briefly unavailable. The [status page](https://prefetch.betteruptime.com/) shows current incidents. |
 | `RESEARCH_INCONCLUSIVE` | 500 | No | [`/answers`](/web-data/answers) found no usable evidence. Rephrase the task, or name the site to research. |
 | `INTERNAL_ERROR` | 500 | Yes | Something failed on our side. Retry once. If it keeps happening, [contact support](mailto:hi@prefetch.io) with the `requestId`. |
 

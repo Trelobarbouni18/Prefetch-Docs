@@ -1,0 +1,217 @@
+---
+title: "Migrate from Context.dev"
+description: "Move scrape, map, crawl, search, answers, brand, styleguide, Logo Link, batches and monitors from Context.dev to Prefetch: endpoint and parameter mapping, and the differences that change behavior."
+icon: "right-left"
+---
+
+Most Context.dev endpoints have a direct Prefetch equivalent. The main changes are the base URL, the auth header, snake_case parameters, and four behaviors worth checking before you switch: caching defaults, crawl regexes, async crawls and the industry taxonomy.
+
+## The basics
+
+| | Context.dev | Prefetch |
+|---|---|---|
+| Base URL | `https://api.context.dev/v1` | `https://api.prefetch.io` |
+| Auth header | `Authorization: Bearer …` | `X-API-Key: …` |
+| Parameter style | camelCase (`mainContentOnly`), with some snake_case | snake_case (`only_main_content`), except `/brand` and `/enrich` |
+| Formats | An object: `"formats": { "markdown": true }` | A list: `"formats": ["markdown"]`, or `formats=markdown,links` on `GET` |
+| Cached pages | Scrapes accept copies up to 3 days old by default, crawls 1 day | Fetched live unless you set `max_age` |
+| Industry | EIC industry and subindustry, inside the brand profile | IAB category and subcategory, from [`/classify`](/company-data/classify) or [`/enrich`](/company-data/enrich) |
+| SDKs | TypeScript, Python, Ruby, Go, PHP | None. Use any HTTP client, or generate one from the [OpenAPI spec](/api-reference/openapi.json). |
+
+To keep Context.dev's scrape caching, send `max_age=259200000` (3 days, in milliseconds).
+
+## Endpoints
+
+| Context.dev | Prefetch |
+|---|---|
+| `POST /web/scrape` | [`GET` or `POST /scrape`](/web-data/scrape) |
+| `GET /web/urls` | [`GET /map`](/web-data/map) |
+| `POST /web/crawl` | [`POST /crawl`](/web-data/crawl), then `GET /crawl/{id}` |
+| `POST /web/search` | [`GET` or `POST /search`](/web-data/search) |
+| `POST /web/answers` | [`POST /answers`](/web-data/answers) |
+| `POST /brand/retrieve` | [`GET /brand`](/company-data/brand), or [`GET /enrich`](/company-data/enrich) for brand, company and industry together |
+| `GET /brand/search` | [`GET /resolve`](/company-data/resolve) |
+| `GET /web/styleguide` | [`GET /styleguide`](/company-data/styleguide) |
+| Logo Link (`logos.context.dev`) | [Logo CDN](/company-data/logo-cdn) (`logo.prefetch.io`) |
+| `POST /batch/submit` | [`POST /batch/scrape`](/jobs/batches), or [`POST /crawl`](/web-data/crawl) for `"mode": "crawl"` |
+| `POST /monitors` and its sub-paths | [`POST /monitor`](/monitors/overview) and its sub-paths |
+| `POST /people/search`, `POST /people/enrich`, `POST /company/search`, `POST /news/search`, `POST /parse` | No equivalent |
+
+Prefetch also has endpoints with no Context.dev counterpart: [`/company`](/company-data/company), [`/classify`](/company-data/classify) with IAB categories, [`/screenshot`](/web-data/screenshot), and [batches of brand, enrich, company, classify, screenshot or styleguide](/jobs/batches).
+
+## Scrape
+
+| Context.dev | Prefetch | Notes |
+|---|---|---|
+| `url` | `url` | |
+| `formats: { markdown, html, screenshot, images, json }` | `formats: ["markdown", "html", "screenshot", "images", "json"]` | Prefetch also has `raw_html`, `links` and `summary`. |
+| `jsonParams.schema`, `jsonParams.instructions` | `json_schema`, `json_prompt` | |
+| `sharedParams.mainContentOnly` | `only_main_content` | |
+| `sharedParams.includeSelectors`, `excludeSelectors` | `include_selectors`, `exclude_selectors` | |
+| `sharedParams.waitFor` | `wait_for` or `wait_for_selector` | |
+| `sharedParams.headers` | `headers` | Requests with headers are never cached on Prefetch. |
+| `markdownParams.includeLinks`, `includeImages` | `include_links`, `include_images` | |
+| `maxAgeMs` | `max_age` | Milliseconds. Prefetch defaults to a live fetch. |
+| `sharedParams.actions`, `profile`, `country`, `viewport` | No equivalent | Prefetch has `mobile` for a phone layout. |
+| `formats.product`, `highlights`, `parse`, `bytes` | No equivalent | Use `json` with a schema for product fields. |
+
+### Reading the response
+
+| What | Context.dev | Prefetch |
+|---|---|---|
+| Markdown | `markdown.data` | `data.markdown.content` |
+| Did a format succeed? | `markdown.success` on every output | Formats you didn't ask for are absent. A language model format that failed has `null` values and a reason in `data.warnings`. |
+| Page title | `metadata.title` | `data.metadata.title` |
+| Cache | `cache_metadata.status` | `data.metadata.cache_state` |
+
+## Map
+
+| Context.dev | Prefetch |
+|---|---|
+| `domain=stripe.com` | `url=stripe.com` |
+| `maxLinks` | `limit` |
+| `search` | `search` |
+| `includeSubdomains` | `include_subdomains` |
+| `urlRegex`, `excludeUrlRegex` | No equivalent. Filter the returned `links` yourself, or use `search`. |
+| `sitemapUrl` | No equivalent. Prefetch finds sitemaps through `robots.txt` and the usual locations. Use `sitemap=only` or `skip` to choose sources. |
+| Response `urls[]` | Response `data.links[]`, each with `url`, `title`, `description`, `lastmod` and `source` |
+
+## Crawl
+
+Context.dev's `/web/crawl` answers in the same request. Prefetch crawls are [async jobs](/concepts/async-jobs): `POST /crawl` returns an id, and you read pages from `GET /crawl/{id}` or receive them by [webhook](/concepts/webhooks).
+
+| Context.dev | Prefetch | Notes |
+|---|---|---|
+| `maxPages` (default 100) | `limit` (default 25) | Both stop at 500. |
+| `maxDepth` | `max_depth` | |
+| `urlRegex`, `excludeUrlRegex` | `include_paths`, `exclude_paths` | Context.dev matches the full URL (`^https?://[^/]+/blog/`). Prefetch matches the path and query (`^/blog/`), so drop the scheme and host from your patterns. Prefetch takes a list of patterns. |
+| `followSubdomains` | `allow_subdomains` | |
+| `useMainContentOnly` | `scrape_options.only_main_content` | |
+| `includeSelectors`, `excludeSelectors` | `scrape_options.include_selectors`, `exclude_selectors` | |
+| `waitForMs` | `scrape_options.wait_for` | |
+| `maxAgeMs` | `scrape_options.max_age` | |
+| Response `results[]` | `data.data[]` on `GET /crawl/{id}`, with `next` for the following page | |
+
+## Search
+
+| Context.dev | Prefetch |
+|---|---|
+| `query` | `query` |
+| `numResults` (1 to 100) | `limit` |
+| `includeDomains`, `excludeDomains` | `include_domains`, `exclude_domains` |
+| `freshness: "last_24_hours"`, `"last_week"`, `"last_month"`, `"last_year"` | `time_range: "day"`, `"week"`, `"month"`, `"year"`. Prefetch also has `"hour"`. |
+| `country`, `languages` | `country`, `language` (two-letter codes) |
+| `markdownOptions` | `scrape_options: { "formats": ["markdown"] }` |
+
+## Answers
+
+The request is almost the same:
+
+| Context.dev | Prefetch |
+|---|---|
+| `task` | `task` |
+| `json_format` | `json_format` |
+| `mode: "fast"` or `"ultra"` | `mode: "fast"` or `"ultra"`. `ultra` is the REST default on both. |
+| `timeoutOpts` | `timeout_opts` |
+| `tags` | `tags` |
+
+See [Answers](/web-data/answers).
+
+## Brand
+
+Context.dev's `POST /brand/retrieve` takes a `type`. Each type maps to a different Prefetch call:
+
+| Context.dev `type` | Prefetch |
+|---|---|
+| `by_domain` with `domain` | `GET /brand?url={domain}`, or `GET /enrich?url={domain}` |
+| `by_url` with `direct_url` | `GET /brand?url={page URL}` |
+| `by_name` with `name` | `GET /resolve?name={name}`, then `/brand` with the domain |
+| `by_email` with `email` | Take the domain from the address, then `/enrich`. See [Enrich signups](/recipes/enrich-signups). |
+| `by_transaction` with `transaction_info`, `mcc`, `city`, `country_gl` | `POST /transaction` with `descriptor`, `mcc` and `country` |
+| `by_ticker` with `ticker` | No equivalent. `/classify` returns a domain's tickers, but doesn't look a ticker up. |
+
+### Brand fields
+
+| Context.dev `brand.` | Prefetch `data.` |
+|---|---|
+| `title` | `company.display_name` (from `/company` or `/enrich`) |
+| `description`, `slogan` | `classification.description`, `classification.tagline_description` |
+| `colors[]` | `brand.colors.brand_colors[]` |
+| `logos[]`, with `type` and `mode` | `brand.logos.primary`, `brand.logos.secondary[]`, `favicon_url`, `icon_url` |
+| `socials[]`, a list of `{ type, url }` | `brand.social_links` (or `company.social_links` in `/enrich`), an object keyed by platform |
+| `address` | `company.addresses[]` |
+| `email`, `phone` | `company.emails[]`. There's no phone field. |
+| `links` | `company.links` |
+| `stock` | `classification.stock_tickers[]` |
+| `employees` | `company.employeeCount` |
+| `industries.eic[]` | `classification.category` and `subcategory`, in the IAB taxonomy |
+| `is_nsfw` | `company.isNsfw` |
+
+## Styleguide
+
+| Context.dev | Prefetch |
+|---|---|
+| `domain=stripe.com` or `directUrl` | `url` |
+| `colorScheme=dark` | `dark_mode=true` |
+| `maxAgeMs` | Always read live. A repeat request can come from the request cache. |
+
+Prefetch's styleguide also returns `exports.css` and `exports.tailwind`, ready to paste. See [Styleguide](/company-data/styleguide).
+
+## Logo Link
+
+| Context.dev | Prefetch |
+|---|---|
+| `https://logos.context.dev/?publicClientId=brandLL_…&domain=stripe.com` | `https://logo.prefetch.io/stripe.com?token=pk_…` |
+| `type=icon` | The default. Prefetch serves one square logo per domain. |
+| `type=wordmark` | No equivalent |
+| `theme=light` or `dark` | No equivalent. Prefetch's `theme` only sets the background a JPEG is flattened onto. |
+| A monogram when no logo is known | A letter mark by default. `fallback=404` or `transparent` to change it. |
+
+Prefetch adds `size` (16 to 512 pixels), `format` (`png`, `webp`, `jpeg`) and `greyscale`. Get your token from [`GET /logo/token`](/api-reference/endpoint/logo-token).
+
+## Batches
+
+| Context.dev | Prefetch |
+|---|---|
+| `input.mode: "scrape"` with `input.data.urls[]` | `POST /batch/scrape` with `urls[]`, up to 500 per batch |
+| `input.mode: "crawl"` | `POST /crawl` |
+| `input.data.formats`, `sharedParams`, `jsonParams` | `scrape_options`, with the same fields `/scrape` takes |
+| Per-URL `itemId` and `meta` | No equivalent. Results carry their `url`. Key your records on it. |
+| `webhook` or `webhookUrl` | `webhook` |
+| `GET /batch/{id}/results` | `GET /batch/scrape/{id}`, following `next` |
+
+Context.dev reserves credits when you submit and refunds what's unused. Prefetch charges results as they complete, and never for failed pages.
+
+## Monitors
+
+| Context.dev | Prefetch |
+|---|---|
+| `target: { type: "page", url }` | `targets: [{ type: "scrape", urls: [url] }]`. One monitor can hold up to 50 targets. |
+| `target: { type: "page", instructions }` | A `scrape` target plus a `goal` on the monitor |
+| `target: { type: "extract", schema, instructions }` | A `scrape` target with `change_tracking: { modes: ["json"], json_schema, json_prompt }` |
+| `target: { type: "sitemap" }` | A `crawl` target, which reports pages that appear and disappear |
+| `target: { type: "search", query }` | `targets: [{ type: "search", queries: [query] }]` |
+| `include_selectors`, `exclude_selectors` | `scrape_options.include_selectors` and `exclude_selectors` on the target |
+| `schedule: { type: "interval", frequency: 6, unit: "hours" }` | `schedule: { text: "every 6 hours" }`, or `cron` with a `timezone` |
+| Runs and changes | Checks, and the pages in each check marked `changed`, `new` or `removed` |
+| `POST /monitors/{id}/run` | `POST /monitor/{id}/run` |
+| Webhooks | `webhook` and email alerts. See [Alerts](/monitors/alerts). |
+
+See [Monitors](/monitors/overview) for targets, schedules and judging.
+
+## Webhooks
+
+Both sign deliveries the same way: `t=<unix seconds>,v1=<hex HMAC-SHA256 of "<t>.<raw body>">`. Change the header you read from `X-Context-Signature` to `X-Prefetch-Signature`, and use the secret Prefetch returns when you create the job or monitor. See [Verify signatures](/concepts/webhooks#verify-signatures).
+
+## Errors
+
+Both return a machine-readable `error_code`. Prefetch adds `retryable`, so you can decide whether to retry without a list of codes. A request over your credit balance returns `403` with `CREDITS_EXHAUSTED` on Prefetch, where Context.dev returns `402`. See [Error handling](/concepts/errors).
+
+## Checklist
+
+- [ ] Swap the base URL and the auth header.
+- [ ] Turn `formats` objects into lists, and rename parameters to snake_case.
+- [ ] Set `max_age` wherever you relied on Context.dev's default caching.
+- [ ] Rewrite crawl regexes to match paths, and poll or webhook for crawl results.
+- [ ] Map EIC industries to IAB categories where you store them.
+- [ ] Update your webhook signature header and secrets.
