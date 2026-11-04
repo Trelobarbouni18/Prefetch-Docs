@@ -3059,6 +3059,11 @@
             "nullable": true,
             "description": "Counts from the most recent check, or `null` before the first one."
           },
+          "thumbnail_url": {
+            "type": "string",
+            "nullable": true,
+            "description": "A screenshot of the first page the monitor watches (JPEG, 640 px wide), taken once in the background after the monitor is created and again when an edit changes that page. A signed link, good for at least a day: read it again from the monitor rather than storing it. Null until the picture is taken, and for a page that would not render or a monitor of searches."
+          },
           "created_at": {
             "type": "string",
             "format": "date-time"
