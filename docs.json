@@ -17,7 +17,7 @@
       "dark": "#1A0618"
     }
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/images/favicon.svg",
   "fonts": {
     "heading": {
       "family": "Space Grotesk"
