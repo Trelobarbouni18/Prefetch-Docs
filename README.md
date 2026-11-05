@@ -30,6 +30,8 @@ Changes to the default branch deploy automatically.
 | `mcp/` | The MCP server and its tools |
 | `api-reference/` | One page per endpoint, generated from `api-reference/openapi.json` |
 | `snippets/` | Shared tables (prices, plans, the error envelope). Edit facts here, once. |
+| `icons/` | Pixel icons from [pixelarticons](https://pixelarticons.com) (MIT). After adding one, run `python3 scripts/build-icon-css.py`. |
+| `custom.css` | The theme, built from prefetch.io's own design tokens. |
 | `changelog.mdx` | What changed, newest first |
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md) for writing rules.

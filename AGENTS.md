@@ -28,12 +28,18 @@
 
 - Use active voice and second person ("you").
 - Keep sentences short: one idea per sentence. Lead with the rule, then the exception.
-- Use sentence case for headings, tabs, sidebar groups and buttons.
+- Write headings, tabs, sidebar groups and buttons in sentence case. The theme uppercases navigation, labels and buttons in CSS to match prefetch.io, so don't type them in capitals.
 - Don't use em dashes. Use a period, a colon, a comma or parentheses instead.
 - Use US spelling.
 - Bold UI elements: select **Settings**. Use code formatting for file names, commands, paths, endpoints, fields and parameters.
 - Use real API responses in examples where possible, and mark shortened JSON with `…`.
 - Don't invent facts about Prefetch: prices, limits, retention, compliance or behavior. If you can't confirm something from the API, the OpenAPI spec or existing docs, leave it out and flag it.
+
+## Design
+
+- The theme in `custom.css` mirrors prefetch.io and its dashboard, using the site's own token names (`--pf-bevel`, `--pf-bevel-well`, `--pf-win-dash`…). Build new styles from those tokens.
+- Icons are [pixelarticons](https://pixelarticons.com), the set the dashboard uses. Use `icon: "/icons/<name>.svg"` in frontmatter and on cards. To add one, copy its SVG from the `pixelarticons` npm package into `/icons`, then run `python3 scripts/build-icon-css.py`.
+- Reuse the dashboard's icon for each endpoint: `blocks` (enrich), `colors-swatch` (brand), `university` (company), `label` (classify), `shapes` (styleguide), `directions` (resolve), `receipt` (transaction), `image` (logo CDN), `file-text` (scrape), `search`, `algorithm` (map), `bug` (crawl), `camera` (screenshot), `book-open` (answers), `bell` (monitors).
 
 ## Content boundaries
 

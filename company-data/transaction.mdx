@@ -1,7 +1,7 @@
 ---
 title: "Card transactions"
 description: "Turn a card transaction descriptor into the merchant behind it: name, website, logo, processor and location. 3 credits, 1 for a line seen in the last week."
-icon: "credit-card"
+icon: "/icons/receipt.svg"
 ---
 
 Bank statement lines are written for card networks, not people: `SQ *BLUE BOTTLE COFFE OAKLAND CA`, `PAYPAL *SPOTIFYAB`, `AMZN Mktp US*2K4LX9B12`. `/transaction` reads one and tells you who was paid:
@@ -132,10 +132,10 @@ Lines whose merchant is already in the name index answer in about a second. Othe
 ## Next
 
 <CardGroup cols={2}>
-  <Card title="Build a merchant feed" icon="receipt" href="/recipes/merchant-feed">
+  <Card title="Build a merchant feed" icon="/icons/receipt.svg" href="/recipes/merchant-feed">
     A recipe for readable transaction rows with logos.
   </Card>
-  <Card title="API reference" icon="code" href="/api-reference/endpoint/transaction">
+  <Card title="API reference" icon="/icons/code.svg" href="/api-reference/endpoint/transaction">
     Every parameter, and a playground to try it.
   </Card>
 </CardGroup>

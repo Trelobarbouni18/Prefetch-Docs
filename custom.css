@@ -2,47 +2,87 @@
 
 /* ══════════════════════════════════════════════════════════════════
    Prefetch brand theme for Mintlify
-   Mirrors prefetch.io: plum / cream / amber palette, square Win98
-   bevels, Space Grotesk for UI chrome, Inter for copy, Source Code Pro
-   for code. Brand rules for the dark theme are scoped to `.dark`; the
-   light theme at the end of this file keeps the same fonts and accents.
+   Mirrors prefetch.io and its dashboard: the token names and values
+   below are taken from prefetch.io's own stylesheet (shadow-bevel,
+   shadow-bevel-well, bg-prefetch-win-dash…) so a component here is
+   built from the same recipe as its counterpart on the site.
+
+   Where each surface is used, as on the site:
+   - Light (cream) Win98 window  → cards, menus, tooltips, the API
+     tester bar, search and the playground.
+   - Dashboard (plum) window      → tabs panels, accordions, tables.
+   - Etched panel (groove)        → callouts.
+   - Sunken well                  → code, inline code, the search field.
+   - Flat rows                    → sidebar, table of contents.
+   Icons are pixelarticons (/icons), the set the dashboard uses.
    ══════════════════════════════════════════════════════════════════ */
 
-/* ── Brand tokens (values taken from prefetch.io) ─────────────────── */
+/* ── Tokens (from prefetch.io) ────────────────────────────────────── */
 :root {
+  /* Colors */
   --pf-bg: #1a0618;
+  --pf-bg-deep: #170215;
   --pf-deep: #2a1124;
-  --pf-tab: #24101f;
-  --pf-frame: #30172a;
-  --pf-win: #3c2533;
   --pf-code: #1a0c14;
-  --pf-cream: #e5e2d3;
+  --pf-well: #250f21;
+  --pf-win: #3c2533;
+  --pf-win-dash: #30172a;
+  --pf-titlebar: #321b2a;
+  --pf-secondary: #e5e2d3;
   --pf-silver: #c0b8b0;
   --pf-amber: #f7b00a;
+  --pf-amber-text: #8a5a00; /* amber for text on light backgrounds (5.7:1) */
   --pf-muted: #a8899e;
   --pf-pink: #ff6f91;
   --pf-pipe: #7b3a5a;
   --pf-success: #2d6a5a;
-  --pf-post: #35548a;
+  --pf-success-fg: #4ade80;
   --pf-fail: #8a2d2d;
-  --pf-line: rgba(229, 226, 211, 0.12);
-  --pf-text: rgba(229, 226, 211, 0.7);
-  --pf-text-dim: rgba(229, 226, 211, 0.62);
+  --pf-fail-fg: #f87171;
+  --pf-deep-red: #950000;
+  --pf-body: #363636;
 
-  --pf-display: 'Space Grotesk', sans-serif;
+  /* prefetch-secondary at the opacities the site uses */
+  --pf-secondary-90: rgba(229, 226, 211, 0.9);
+  --pf-secondary-85: rgba(229, 226, 211, 0.85);
+  --pf-secondary-80: rgba(229, 226, 211, 0.8);
+  --pf-secondary-75: rgba(229, 226, 211, 0.75);
+  --pf-secondary-60: rgba(229, 226, 211, 0.6);
+  --pf-secondary-50: rgba(229, 226, 211, 0.5);
+  --pf-secondary-40: rgba(229, 226, 211, 0.4);
+  --pf-secondary-15: rgba(229, 226, 211, 0.15);
+  --pf-secondary-10: rgba(229, 226, 211, 0.1);
+  --pf-secondary-5: rgba(229, 226, 211, 0.05);
+  --pf-line: rgba(255, 255, 255, 0.1);
+
+  /* Fonts */
+  --pf-sans: 'Space Grotesk', sans-serif;
+  --pf-inter: 'Inter', sans-serif;
   --pf-mono: 'Source Code Pro', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  /* Win98 bevels */
-  --pf-bevel-action: inset 2px 2px #ffffff40, inset -2px -2px #00000040, inset 1px 1px #ffffff80, inset -1px -1px #00000080;
-  --pf-bevel-action-down: inset -2px -2px #ffffff40, inset 2px 2px #00000040, inset -1px -1px #ffffff80, inset 1px 1px #00000080;
-  --pf-bevel-raised: inset 1px 1px #ffffff2e, inset -1px -1px #00000080, inset 2px 2px #ffffff14, inset -2px -2px #00000040;
-  --pf-bevel-inset: inset 1px 1px #00000080, inset -1px -1px #ffffff2e, inset 2px 2px #00000040, inset -2px -2px #ffffff14;
-  --pf-bevel-window: inset -2px -2px #00000080, inset 2px 2px #ffffff26;
-  --pf-bevel-window-light: inset -2px -2px #00000080, inset 2px 2px #ffffff80;
-  --pf-bevel-badge: inset 1px 1px #ffffff33, inset -1px -1px #00000066;
-  --pf-bevel-field: inset 1px 1px #00000052, inset -1px -1px #ffffffe6;
-  --pf-glow: inset 0 0 0 100px #ffffff2e;
-  --pf-drop: 4px 4px 0 rgba(0, 0, 0, 0.35);
+  /* Bevels: prefetch.io's shadow-* utilities */
+  --pf-bevel: inset 1px 1px 0 #ffffff2e, inset -1px -1px 0 #00000080, inset 2px 2px 0 #ffffff14, inset -2px -2px 0 #00000040;
+  --pf-bevel-hover: inset 1px 1px 0 #ffffff2e, inset -1px -1px 0 #00000080, inset 2px 2px 0 #ffffff14, inset -2px -2px 0 #00000040, inset 0 0 0 100px #ffffff2e;
+  --pf-bevel-strong: inset 2px 2px 0 #ffffff40, inset -2px -2px 0 #00000040, inset 1px 1px 0 #ffffff80, inset -1px -1px 0 #00000080;
+  --pf-bevel-strong-hover: inset 2px 2px 0 #ffffff40, inset -2px -2px 0 #00000040, inset 1px 1px 0 #ffffff80, inset -1px -1px 0 #00000080, inset 0 0 0 100px #ffffff2e;
+  --pf-bevel-strong-pressed: inset -2px -2px 0 #ffffff40, inset 2px 2px 0 #00000040, inset -1px -1px 0 #ffffff80, inset 1px 1px 0 #00000080;
+  --pf-bevel-sunken: inset 1px 1px 0 #00000080, inset -1px -1px 0 #ffffff2e, inset 2px 2px 0 #00000040, inset -2px -2px 0 #ffffff14;
+  --pf-bevel-sunken-sm: inset 1px 1px 0 #0000004d, inset -1px -1px 0 #ffffff80;
+  --pf-bevel-sm: inset 1px 1px 0 #fff3, inset -1px -1px 0 #00000080;
+  --pf-bevel-sm-light: inset 1px 1px 0 #ffffff80, inset -1px -1px 0 #0000004d;
+  --pf-bevel-well: inset 1px 1px 0 #0006, inset -1px -1px 0 #ffffff0f;
+  --pf-bevel-tab: inset 1px 1px 0 #ffffff1f, inset -1px 0 0 #00000080;
+  --pf-bevel-tab-light: inset 1px 1px 0 #ffffffb3, inset -1px 0 0 #0006;
+  --pf-bevel-titlebar: inset 0 -1px 0 #00000080, inset 0 -2px 0 #00000040;
+  --pf-bevel-window: inset -2px -2px 0 #00000080, inset 2px 2px 0 #ffffff26;
+  --pf-bevel-window-light: inset -2px -2px 0 #00000080, inset 2px 2px 0 #ffffff80;
+  --pf-bevel-field: inset 1px 1px 0 gray, inset -1px -1px 0 #fff, inset 2px 2px 0 #0a0a0a, inset -2px -2px 0 #dfdfdf;
+  --pf-bevel-etched: inset 1px 1px 0 #00000073, inset -1px -1px 0 #ffffff1a, inset 2px 2px 0 #ffffff1a, inset -2px -2px 0 #00000073;
+  --pf-bevel-etched-light: inset 1px 1px 0 #0000004d, inset -1px -1px 0 #ffffffb3, inset 2px 2px 0 #ffffffb3, inset -2px -2px 0 #0000004d;
+  --pf-bevel-etched-t: inset 0 1px 0 #00000073, inset 0 2px 0 #ffffff1a;
+  --pf-bevel-etched-b: inset 0 -1px 0 #00000073;
+  --pf-bevel-etched-r: inset -1px 0 0 #00000073;
+  --pf-drop: 2px 2px 0 0 #0000004d;
 
   /* Syntax colours for the css-variables code theme (prefetch.io code window).
      Mintlify renders with --mint-foreground/--mint-background; the documented
@@ -92,35 +132,32 @@ html:root {
   --radius-xl: 0px;
 }
 
-/* ── Base ─────────────────────────────────────────────────────────── */
-html.dark,
-.dark body {
-  background-color: var(--pf-bg);
-}
-
+/* ── Base (both themes) ───────────────────────────────────────────── */
 /* prefetch.io is square everywhere */
-.dark *,
-.dark *::before,
-.dark *::after {
+*,
+*::before,
+*::after {
   border-radius: 0 !important;
 }
 
-.dark ::selection {
-  background-color: var(--pf-amber);
-  color: var(--pf-bg);
+/* Pixel cursors, as on prefetch.io */
+html {
+  cursor: url(/images/cursors/default.png) 6 4, default;
+}
+a[href],
+button:not(:disabled),
+[role="button"],
+[role="link"],
+[role="tab"],
+summary {
+  cursor: url(/images/cursors/pointer.png) 12 4, pointer !important;
 }
 
-/* Square amber focus rings (Chrome's default `auto` ring is rounded) */
-.dark :is(a, button, summary, [role="tab"], [role="link"]):focus-visible {
-  outline-style: solid !important;
-  outline-color: var(--pf-amber) !important;
-}
-
-.dark code,
-.dark kbd,
-.dark pre,
-.dark pre *,
-.dark .font-mono {
+code,
+kbd,
+pre,
+pre *,
+.font-mono {
   font-family: var(--pf-mono) !important;
 }
 
@@ -129,7 +166,91 @@ html.dark,
   display: none !important;
 }
 
-/* ── Scrollbars (prefetch.io Win98 style) ─────────────────────────── */
+/* Pixel icons: a page or card icon given as "/icons/x.svg" renders as an
+   <img>; mask it over currentColor so it takes the theme's colors. The
+   per-icon mask rules are generated at the end of this file. */
+img[src*="/icons/"] {
+  background-color: currentColor !important;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  object-position: -9999px 0;
+  image-rendering: pixelated;
+}
+
+/* Mintlify's own UI icons, swapped for the matching pixelarticons */
+:is(#search-bar-entry, #search-bar-entry-mobile) > svg,
+[data-component-part="callout-icon"] > svg,
+nav:has(#table-of-contents-content) > h2 svg,
+#page-context-menu-button svg:first-child {
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+:is(#search-bar-entry, #search-bar-entry-mobile) > svg > *,
+[data-component-part="callout-icon"] > svg > *,
+nav:has(#table-of-contents-content) > h2 svg > *,
+#page-context-menu-button svg:first-child > * {
+  visibility: hidden;
+}
+:is(#search-bar-entry, #search-bar-entry-mobile) > svg {
+  -webkit-mask-image: url(/icons/search.svg);
+  mask-image: url(/icons/search.svg);
+}
+nav:has(#table-of-contents-content) > h2 svg {
+  -webkit-mask-image: url(/icons/bulletlist.svg);
+  mask-image: url(/icons/bulletlist.svg);
+}
+#page-context-menu-button svg:first-child {
+  -webkit-mask-image: url(/icons/copy.svg);
+  mask-image: url(/icons/copy.svg);
+}
+.callout[data-callout-type="note"] [data-component-part="callout-icon"] > svg,
+.callout[data-callout-type="info"] [data-component-part="callout-icon"] > svg {
+  -webkit-mask-image: url(/icons/circle-info.svg);
+  mask-image: url(/icons/circle-info.svg);
+}
+.callout[data-callout-type="tip"] [data-component-part="callout-icon"] > svg {
+  -webkit-mask-image: url(/icons/lightbulb.svg);
+  mask-image: url(/icons/lightbulb.svg);
+}
+.callout[data-callout-type="check"] [data-component-part="callout-icon"] > svg {
+  -webkit-mask-image: url(/icons/check.svg);
+  mask-image: url(/icons/check.svg);
+}
+.callout:is([data-callout-type="warning"], [data-callout-type="danger"]) [data-component-part="callout-icon"] > svg {
+  -webkit-mask-image: url(/icons/warning-diamond.svg);
+  mask-image: url(/icons/warning-diamond.svg);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   DARK THEME (the site's own)
+   ══════════════════════════════════════════════════════════════════ */
+html.dark,
+.dark body {
+  background-color: var(--pf-bg);
+  color: var(--pf-secondary-80);
+}
+
+.dark ::selection {
+  background-color: var(--pf-amber);
+  color: var(--pf-bg);
+}
+
+/* Square focus rings in the site's focus color */
+.dark :is(a, button, summary, [role="tab"], [role="link"]):focus-visible {
+  outline: 2px solid var(--pf-amber) !important;
+  outline-offset: 2px;
+}
+
+/* ── Scrollbars: prefetch.io's Win98 scrollbar ─────────────────────── */
 .dark::-webkit-scrollbar,
 .dark ::-webkit-scrollbar {
   width: 16px;
@@ -164,7 +285,6 @@ html.dark,
     scrollbar-color: var(--pf-pipe) #321228;
   }
 }
-/* Mintlify's custom scroll areas (sidebar, code, panels) */
 .dark [data-component-part="scroll-area-scrollbar"] {
   background-color: #321228 !important;
   background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' shape-rendering='crispEdges' viewBox='0 -0.5 2 2'%3E%3Cpath fill='%23321228' d='M0 0h2v2H0z'/%3E%3Cpath stroke='%23612050' d='M0 0h1m0 1h1'/%3E%3C/svg%3E");
@@ -176,76 +296,85 @@ html.dark,
   box-shadow: inset 1px 1px #a8899e, inset -1px -1px #5c2a44;
 }
 
-/* ── Navbar ───────────────────────────────────────────────────────── */
+/* ── Navbar: prefetch.io's site header ────────────────────────────── */
 .dark #navbar-transition {
-  background-color: rgba(26, 6, 24, 0.92) !important;
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--pf-line) !important;
+  background-color: var(--pf-bg) !important;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-bottom: 0 !important;
+  box-shadow: var(--pf-bevel-etched-b);
 }
 .dark #navbar [class*="border-b"] {
   border-bottom-color: var(--pf-line) !important;
 }
-
 .dark .nav-logo {
   height: 30px !important;
 }
 
-/* Search trigger: a dark inset field, so the amber CTA stays the loudest thing in the bar */
+/* Search trigger: the site's dark search field (bg-prefetch-code, sunken) */
 .dark #search-bar-entry {
   height: 36px;
-  background-color: var(--pf-deep) !important;
-  box-shadow: var(--pf-bevel-inset) !important;
+  border: 0 !important;
+  background-color: var(--pf-code) !important;
+  box-shadow: var(--pf-bevel-sunken) !important;
   filter: none !important;
-  color: var(--pf-text) !important;
-  font-family: var(--pf-display);
+  color: var(--pf-secondary-50) !important;
+  font-family: var(--pf-inter);
 }
 .dark #search-bar-entry:hover {
-  background-color: var(--pf-frame) !important;
+  color: var(--pf-secondary-75) !important;
 }
-.dark #search-bar-entry svg {
-  color: var(--pf-text) !important;
+.dark #search-bar-entry > svg {
+  width: 16px;
+  height: 16px;
+  color: var(--pf-secondary-50) !important;
 }
 .dark #search-bar-entry > span {
   padding: 1px 6px;
+  border: 0 !important;
   background: var(--pf-silver);
-  box-shadow: var(--pf-bevel-raised);
-  color: var(--pf-deep);
-  font-family: var(--pf-display);
-  font-size: 11px;
+  box-shadow: var(--pf-bevel-sm);
+  color: var(--pf-deep) !important;
+  font-family: var(--pf-sans);
+  font-size: 10px;
   font-weight: 700;
 }
 .dark #search-bar-entry-mobile {
-  color: var(--pf-cream) !important;
+  color: var(--pf-secondary) !important;
 }
 
-/* Navbar text links, e.g. Dashboard */
+/* Navbar links: font-sans text-sm font-medium uppercase, amber on hover */
 .dark #navbar .navbar-link a {
-  font-family: var(--pf-display);
+  font-family: var(--pf-sans);
+  font-size: 14px;
   font-weight: 500;
-  color: var(--pf-cream) !important;
+  text-transform: uppercase;
+  color: var(--pf-secondary) !important;
+  transition: color 0.15s;
 }
 .dark #navbar .navbar-link a:hover {
   color: var(--pf-amber) !important;
 }
 
-/* Primary CTA: the prefetch.io amber action button */
+/* Primary CTA: AppButton primary (amber, bevel-strong) */
 .dark #topbar-cta-button a {
-  height: 40px;
+  height: 42px;
   padding: 0 1.25rem !important;
+  border: 0 !important;
   background: var(--pf-amber);
-  box-shadow: var(--pf-bevel-action);
+  box-shadow: var(--pf-bevel-strong);
   color: var(--pf-bg) !important;
-  font-family: var(--pf-display);
+  font-family: var(--pf-sans);
   font-size: 14px;
   font-weight: 700;
+  text-transform: uppercase;
   text-decoration: none;
 }
 .dark #topbar-cta-button a:hover {
-  box-shadow: var(--pf-bevel-action), var(--pf-glow);
+  box-shadow: var(--pf-bevel-strong-hover);
 }
 .dark #topbar-cta-button a:active {
-  box-shadow: var(--pf-bevel-action-down);
+  box-shadow: var(--pf-bevel-strong-pressed);
 }
 .dark #topbar-cta-button a span.absolute,
 .dark #topbar-cta-button a svg {
@@ -255,18 +384,18 @@ html.dark,
   color: var(--pf-bg) !important;
 }
 
-/* Tab row: Space Grotesk in sentence case, with prefetch.io's amber "+" marker */
+/* Tab row: the site's main nav (uppercase, amber "+" on the active item) */
 .dark .nav-tabs-item {
-  font-family: var(--pf-display);
+  font-family: var(--pf-sans);
+  font-size: 14px;
   font-weight: 500 !important;
+  text-transform: uppercase;
   text-shadow: none !important;
-  color: rgba(229, 226, 211, 0.7) !important;
+  color: var(--pf-secondary) !important;
+  transition: color 0.15s;
 }
 .dark .nav-tabs-item:hover {
   color: var(--pf-amber) !important;
-}
-.dark .nav-tabs-item[data-active="true"] {
-  color: var(--pf-cream) !important;
 }
 .dark .nav-tabs-item[data-active="true"]::before {
   content: "+";
@@ -277,70 +406,134 @@ html.dark,
   display: none !important;
 }
 
-/* ── Sidebar ──────────────────────────────────────────────────────── */
+/* ── Sidebar: the dashboard nav ───────────────────────────────────── */
+/* Section labels: MetaLabel (font-sans text-3xs uppercase tracking-wider muted) */
 .dark .sidebar-group-header {
-  font-family: var(--pf-display);
-  font-size: 13px;
-  font-weight: 700 !important;
-  color: var(--pf-cream) !important;
+  margin-bottom: 6px !important;
+  padding-left: 12px !important;
+  font-family: var(--pf-sans);
+  font-size: 10px;
+  font-weight: 400 !important;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--pf-muted) !important;
 }
-.dark #navigation-items li > a {
-  font-family: var(--pf-display);
+/* Rows: h-9 px-3 gap-2.5 font-sans text-sm; flat tint on hover and when current */
+.dark #navigation-items li > :is(a, button) {
+  align-items: center !important;
+  min-height: 36px;
+  column-gap: 10px !important;
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+  padding-right: 12px !important;
+  font-family: var(--pf-sans);
+  font-size: 14px;
+  font-weight: 400 !important;
   text-shadow: none !important;
-  color: rgba(229, 226, 211, 0.6) !important;
+  color: var(--pf-secondary-75) !important;
+  background-color: transparent !important;
+  transition: background-color 0.15s, color 0.15s;
 }
-.dark #navigation-items li > a:hover {
-  background-color: rgba(229, 226, 211, 0.05) !important;
-  color: var(--pf-cream) !important;
+.dark #navigation-items li > a[style*="padding-left:1rem"],
+.dark #navigation-items li > button[style*="padding-left:1rem"] {
+  padding-left: 12px !important;
 }
-.dark #navigation-items li[data-active="true"] > a {
-  background-color: var(--pf-frame) !important;
-  box-shadow: var(--pf-bevel-raised);
+.dark #navigation-items li > :is(a, button):hover {
+  background-color: var(--pf-secondary-5) !important;
+  color: var(--pf-secondary) !important;
+}
+.dark #navigation-items li[data-active-nav-item="true"] > a {
+  background-color: var(--pf-secondary-5) !important;
   color: var(--pf-amber) !important;
-  font-weight: 600;
+  font-weight: 400 !important;
+}
+/* Icons: secondary/50, full cream on hover, amber when current */
+.dark #navigation-items li > a img[src*="/icons/"] {
+  color: var(--pf-secondary-50);
+  transition: color 0.15s;
+}
+.dark #navigation-items li > a:hover img[src*="/icons/"] {
+  color: var(--pf-secondary);
+}
+.dark #navigation-items li[data-active-nav-item="true"] > a img[src*="/icons/"] {
+  color: var(--pf-amber);
+}
+/* A collapsible group (Monitors): its chevron, and its children on a rule */
+.dark #navigation-items li > button svg {
+  color: var(--pf-secondary-50) !important;
+}
+.dark #navigation-items li > button:hover svg {
+  color: var(--pf-secondary) !important;
+}
+.dark #navigation-items li > ul {
+  margin-left: 20px;
+  padding-left: 8px;
+  border-left: 1px solid var(--pf-secondary-10);
+}
+.dark #navigation-items li > ul > li > a {
+  min-height: 32px;
+  padding-left: 12px !important;
+  font-size: 12px;
 }
 
-/* ── HTTP method badges (sidebar, endpoint bar, search, playground) ── */
+/* ── HTTP method badges: AppBadge (tinted, bevel, code font) ──────── */
 .dark .method-pill,
 .dark .method-nav-pill > span {
-  box-shadow: var(--pf-bevel-badge);
-  color: var(--pf-cream) !important;
+  border: 0 !important;
+  box-shadow: var(--pf-bevel);
   font-family: var(--pf-mono) !important;
-  font-weight: 700 !important;
+  font-weight: 600 !important;
+  background: var(--pf-bg) !important;
+  color: var(--pf-muted) !important;
 }
-.dark :is(.method-pill, .method-nav-pill > span):is([class*="green-4"], [class*="2AB673"]) {
-  background: var(--pf-success) !important;
+.dark :is(.method-pill, .method-nav-pill > span):is([class*="green"], [class*="2AB673"]) {
+  background: rgba(74, 222, 128, 0.1) !important;
+  color: var(--pf-success-fg) !important;
 }
-.dark :is(.method-pill, .method-nav-pill > span):is([class*="blue-4"], [class*="3064E3"]) {
-  background: var(--pf-post) !important;
-}
-.dark :is(.method-pill, .method-nav-pill > span):is([class*="red-4"], [class*="CB3A32"]) {
-  background: var(--pf-fail) !important;
-}
-
-/* ── Page header ──────────────────────────────────────────────────── */
-.dark #header .eyebrow {
-  font-family: var(--pf-display);
-  font-size: 13px;
-  font-weight: 700;
+.dark :is(.method-pill, .method-nav-pill > span):is([class*="blue"], [class*="3064E3"]) {
+  background: rgba(247, 176, 10, 0.1) !important;
   color: var(--pf-amber) !important;
 }
-.dark #page-title {
-  font-weight: 500;
-  letter-spacing: -0.025em;
-  color: var(--pf-cream) !important;
+.dark :is(.method-pill, .method-nav-pill > span):is([class*="red"], [class*="CB3A32"]) {
+  background: rgba(248, 113, 113, 0.1) !important;
+  color: var(--pf-fail-fg) !important;
 }
-.dark #header .prose p {
-  color: var(--pf-text-dim) !important;
+.dark :is(.method-pill, .method-nav-pill > span):is([class*="orange"], [class*="yellow"], [class*="purple"]) {
+  background: rgba(255, 111, 145, 0.1) !important;
+  color: var(--pf-pink) !important;
 }
 
-/* "Open in Claude" split button: prefetch.io silver secondary button */
+/* ── Page header: DashPageHeader ──────────────────────────────────── */
+/* Eyebrow: SectionLabel (font-sans text-xs uppercase tracking-eyebrow, secondary/60) */
+.dark #header .eyebrow {
+  font-family: var(--pf-sans);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--pf-secondary-60) !important;
+}
+/* Title: font-sans text-2xl font-bold */
+.dark #page-title {
+  font-family: var(--pf-sans);
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--pf-secondary) !important;
+}
+/* Description: font-inter text-sm secondary/60 */
+.dark #header .prose p {
+  font-family: var(--pf-inter);
+  color: var(--pf-secondary-60) !important;
+}
+
+/* "Copy page" split button: AppButton secondary (silver, bold uppercase) */
 .dark #page-context-menu-button,
 .dark #page-context-menu > button[aria-haspopup="menu"] {
   height: 30px !important;
   border: 0 !important;
   background-color: var(--pf-silver) !important;
-  box-shadow: var(--pf-bevel-raised) !important;
+  box-shadow: var(--pf-bevel) !important;
   color: var(--pf-deep) !important;
 }
 .dark #page-context-menu > button[aria-haspopup="menu"] {
@@ -352,266 +545,351 @@ html.dark,
   color: var(--pf-deep) !important;
 }
 .dark #page-context-menu-button span {
-  font-family: var(--pf-display);
-  font-size: 13px;
+  font-family: var(--pf-sans);
+  font-size: 12px;
   font-weight: 700;
+  text-transform: uppercase;
 }
 .dark #page-context-menu-button:hover,
 .dark #page-context-menu > button[aria-haspopup="menu"]:hover {
-  box-shadow: var(--pf-bevel-raised), var(--pf-glow) !important;
+  box-shadow: var(--pf-bevel-hover) !important;
 }
 .dark #page-context-menu-button:active,
 .dark #page-context-menu > button[aria-haspopup="menu"]:active,
 .dark #page-context-menu > button[aria-expanded="true"] {
-  box-shadow: var(--pf-bevel-inset) !important;
+  box-shadow: var(--pf-bevel-sunken) !important;
 }
 
-/* ── Menus (page actions, language picker, mobile) ────────────────── */
+/* ── Menus: the site's cream dropdown (surface-light, p-1, bevel) ─── */
 .dark [role="menu"] {
-  padding: 3px !important;
+  padding: 4px !important;
   border: 0 !important;
-  background-color: var(--pf-win) !important;
-  box-shadow: var(--pf-bevel-window), var(--pf-drop) !important;
+  background-color: var(--pf-secondary) !important;
+  box-shadow: var(--pf-bevel), var(--pf-drop) !important;
 }
 .dark [role="menu"] [role^="menuitem"] {
-  font-family: var(--pf-display);
-  color: rgba(229, 226, 211, 0.8) !important;
+  font-family: var(--pf-sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  color: var(--pf-deep) !important;
 }
 .dark [role="menu"] [role^="menuitem"] div {
   color: inherit !important;
 }
 .dark [role="menu"] [role^="menuitem"] .text-xs {
-  color: var(--pf-text-dim) !important;
+  font-family: var(--pf-inter);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: rgba(42, 17, 36, 0.6) !important;
 }
 .dark [role="menu"] [role^="menuitem"][aria-checked="true"] {
-  color: var(--pf-amber) !important;
+  color: var(--pf-deep-red) !important;
 }
 .dark [role="menu"] [role^="menuitem"]:is(:hover, [data-highlighted]) {
-  background-color: var(--pf-amber) !important;
-  color: var(--pf-bg) !important;
+  background-color: rgba(42, 17, 36, 0.1) !important;
 }
-.dark [role="menu"] [role^="menuitem"]:is(:hover, [data-highlighted]) :is(div, .text-xs, svg) {
-  color: var(--pf-bg) !important;
+.dark [role="menu"] [role^="menuitem"] svg {
+  color: rgba(42, 17, 36, 0.6) !important;
 }
 /* Icon tiles in the page actions menu */
 .dark [role="menu"] [role="menuitem"] > div[class*="border"]:first-child {
-  border-color: rgba(229, 226, 211, 0.16) !important;
-  background-color: var(--pf-frame);
-  box-shadow: var(--pf-bevel-badge);
-}
-.dark [role="menu"] [role="menuitem"]:is(:hover, [data-highlighted]) > div[class*="border"]:first-child {
-  border-color: rgba(26, 6, 24, 0.35) !important;
-  background-color: rgba(26, 6, 24, 0.1);
-  box-shadow: none;
+  border: 0 !important;
+  background-color: #fff;
+  box-shadow: var(--pf-bevel-sunken-sm);
 }
 
-/* ── Tooltips (Win98 tooltip) ─────────────────────────────────────── */
+/* ── Tooltips: Win98Tooltip ───────────────────────────────────────── */
 .dark [role="tooltip"] {
-  padding: 2px 7px !important;
+  padding: 6px 10px !important;
   border: 1px solid !important;
   border-color: rgba(255, 255, 255, 0.9) rgba(0, 0, 0, 0.45) rgba(0, 0, 0, 0.45) rgba(255, 255, 255, 0.9) !important;
-  background: var(--pf-cream) !important;
-  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
+  background: var(--pf-secondary) !important;
+  box-shadow: var(--pf-drop);
   color: var(--pf-deep) !important;
-  font-family: var(--pf-display);
-  font-weight: 600;
+  font-family: var(--pf-mono);
+  font-size: 11px;
 }
 
 /* ── Content typography ───────────────────────────────────────────── */
 .dark #content :is(h1, h2, h3, h4) {
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  color: var(--pf-cream);
+  font-family: var(--pf-sans);
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--pf-secondary);
+}
+.dark #content h2 {
+  font-size: 1.375rem;
+}
+.dark #content h3 {
+  font-size: 1.125rem;
 }
 
+/* Links: amber, as in the dashboard's inline links */
 .dark #content a.link {
   border-bottom: 0 !important;
-  color: var(--pf-cream) !important;
+  color: var(--pf-amber) !important;
   font-weight: 500;
-  text-decoration: underline;
-  text-decoration-color: rgba(247, 176, 10, 0.5);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 4px;
+  text-decoration: none;
 }
 .dark #content a.link:hover {
-  color: var(--pf-amber) !important;
-  text-decoration-color: var(--pf-amber);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
 }
 
-/* Inline code chips: raised plum badge */
+/* Inline code: a small sunken well */
 .dark :not(pre) > code {
   padding: 0.1em 0.4em !important;
   border: 0 !important;
-  background-color: var(--pf-win) !important;
-  box-shadow: var(--pf-bevel-badge);
-  color: var(--pf-cream) !important;
+  background-color: var(--pf-well) !important;
+  box-shadow: var(--pf-bevel-well);
+  color: var(--pf-secondary) !important;
 }
 .dark #content :is(h2, h3, h4) code {
   font-size: 0.9em;
 }
 
 .dark #content blockquote:not(.sr-only) {
-  border-left: 2px solid rgba(247, 176, 10, 0.6) !important;
-  color: var(--pf-text);
+  border-left: 0 !important;
+  padding: 10px 16px !important;
+  background-color: var(--pf-well);
+  box-shadow: var(--pf-bevel-well);
+  color: var(--pf-secondary-80);
   font-style: normal;
 }
 .dark #content blockquote p::before,
 .dark #content blockquote p::after {
   content: none;
 }
+#content blockquote:not(.sr-only) p {
+  margin: 0 !important;
+}
 
-/* Bullets come from Mintlify's own list styling, which draws its own marker;
-   adding a ::marker here doubled them. Numbered lists keep the brand marker. */
+/* Bullets come from Mintlify's own list styling; numbered lists get the brand marker */
 .dark #content ol:not([class]) > li::marker {
-  color: var(--pf-text-dim);
-  font-family: var(--pf-display);
+  color: var(--pf-secondary-50);
+  font-family: var(--pf-mono);
   font-weight: 600;
 }
 
 .dark #content hr {
-  border-color: var(--pf-line);
+  height: 2px;
+  border: 0 !important;
+  box-shadow: var(--pf-bevel-etched-t);
 }
 
-/* Tables */
+/* ── Tables: DashTable ────────────────────────────────────────────── */
+.dark #content table {
+  border-collapse: collapse;
+  font-family: var(--pf-inter);
+  font-size: 13px;
+}
 .dark #content table thead th {
-  padding-bottom: 0.6rem;
-  border-bottom: 1px solid rgba(229, 226, 211, 0.2) !important;
-  color: rgba(229, 226, 211, 0.6) !important;
-  font-family: var(--pf-display);
-  font-size: 11.5px;
+  padding: 6px 12px !important;
+  border: 0 !important;
+  border-right: 1px solid rgba(0, 0, 0, 0.4) !important;
+  background-color: var(--pf-titlebar) !important;
+  box-shadow: var(--pf-bevel);
+  color: var(--pf-secondary) !important;
+  font-family: var(--pf-sans);
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
+  text-align: left;
   text-transform: uppercase;
 }
-.dark #content table :is(tbody tr, tbody td) {
-  border-color: var(--pf-line) !important;
+.dark #content table thead th:last-child {
+  border-right: 0 !important;
+}
+.dark #content table tbody td {
+  padding: 6px 12px !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2) !important;
+  border-right: 1px solid rgba(0, 0, 0, 0.15) !important;
+  background-color: rgba(26, 6, 24, 0.5);
+  color: var(--pf-secondary-80);
+}
+.dark #content table tbody td:last-child {
+  border-right: 0 !important;
+}
+.dark #content table tbody tr:nth-child(2n) td {
+  background-color: rgba(0, 0, 0, 0.15);
+}
+.dark #content table tbody tr:hover td {
+  background-color: rgba(247, 176, 10, 0.1);
+  color: var(--pf-secondary);
+}
+.dark #content table tbody tr {
+  border: 0 !important;
 }
 .dark #content table td:first-child code {
   white-space: nowrap;
 }
 
-/* ── Callouts: Win98 panel, colour carried by the icon ────────────── */
+/* ── Callouts: an etched groove panel (Win98Panel) ────────────────── */
 .dark .callout {
   border: 0 !important;
-  background-color: var(--pf-win) !important;
-  box-shadow: var(--pf-bevel-window);
+  background-color: transparent !important;
+  box-shadow: var(--pf-bevel-etched);
+}
+.dark .callout [data-component-part="callout-icon"] > svg {
+  width: 16px;
+  height: 16px;
 }
 .dark .callout [data-component-part="callout-content"] {
-  color: rgba(229, 226, 211, 0.82) !important;
+  font-family: var(--pf-inter);
+  color: var(--pf-secondary-80) !important;
 }
-.dark .callout [data-component-part="callout-content"] code {
-  background-color: var(--pf-frame) !important;
+html.dark .callout [data-component-part="callout-content"] a {
+  border-bottom: 0 !important;
+  color: var(--pf-amber) !important;
+  font-weight: 500;
 }
-.dark .callout[data-callout-type="note"] [data-component-part="callout-icon"] svg { color: var(--pf-cream) !important; }
-.dark .callout[data-callout-type="info"] [data-component-part="callout-icon"] svg { color: var(--pf-muted) !important; }
-.dark .callout[data-callout-type="tip"] [data-component-part="callout-icon"] svg,
-.dark .callout[data-callout-type="check"] [data-component-part="callout-icon"] svg { color: #6cc3a0 !important; }
-.dark .callout[data-callout-type="warning"] [data-component-part="callout-icon"] svg { color: var(--pf-amber) !important; }
-.dark .callout[data-callout-type="danger"] [data-component-part="callout-icon"] svg { color: var(--pf-pink) !important; }
+.dark .callout[data-callout-type="note"] [data-component-part="callout-icon"] > svg { color: var(--pf-secondary) !important; }
+.dark .callout[data-callout-type="info"] [data-component-part="callout-icon"] > svg { color: var(--pf-muted) !important; }
+.dark .callout[data-callout-type="tip"] [data-component-part="callout-icon"] > svg,
+.dark .callout[data-callout-type="check"] [data-component-part="callout-icon"] > svg { color: var(--pf-success-fg) !important; }
+.dark .callout[data-callout-type="warning"] [data-component-part="callout-icon"] > svg { color: var(--pf-amber) !important; }
+.dark .callout[data-callout-type="danger"] [data-component-part="callout-icon"] > svg { color: var(--pf-fail-fg) !important; }
 
-/* ── Cards ────────────────────────────────────────────────────────── */
+/* ── Cards: the light Win98 window (StatCard on the dashboard) ────── */
 .dark .card {
+  padding: 2px;
   border: 0 !important;
-  background-color: var(--pf-frame) !important;
-  box-shadow: var(--pf-bevel-raised) !important;
-  transition: background-color 0.12s ease-out;
+  background-color: var(--pf-secondary) !important;
+  box-shadow: var(--pf-bevel) !important;
+  --tw-ring-color: transparent !important;
 }
 .dark .card:hover {
-  background-color: var(--pf-win) !important;
+  box-shadow: var(--pf-bevel-hover) !important;
 }
 .dark .card:active {
-  box-shadow: var(--pf-bevel-inset) !important;
+  box-shadow: var(--pf-bevel-sunken) !important;
 }
 .dark .card:focus-visible {
-  outline: 2px solid var(--pf-amber);
+  outline: 2px solid var(--pf-deep);
   outline-offset: 2px;
+}
+.dark .card [data-component-part="card-content-container"] {
+  padding: 16px !important;
 }
 .dark .card [data-component-part="card-icon"],
 .dark .card [data-component-part="card-icon"] svg {
   color: var(--pf-amber) !important;
 }
+.dark .card [data-component-part="card-icon"] img[src*="/icons/"] {
+  color: var(--pf-amber);
+}
 .dark .card [data-component-part="card-icon"] svg[style*="mask"] {
   background-color: var(--pf-amber) !important;
 }
-.dark .card [data-component-part="card-title"] {
-  font-family: var(--pf-display);
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--pf-cream) !important;
+.dark .card [data-component-part="card-title"],
+.dark #content .card h2 {
+  font-family: var(--pf-sans);
+  font-size: 15px !important;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--pf-deep) !important;
 }
-.dark .card:hover [data-component-part="card-title"] {
-  color: var(--pf-amber) !important;
+.dark .card [data-component-part="card-content"],
+.dark .card [data-component-part="card-content"] * {
+  font-family: var(--pf-inter);
+  color: rgba(42, 17, 36, 0.6) !important;
 }
-.dark .card [data-component-part="card-content"] {
-  color: var(--pf-text-dim) !important;
+.dark .card [data-component-part="card-content"] strong {
+  color: var(--pf-deep) !important;
+}
+.dark .card [data-component-part="card-content"] code {
+  background-color: rgba(42, 17, 36, 0.1) !important;
+  box-shadow: var(--pf-bevel-sunken-sm);
+  color: var(--pf-body) !important;
 }
 
-/* ── Steps ────────────────────────────────────────────────────────── */
+/* ── Steps: numbered wells, as in the onboarding steps ────────────── */
 .dark [data-component-part="step-indicator"] {
-  background-color: var(--pf-amber) !important;
-  box-shadow: var(--pf-bevel-action);
-  color: var(--pf-bg) !important;
-  font-family: var(--pf-display);
-  font-weight: 700 !important;
+  border: 0 !important;
+  background-color: var(--pf-well) !important;
+  box-shadow: var(--pf-bevel-well);
+  color: var(--pf-secondary-75) !important;
+  font-family: var(--pf-mono);
+  font-weight: 600 !important;
 }
 .dark [data-component-part="step-line"] {
-  background-color: var(--pf-line) !important;
+  width: 2px !important;
+  background: none !important;
+  box-shadow: inset 1px 0 0 #00000073, inset -1px 0 0 #ffffff1a;
 }
 .dark [data-component-part="step-title"] {
-  font-family: var(--pf-display);
-  font-size: 17px;
-  color: var(--pf-cream) !important;
+  font-family: var(--pf-sans);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--pf-secondary) !important;
 }
 
-/* ── Tabs: Win98 tab strip ────────────────────────────────────────── */
+/* ── Tabs: Win98Tabs over a dashboard window ──────────────────────── */
 .dark [data-component-part="tabs-list"] {
   align-items: flex-end;
-  column-gap: 2px !important;
+  column-gap: 0 !important;
+  margin-bottom: -2px;
   padding-left: 8px;
-  border-bottom: 2px solid var(--pf-frame) !important;
+  border-bottom: 0 !important;
 }
 .dark [data-component-part="tab-button"] {
   height: 28px;
   margin: 0 !important;
-  padding: 0 13px !important;
+  padding: 0 14px !important;
   border: 0 !important;
-  background-color: var(--pf-tab);
-  box-shadow: inset 1px 1px #ffffff1f, inset -1px 0 #00000080;
-  color: rgba(229, 226, 211, 0.5) !important;
-  font-family: var(--pf-display);
-  font-size: 12px;
+  background-color: var(--pf-deep);
+  box-shadow: var(--pf-bevel-tab);
+  color: var(--pf-secondary-50) !important;
+  font-family: var(--pf-inter);
+  font-size: 11px;
   font-weight: 700 !important;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 .dark [data-component-part="tab-button"]:hover {
-  color: var(--pf-cream) !important;
+  background-color: var(--pf-titlebar);
+  color: var(--pf-secondary-85) !important;
 }
 .dark [data-component-part="tab-button"][data-active="true"] {
+  position: relative;
+  z-index: 2;
   height: 32px;
-  background-color: var(--pf-frame);
-  box-shadow: inset 1px 1px #ffffff2e, inset -1px 0 #00000066;
-  color: var(--pf-cream) !important;
+  background-color: var(--pf-win-dash);
+  box-shadow: var(--pf-bevel-tab);
+  color: var(--pf-secondary) !important;
+}
+.dark [data-component-part="tab-button"] > div.absolute {
+  display: none !important;
+}
+.dark [data-component-part="tab-content"] {
+  margin-top: 0 !important;
+  margin-left: 0 !important;
+  padding: 16px 20px 4px;
+  background-color: var(--pf-win-dash);
+  box-shadow: var(--pf-bevel);
 }
 
-/* ── Code: raised plum window around a sunken code well ──────────── */
+/* ── Code: a sunken code well (JsonBlock), tabs in Win98Tabs ──────── */
 .dark .code-block {
-  padding: 5px;
+  padding: 0;
   border: 0 !important;
-  background-color: var(--pf-frame) !important;
-  box-shadow: var(--pf-bevel-raised);
+  background-color: transparent !important;
+  box-shadow: none;
 }
 /* Beats Mintlify's html.dark .code-block-background { background: var(--shiki-dark-bg) !important } */
 html.dark [data-component-part="code-block-root"].code-block-background {
+  border: 0 !important;
   border-radius: 0 !important;
   background-color: var(--pf-code) !important;
-  box-shadow: var(--pf-bevel-inset);
-}
-/* Keep the text fade behind the copy button inside the well, not over the frame */
-.dark .code-block > .code-block-fade-overlay {
-  inset: 7px 7px auto auto !important;
+  box-shadow: var(--pf-bevel-well);
 }
 
-/* Code groups and API examples: tabs sit on top of the window frame */
+/* Code groups and API examples: tabs sit on the well */
 .dark .code-group {
   padding: 0 !important;
   border: 0 !important;
@@ -620,17 +898,18 @@ html.dark [data-component-part="code-block-root"].code-block-background {
 .dark .code-group > [data-component-part="code-group-tab-bar"] {
   align-items: flex-end;
   min-height: 32px;
-  padding: 0 !important; /* the first tab keeps Mintlify's forced 10px inset */
+  margin-bottom: -2px;
+  padding: 0 0 0 8px !important;
+  border: 0 !important;
   background: transparent !important;
 }
 .dark .code-group > :not([data-component-part="code-group-tab-bar"]) {
-  padding: 5px;
-  background-color: var(--pf-frame);
-  box-shadow: var(--pf-bevel-raised);
+  background-color: var(--pf-code);
+  box-shadow: var(--pf-bevel-well);
 }
 .dark .code-group [role="tablist"] {
   align-items: flex-end;
-  gap: 2px !important;
+  gap: 0 !important;
 }
 .dark .code-group [role="tab"],
 .dark .code-group [role="tab"]:first-child {
@@ -641,34 +920,32 @@ html.dark [data-component-part="code-block-root"].code-block-background {
   display: inline-flex;
   align-items: center;
   height: 28px;
-  padding: 0 13px !important;
-  background-color: var(--pf-tab) !important;
-  box-shadow: inset 1px 1px #ffffff1f, inset -1px 0 #00000080;
-  color: rgba(229, 226, 211, 0.5) !important;
-  font-family: var(--pf-display);
+  padding: 0 14px !important;
+  background-color: var(--pf-deep) !important;
+  box-shadow: var(--pf-bevel-tab);
+  color: var(--pf-secondary-50) !important;
+  font-family: var(--pf-inter);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 .dark .code-group [role="tab"]:hover > div:first-child {
-  color: var(--pf-cream) !important;
+  background-color: var(--pf-titlebar) !important;
+  color: var(--pf-secondary-85) !important;
 }
 .dark .code-group [role="tab"][aria-selected="true"] > div:first-child,
 .dark .code-group [data-component-part="code-group-tab-bar"] span[title] {
   height: 32px;
-  background-color: var(--pf-frame) !important;
-  box-shadow: inset 1px 1px #ffffff2e, inset -1px 0 #00000066;
-  color: var(--pf-cream) !important;
-}
-.dark .code-group [data-component-part="code-group-tab-bar"] span[title] {
-  margin-left: 10px;
+  background-color: var(--pf-code) !important;
+  box-shadow: var(--pf-bevel-tab);
+  color: var(--pf-secondary) !important;
 }
 .dark .code-group [role="tab"] > div.absolute {
   display: none !important;
 }
 
-/* Language picker on API examples: small silver button */
+/* Language picker on API examples: Win98Select (silver, bold) */
 .dark button[aria-label="Select language"] {
   padding-bottom: 4px !important;
 }
@@ -676,9 +953,9 @@ html.dark [data-component-part="code-block-root"].code-block-background {
   padding: 2px 6px 2px 8px !important;
   border: 0 !important;
   background-color: var(--pf-silver) !important;
-  box-shadow: var(--pf-bevel-raised);
+  box-shadow: var(--pf-bevel);
   color: var(--pf-deep) !important;
-  font-family: var(--pf-display);
+  font-family: var(--pf-sans);
   text-transform: uppercase;
 }
 .dark button[aria-label="Select language"] > div * {
@@ -686,15 +963,15 @@ html.dark [data-component-part="code-block-root"].code-block-background {
   font-weight: 700 !important;
 }
 .dark button[aria-label="Select language"]:hover > div {
-  box-shadow: var(--pf-bevel-raised), var(--pf-glow);
+  box-shadow: var(--pf-bevel-hover);
 }
 
-/* Copy buttons: small silver bevel buttons, like prefetch.io's COPY */
+/* Copy buttons: AppButton secondary, icon size */
 .dark [data-testid="copy-code-button"] {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   background-color: var(--pf-silver) !important;
-  box-shadow: var(--pf-bevel-raised);
+  box-shadow: var(--pf-bevel);
   color: var(--pf-deep) !important;
 }
 .dark [data-testid="copy-code-button"] * {
@@ -704,117 +981,129 @@ html.dark [data-component-part="code-block-root"].code-block-background {
   background-color: var(--pf-deep) !important;
 }
 .dark [data-testid="copy-code-button"]:hover {
-  box-shadow: var(--pf-bevel-raised), var(--pf-glow);
+  box-shadow: var(--pf-bevel-hover);
 }
 .dark [data-testid="copy-code-button"]:active {
-  box-shadow: var(--pf-bevel-inset);
+  box-shadow: var(--pf-bevel-sunken);
 }
 .dark .code-group [data-component-part="code-group-tab-bar"] .code-block-copy-button {
   padding-bottom: 4px;
 }
 
-/* ── Accordions: prefetch.io FAQ list ─────────────────────────────── */
+/* ── Accordions: Win98Window (dashboard) with a title bar ─────────── */
 .dark .accordion-group {
   overflow: visible !important;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   border: 0 !important;
-  border-top: 1px solid var(--pf-line) !important;
-  /* items use Mintlify's `divide-inherit!`, so they inherit this colour */
-  border-color: var(--pf-line) !important;
   background: transparent !important;
 }
 .dark .accordion-group > details,
 .dark details.accordion {
   margin: 0 !important;
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+  padding: 2px;
   border: 0 !important;
-  border-bottom: 1px solid var(--pf-line) !important;
-  background: transparent !important;
-}
-.dark :not(.accordion-group) > details.accordion {
-  border-top: 1px solid var(--pf-line) !important;
+  background-color: var(--pf-win-dash) !important;
+  box-shadow: var(--pf-bevel);
 }
 .dark [data-component-part="accordion-button"],
 .dark [data-component-part="accordion-button"]:hover {
-  padding: 16px 2px !important;
-  background: transparent !important;
+  min-height: 36px;
+  padding: 0 12px !important;
+  background-color: var(--pf-titlebar) !important;
+  box-shadow: var(--pf-bevel-titlebar);
+}
+.dark details[open] > [data-component-part="accordion-button"] {
+  margin-bottom: 4px;
 }
 .dark [data-component-part="accordion-caret-right"] {
   display: none !important;
 }
 .dark [data-component-part="accordion-button"]::after {
   content: "+";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
   margin-left: auto;
-  color: var(--pf-muted);
-  font-family: var(--pf-display);
-  font-size: 18px;
+  background-color: var(--pf-win);
+  box-shadow: var(--pf-bevel-sm);
+  color: var(--pf-secondary);
+  font-family: var(--pf-mono);
+  font-size: 13px;
   line-height: 1;
 }
 .dark details[open] > [data-component-part="accordion-button"]::after {
   content: "\2212";
 }
 .dark [data-component-part="accordion-title"] {
-  font-family: var(--pf-display);
-  font-size: 15px;
+  font-family: var(--pf-sans);
+  font-size: 14px;
   font-weight: 700 !important;
-  color: var(--pf-cream) !important;
-}
-.dark [data-component-part="accordion-button"]:hover [data-component-part="accordion-title"] {
-  color: var(--pf-amber) !important;
+  color: var(--pf-secondary) !important;
 }
 .dark [data-component-part="accordion-content"] {
-  padding: 0 2px 18px !important;
-  color: var(--pf-text);
+  padding: 8px 14px 14px !important;
+  color: var(--pf-secondary-80);
 }
 
 /* ── Expandables (child attributes) ───────────────────────────────── */
 .dark [data-component-part="expandable"] {
-  border: 1px solid var(--pf-line) !important;
+  border: 0 !important;
+  box-shadow: var(--pf-bevel-etched);
 }
 .dark [data-component-part="expandable-button"] {
-  color: rgba(229, 226, 211, 0.7) !important;
-  font-family: var(--pf-display);
-  font-size: 12px;
+  color: var(--pf-secondary-75) !important;
+  font-family: var(--pf-sans);
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 .dark [data-component-part="expandable-button"]:hover {
-  background-color: rgba(229, 226, 211, 0.04) !important;
-  color: var(--pf-amber) !important;
+  background-color: var(--pf-secondary-5) !important;
+  color: var(--pf-secondary) !important;
 }
 .dark [data-component-part="expandable-content"] {
   border-color: var(--pf-line) !important;
 }
 
-/* ── API fields ───────────────────────────────────────────────────── */
+/* ── API fields: AppBadge pills ───────────────────────────────────── */
 .dark [data-component-part="field-name"] {
   font-family: var(--pf-mono);
   color: var(--pf-amber) !important;
 }
 .dark [data-component-part="field-info-pill"] {
-  background-color: var(--pf-win) !important;
-  box-shadow: var(--pf-bevel-badge);
-  color: rgba(229, 226, 211, 0.8) !important;
+  border: 0 !important;
+  background-color: var(--pf-bg) !important;
+  box-shadow: var(--pf-bevel);
+  color: var(--pf-muted) !important;
   font-family: var(--pf-mono);
 }
 .dark [data-component-part="field-required-pill"] {
-  background-color: rgba(255, 111, 145, 0.12) !important;
-  box-shadow: inset 0 0 0 1px rgba(255, 111, 145, 0.35);
-  color: var(--pf-pink) !important;
+  border: 0 !important;
+  background-color: rgba(248, 113, 113, 0.1) !important;
+  box-shadow: var(--pf-bevel);
+  color: var(--pf-fail-fg) !important;
   font-family: var(--pf-mono);
 }
 
-/* ── API endpoint bar: prefetch.io URL tester (cream panel, white
-      inset field, amber action) ─────────────────────────────────── */
+/* ── API endpoint bar: the EndpointTester (cream window, white field,
+      amber action) ────────────────────────────────────────────────── */
 .dark div:has(> div > .tryit-button) {
-  padding: 7px !important;
+  padding: 8px !important;
   border: 0 !important;
-  background-color: var(--pf-cream) !important;
-  box-shadow: var(--pf-bevel-action);
+  background-color: var(--pf-secondary) !important;
+  box-shadow: var(--pf-bevel-strong);
 }
 .dark div:has(> .tryit-button) > div:has(> .method-pill) {
   border: 0 !important;
   background-color: #fff !important;
-  box-shadow: var(--pf-bevel-field);
+  box-shadow: var(--pf-bevel-sunken-sm);
 }
 .dark div:has(> .tryit-button) > div:has(> .method-pill) :is(.font-mono, .font-mono *) {
   color: var(--pf-deep) !important;
@@ -829,20 +1118,21 @@ html.dark [data-component-part="code-block-root"].code-block-background {
 .dark .tryit-button {
   height: 38px !important;
   padding: 0 16px !important;
+  border: 0 !important;
   background: var(--pf-amber) !important;
-  box-shadow: var(--pf-bevel-action);
+  box-shadow: var(--pf-bevel-strong);
   color: var(--pf-bg) !important;
-  font-family: var(--pf-display);
+  font-family: var(--pf-sans);
   font-size: 13px;
   font-weight: 700 !important;
   text-transform: uppercase;
   opacity: 1 !important;
 }
 .dark .tryit-button:hover {
-  box-shadow: var(--pf-bevel-action), var(--pf-glow);
+  box-shadow: var(--pf-bevel-strong-hover);
 }
 .dark .tryit-button:active {
-  box-shadow: var(--pf-bevel-action-down);
+  box-shadow: var(--pf-bevel-strong-pressed);
 }
 .dark .tryit-button svg {
   color: var(--pf-bg) !important;
@@ -851,28 +1141,27 @@ html.dark [data-component-part="code-block-root"].code-block-background {
   background-color: var(--pf-bg) !important;
 }
 
-/* ── API playground: cream Win98 window ───────────────────────────── */
+/* ── API playground: a light Win98 window (dialog) ────────────────── */
 .dark [data-testid="api-playground-modal"] {
   border: 0 !important;
-  background-color: var(--pf-cream) !important;
-  box-shadow: var(--pf-bevel-window-light), 6px 6px 0 rgba(0, 0, 0, 0.35) !important;
+  background-color: var(--pf-secondary) !important;
+  box-shadow: var(--pf-bevel-window-light), var(--pf-drop) !important;
 }
 .dark [data-testid="api-playground-modal"] .sticky,
 .dark [data-testid="api-playground-modal"] [class*="dark:bg-background-dark"] {
-  background-color: var(--pf-cream) !important;
+  background-color: var(--pf-secondary) !important;
 }
-/* Controls that use cream-tinted greys in dark mode: make them plum on cream */
 .dark [data-testid="api-playground-modal"] .text-playground-input,
 .dark [data-testid="api-playground-modal"] [class*="group-hover:text-stone-950"] {
   color: rgba(42, 17, 36, 0.7) !important;
 }
-/* "Expand optional fields": silver secondary button */
+/* "Expand optional fields": AppButton secondary */
 .dark [data-testid="api-playground-modal"] button:has(span.col-start-1) {
   border: 0 !important;
   background-color: var(--pf-silver) !important;
-  box-shadow: var(--pf-bevel-raised);
+  box-shadow: var(--pf-bevel);
   color: var(--pf-deep) !important;
-  font-family: var(--pf-display);
+  font-family: var(--pf-sans);
   font-size: 12px;
   font-weight: 700 !important;
   text-transform: uppercase;
@@ -881,7 +1170,7 @@ html.dark [data-component-part="code-block-root"].code-block-background {
   color: var(--pf-deep) !important;
 }
 .dark [data-testid="api-playground-modal"] button:has(span.col-start-1):hover {
-  box-shadow: var(--pf-bevel-raised), var(--pf-glow);
+  box-shadow: var(--pf-bevel-hover);
 }
 .dark [data-testid="api-playground-modal"] [class*="border-standard"] {
   border-color: rgba(42, 17, 36, 0.15) !important;
@@ -904,7 +1193,8 @@ html.dark [data-component-part="code-block-root"].code-block-background {
   border: 0 !important;
   background-color: #fff !important;
   box-shadow: var(--pf-bevel-field) !important;
-  color: var(--pf-deep) !important;
+  color: #000 !important;
+  font-family: var(--pf-inter);
   outline: none !important;
 }
 .dark [data-testid="api-playground-modal"] input::placeholder {
@@ -912,7 +1202,8 @@ html.dark [data-component-part="code-block-root"].code-block-background {
   opacity: 1 !important;
 }
 .dark [data-testid="api-playground-modal"] :is(input, select):focus {
-  box-shadow: var(--pf-bevel-field), 0 0 0 2px var(--pf-amber) !important;
+  outline: 2px solid var(--pf-deep) !important;
+  outline-offset: 0;
 }
 /* Mask-image icons (chevrons, copy…); scroll viewports also use mask-image for fades */
 .dark [data-testid="api-playground-modal"] .lucide-chevron-down,
@@ -923,14 +1214,14 @@ html.dark [data-component-part="code-block-root"].code-block-background {
   background-color: rgba(42, 17, 36, 0.55) !important;
 }
 .dark [data-testid="api-playground-modal"] [data-component-part="field-info-pill"] {
-  background-color: rgba(42, 17, 36, 0.08) !important;
-  box-shadow: none;
-  color: rgba(42, 17, 36, 0.75) !important;
+  background-color: rgba(42, 17, 36, 0.05) !important;
+  box-shadow: var(--pf-bevel);
+  color: rgba(42, 17, 36, 0.6) !important;
 }
 .dark [data-testid="api-playground-modal"] [data-component-part="field-required-pill"] {
-  background-color: rgba(149, 0, 0, 0.08) !important;
-  box-shadow: inset 0 0 0 1px rgba(149, 0, 0, 0.25);
-  color: #950000 !important;
+  background-color: rgba(149, 0, 0, 0.1) !important;
+  box-shadow: var(--pf-bevel);
+  color: var(--pf-deep-red) !important;
 }
 .dark [data-testid="api-playground-modal"] [data-component-part="field-name"] {
   color: var(--pf-deep) !important;
@@ -939,15 +1230,16 @@ html.dark [data-component-part="code-block-root"].code-block-background {
   border-color: rgba(42, 17, 36, 0.15) !important;
 }
 
-/* ── Search modal: prefetch.io tester panel ───────────────────────── */
+/* ── Search modal: the EndpointTester (cream window, white field) ─── */
 .dark [data-component-part="search-modal"] {
-  background-color: var(--pf-cream) !important;
-  box-shadow: var(--pf-bevel-action), 6px 6px 0 rgba(0, 0, 0, 0.35) !important;
+  border: 0 !important;
+  background-color: var(--pf-secondary) !important;
+  box-shadow: var(--pf-bevel-strong), var(--pf-drop) !important;
 }
 .dark :is([data-component-part="search-input-container"], [data-component-part="search-cli-state"]) {
   border: 0 !important;
   background-color: #fff !important;
-  box-shadow: var(--pf-bevel-field);
+  box-shadow: var(--pf-bevel-sunken-sm);
 }
 .dark :is([data-component-part="search-input-container"], [data-component-part="search-cli-state"]) > svg {
   color: rgba(42, 17, 36, 0.5) !important;
@@ -955,7 +1247,7 @@ html.dark [data-component-part="code-block-root"].code-block-background {
 .dark [data-component-part="search-input"] {
   caret-color: var(--pf-deep) !important;
   color: var(--pf-deep) !important;
-  font-family: var(--pf-display);
+  font-family: var(--pf-mono);
 }
 .dark [data-component-part="search-input"]::placeholder,
 .dark [data-component-part="search-cli-state"] span {
@@ -963,11 +1255,11 @@ html.dark [data-component-part="code-block-root"].code-block-background {
 }
 .dark [data-component-part="search-item-title"] {
   color: var(--pf-deep) !important;
-  font-family: var(--pf-display);
-  font-weight: 600 !important;
+  font-family: var(--pf-sans);
+  font-weight: 700 !important;
 }
 .dark [data-component-part="search-item-breadcrumbs"] {
-  color: rgba(42, 17, 36, 0.55) !important;
+  color: rgba(42, 17, 36, 0.6) !important;
 }
 .dark [data-component-part="search-item-icon"] {
   color: rgba(42, 17, 36, 0.45) !important;
@@ -977,43 +1269,44 @@ html.dark [data-component-part="code-block-root"].code-block-background {
   color: inherit !important;
 }
 .dark [data-component-part="search-item"][data-highlighted] {
-  background-color: var(--pf-deep) !important;
-}
-.dark [data-component-part="search-item"][data-highlighted] :is([data-component-part="search-item-title"], [data-component-part="search-item-icon"]) {
-  color: var(--pf-cream) !important;
-}
-.dark [data-component-part="search-item"][data-highlighted] [data-component-part="search-item-breadcrumbs"] {
-  color: rgba(229, 226, 211, 0.6) !important;
+  background-color: rgba(42, 17, 36, 0.1) !important;
 }
 .dark [data-component-part="search-item"][data-highlighted] mark {
   background-color: var(--pf-amber) !important;
-  color: var(--pf-bg) !important;
 }
 .dark [data-component-part="search-footer"] {
   border-color: rgba(42, 17, 36, 0.15) !important;
   color: rgba(42, 17, 36, 0.6) !important;
-  font-family: var(--pf-display);
-  letter-spacing: 0.04em;
+  font-family: var(--pf-sans);
+  font-size: 10px;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 .dark .fixed.inset-0[class*="bg-black"] {
-  background-color: rgba(26, 6, 24, 0.6) !important;
+  background-color: rgba(42, 17, 36, 0.28) !important;
 }
 
-/* ── Table of contents ────────────────────────────────────────────── */
+/* ── Table of contents: MetaLabel title, flat rows ────────────────── */
 .dark nav:has(#table-of-contents-content) > h2 button {
-  color: var(--pf-cream) !important;
-  font-family: var(--pf-display);
-  font-size: 12px;
-  font-weight: 700 !important;
+  color: var(--pf-muted) !important;
+  font-family: var(--pf-sans);
+  font-size: 10px;
+  font-weight: 400 !important;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.dark nav:has(#table-of-contents-content) > h2 svg {
+  width: 12px;
+  height: 12px;
 }
 .dark .toc-item > a {
-  font-family: var(--pf-display);
+  font-family: var(--pf-sans);
   text-shadow: none !important;
-  color: var(--pf-text-dim) !important;
+  color: var(--pf-secondary-60) !important;
+  transition: color 0.15s;
 }
 .dark .toc-item > a:hover {
-  color: var(--pf-cream) !important;
+  color: var(--pf-secondary) !important;
 }
 .dark .toc-item[data-active] > a {
   color: var(--pf-amber) !important;
@@ -1021,10 +1314,10 @@ html.dark [data-component-part="code-block-root"].code-block-background {
 
 /* ── Pagination & footer ──────────────────────────────────────────── */
 .dark #pagination {
-  font-family: var(--pf-display);
+  font-family: var(--pf-sans);
 }
 .dark #pagination [data-component-part="pagination-title"] {
-  color: var(--pf-cream);
+  color: var(--pf-secondary);
 }
 .dark #pagination a:hover [data-component-part="pagination-title"] {
   color: var(--pf-amber) !important;
@@ -1033,65 +1326,69 @@ html.dark [data-component-part="code-block-root"].code-block-background {
   color: var(--pf-amber);
 }
 .dark #footer {
-  border-top: 1px solid var(--pf-line) !important;
-  font-family: var(--pf-display);
+  border-top: 0 !important;
+  box-shadow: var(--pf-bevel-etched-t);
+  font-family: var(--pf-sans);
 }
 .dark #footer p[class*="font-semibold"] {
-  color: var(--pf-cream) !important;
-  font-size: 12px;
-  font-weight: 700;
+  color: var(--pf-muted) !important;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 .dark #footer a[class*="text-sm"] {
-  color: rgba(229, 226, 211, 0.6) !important;
-  font-size: 13px;
+  color: var(--pf-secondary-60) !important;
+  font-size: 14px;
+  transition: color 0.15s;
 }
 .dark #footer a[class*="text-sm"]:hover {
   color: var(--pf-amber) !important;
 }
 .dark #footer a[href*="mintlify.com"] {
-  color: rgba(229, 226, 211, 0.4) !important;
+  color: var(--pf-secondary-40) !important;
 }
 
 /* ── Mobile ───────────────────────────────────────────────────────── */
 .dark #mobile-nav {
   background-color: var(--pf-bg) !important;
-  box-shadow: var(--pf-bevel-window);
+  box-shadow: var(--pf-bevel-etched-r);
 }
-/* Tab switcher at the top of the drawer */
 .dark #mobile-nav button[aria-haspopup="menu"] {
   border: 0 !important;
-  background-color: var(--pf-frame) !important;
-  box-shadow: var(--pf-bevel-raised);
+  background-color: var(--pf-win-dash) !important;
+  box-shadow: var(--pf-bevel);
 }
 .dark #mobile-nav button[aria-haspopup="menu"] > span {
-  color: var(--pf-cream) !important;
-  font-family: var(--pf-display);
+  color: var(--pf-secondary) !important;
+  font-family: var(--pf-sans);
   font-size: 14px;
   font-weight: 700;
+  text-transform: uppercase;
 }
-/* Breadcrumb bar under the mobile navbar */
 .dark #navbar button.h-14 {
-  font-family: var(--pf-display);
+  font-family: var(--pf-sans);
 }
-/* Navbar overflow popover (⋮) */
 .dark [role="dialog"]:has(> nav[aria-label="Mobile menu"]) {
-  background-color: var(--pf-win) !important;
-  box-shadow: var(--pf-bevel-window), var(--pf-drop) !important;
+  background-color: var(--pf-secondary) !important;
+  box-shadow: var(--pf-bevel), var(--pf-drop) !important;
 }
 .dark nav[aria-label="Mobile menu"] a {
-  color: var(--pf-cream) !important;
-  font-family: var(--pf-display);
-  font-weight: 500;
+  color: var(--pf-deep) !important;
+  font-family: var(--pf-sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
 }
 .dark nav[aria-label="Mobile menu"] li.navbar-link a:hover {
-  background-color: rgba(229, 226, 211, 0.06) !important;
-  color: var(--pf-amber) !important;
+  background-color: rgba(42, 17, 36, 0.1) !important;
 }
 .dark nav[aria-label="Mobile menu"] li.block a[href="https://prefetch.io/account"] {
   justify-content: center;
   margin-top: 4px;
   background-color: var(--pf-amber) !important;
-  box-shadow: var(--pf-bevel-action);
+  box-shadow: var(--pf-bevel-strong);
   color: var(--pf-bg) !important;
   font-weight: 700;
 }
@@ -1099,44 +1396,99 @@ html.dark [data-component-part="code-block-root"].code-block-background {
   color: var(--pf-bg) !important;
 }
 
-/* ── Light theme ──────────────────────────────────────────────────────
-   Mintlify's light defaults with the brand fonts and accents. Amber text
-   uses #8a5a00 (5.7:1 on the cream background); the amber fill stays on
-   buttons, where text on it is plum. Code blocks keep the dark palette.
-   ─────────────────────────────────────────────────────────────────── */
-html:not(.dark) .nav-tabs-item,
-html:not(.dark) .sidebar-group-header,
-html:not(.dark) #navigation-items li > a,
-html:not(.dark) #navbar .navbar-link a {
-  font-family: var(--pf-display);
+/* ══════════════════════════════════════════════════════════════════
+   LIGHT THEME
+   prefetch.io's light surfaces (surface-light): cream windows, plum
+   text, the same bevels, cards and buttons. Amber as text uses
+   #8a5a00 for contrast; amber fills stay on buttons. Code stays dark.
+   ══════════════════════════════════════════════════════════════════ */
+html:not(.dark) body {
+  color: var(--pf-body);
 }
-html:not(.dark) .sidebar-group-header {
-  font-size: 13px;
-  font-weight: 700 !important;
-  color: var(--pf-bg) !important;
+html:not(.dark) ::selection {
+  background-color: var(--pf-amber);
+  color: var(--pf-bg);
 }
-html:not(.dark) #header .eyebrow {
-  font-family: var(--pf-display);
-  font-size: 13px;
-  font-weight: 700;
-  color: #8a5a00 !important;
+html:not(.dark) :is(a, button, summary, [role="tab"], [role="link"]):focus-visible {
+  outline: 2px solid var(--pf-deep) !important;
+  outline-offset: 2px;
 }
-html:not(.dark) #page-title {
-  font-weight: 500;
-  letter-spacing: -0.025em;
-  color: var(--pf-bg) !important;
+
+/* Navbar */
+html:not(.dark) #navbar-transition {
+  border-bottom: 0 !important;
+  box-shadow: inset 0 -1px 0 #0000004d, inset 0 -2px 0 #ffffffb3;
+}
+html:not(.dark) #content blockquote:not(.sr-only) {
+  border-left: 0 !important;
+  padding: 10px 16px !important;
+  background-color: #fff;
+  box-shadow: var(--pf-bevel-sunken-sm);
+  color: var(--pf-body);
+  font-style: normal;
+}
+html:not(.dark) #content blockquote p::before,
+html:not(.dark) #content blockquote p::after {
+  content: none;
+}
+html:not(.dark) #navbar .navbar-link a,
+html:not(.dark) .nav-tabs-item {
+  font-family: var(--pf-sans);
+  font-size: 14px;
+  font-weight: 500 !important;
+  text-transform: uppercase;
+  text-shadow: none !important;
+  color: var(--pf-deep) !important;
+}
+html:not(.dark) #navbar .navbar-link a:hover,
+html:not(.dark) .nav-tabs-item:hover {
+  color: var(--pf-amber-text) !important;
 }
 html:not(.dark) .nav-tabs-item[data-active="true"]::before {
   content: "+";
   margin-right: -2px;
-  color: #8a5a00;
+  color: var(--pf-amber-text);
+}
+html:not(.dark) .nav-tabs-item > div.absolute {
+  display: none !important;
+}
+html:not(.dark) #search-bar-entry {
+  border: 0 !important;
+  background-color: #fff !important;
+  box-shadow: var(--pf-bevel-field) !important;
+  color: rgba(42, 17, 36, 0.5) !important;
+}
+html:not(.dark) #search-bar-entry > svg {
+  width: 16px;
+  height: 16px;
+}
+html:not(.dark) #search-bar-entry > span {
+  padding: 1px 6px;
+  border: 0 !important;
+  background: var(--pf-silver);
+  box-shadow: var(--pf-bevel-sm);
+  color: var(--pf-deep) !important;
+  font-family: var(--pf-sans);
+  font-size: 10px;
+  font-weight: 700;
 }
 html:not(.dark) #topbar-cta-button a {
+  height: 42px;
+  padding: 0 1.25rem !important;
+  border: 0 !important;
   background: var(--pf-amber);
-  box-shadow: var(--pf-bevel-action);
+  box-shadow: var(--pf-bevel-strong);
   color: var(--pf-bg) !important;
-  font-family: var(--pf-display);
+  font-family: var(--pf-sans);
+  font-size: 14px;
   font-weight: 700;
+  text-transform: uppercase;
+}
+html:not(.dark) #topbar-cta-button a:hover {
+  box-shadow: var(--pf-bevel-strong-hover);
+}
+html:not(.dark) #topbar-cta-button a:active {
+  box-shadow: var(--pf-bevel-strong-pressed);
 }
 html:not(.dark) #topbar-cta-button a span {
   color: var(--pf-bg) !important;
@@ -1145,3 +1497,402 @@ html:not(.dark) #topbar-cta-button a span.absolute,
 html:not(.dark) #topbar-cta-button a svg {
   display: none !important;
 }
+
+/* Sidebar: MetaLabel (light) and flat rows in plum */
+html:not(.dark) .sidebar-group-header {
+  margin-bottom: 6px !important;
+  padding-left: 12px !important;
+  font-family: var(--pf-sans);
+  font-size: 10px;
+  font-weight: 400 !important;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(42, 17, 36, 0.6) !important;
+}
+html:not(.dark) #navigation-items li > :is(a, button) {
+  align-items: center !important;
+  min-height: 36px;
+  column-gap: 10px !important;
+  padding-right: 12px !important;
+  font-family: var(--pf-sans);
+  font-size: 14px;
+  font-weight: 400 !important;
+  text-shadow: none !important;
+  color: rgba(42, 17, 36, 0.75) !important;
+  background-color: transparent !important;
+}
+html:not(.dark) #navigation-items li > a[style*="padding-left:1rem"],
+html:not(.dark) #navigation-items li > button[style*="padding-left:1rem"] {
+  padding-left: 12px !important;
+}
+html:not(.dark) #navigation-items li > :is(a, button):hover {
+  background-color: rgba(42, 17, 36, 0.05) !important;
+  color: var(--pf-deep) !important;
+}
+html:not(.dark) #navigation-items li[data-active-nav-item="true"] > a {
+  background-color: rgba(42, 17, 36, 0.05) !important;
+  color: var(--pf-amber-text) !important;
+}
+html:not(.dark) #navigation-items li > a img[src*="/icons/"] {
+  color: rgba(42, 17, 36, 0.5);
+}
+html:not(.dark) #navigation-items li > a:hover img[src*="/icons/"] {
+  color: var(--pf-deep);
+}
+html:not(.dark) #navigation-items li[data-active-nav-item="true"] > a img[src*="/icons/"] {
+  color: var(--pf-amber-text);
+}
+html:not(.dark) #navigation-items li > ul {
+  margin-left: 20px;
+  padding-left: 8px;
+  border-left: 1px solid rgba(42, 17, 36, 0.1);
+}
+html:not(.dark) #navigation-items li > ul > li > a {
+  min-height: 32px;
+  padding-left: 12px !important;
+  font-size: 12px;
+}
+
+/* Page header */
+html:not(.dark) #header .eyebrow {
+  font-family: var(--pf-sans);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(42, 17, 36, 0.6) !important;
+}
+html:not(.dark) #page-title {
+  font-family: var(--pf-sans);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--pf-deep) !important;
+}
+html:not(.dark) #header .prose p {
+  font-family: var(--pf-inter);
+  color: rgba(42, 17, 36, 0.6) !important;
+}
+html:not(.dark) #page-context-menu-button,
+html:not(.dark) #page-context-menu > button[aria-haspopup="menu"] {
+  height: 30px !important;
+  border: 0 !important;
+  background-color: var(--pf-silver) !important;
+  box-shadow: var(--pf-bevel) !important;
+  color: var(--pf-deep) !important;
+}
+html:not(.dark) #page-context-menu > button[aria-haspopup="menu"] {
+  width: 30px;
+  margin-left: 2px;
+}
+html:not(.dark) #page-context-menu-button *,
+html:not(.dark) #page-context-menu > button[aria-haspopup="menu"] * {
+  color: var(--pf-deep) !important;
+}
+html:not(.dark) #page-context-menu-button span {
+  font-family: var(--pf-sans);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+html:not(.dark) #page-context-menu-button:hover,
+html:not(.dark) #page-context-menu > button[aria-haspopup="menu"]:hover {
+  box-shadow: var(--pf-bevel-hover) !important;
+}
+
+/* Content */
+html:not(.dark) #content :is(h1, h2, h3, h4) {
+  font-family: var(--pf-sans);
+  font-weight: 700;
+  color: var(--pf-deep);
+}
+html:not(.dark) #content h2 {
+  font-size: 1.375rem;
+}
+html:not(.dark) #content h3 {
+  font-size: 1.125rem;
+}
+html:not(.dark) #content a.link {
+  border-bottom: 0 !important;
+  color: var(--pf-amber-text) !important;
+  font-weight: 500;
+  text-decoration: none;
+}
+html:not(.dark) #content a.link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+html:not(.dark) :not(pre) > code {
+  padding: 0.1em 0.4em !important;
+  border: 0 !important;
+  background-color: rgba(42, 17, 36, 0.1) !important;
+  box-shadow: var(--pf-bevel-sunken-sm);
+  color: var(--pf-body) !important;
+}
+html:not(.dark) #content table thead th {
+  padding: 6px 12px !important;
+  border: 0 !important;
+  border-right: 1px solid rgba(0, 0, 0, 0.25) !important;
+  background-color: var(--pf-silver) !important;
+  box-shadow: var(--pf-bevel);
+  color: var(--pf-deep) !important;
+  font-family: var(--pf-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+html:not(.dark) #content table tbody td {
+  padding: 6px 12px !important;
+  border-color: rgba(42, 17, 36, 0.1) !important;
+}
+html:not(.dark) #content table tbody tr:hover td {
+  background-color: rgba(247, 176, 10, 0.12);
+}
+html:not(.dark) .callout {
+  border: 0 !important;
+  background-color: transparent !important;
+  box-shadow: var(--pf-bevel-etched-light);
+}
+html:not(.dark) .callout [data-component-part="callout-content"] {
+  color: var(--pf-body) !important;
+}
+html:not(.dark) .callout [data-component-part="callout-icon"] > svg {
+  width: 16px;
+  height: 16px;
+  color: var(--pf-deep) !important;
+}
+
+/* Cards: the same light Win98 window */
+html:not(.dark) .card {
+  padding: 2px;
+  border: 0 !important;
+  background-color: var(--pf-secondary) !important;
+  box-shadow: var(--pf-bevel) !important;
+}
+html:not(.dark) .card:hover {
+  box-shadow: var(--pf-bevel-hover) !important;
+}
+html:not(.dark) .card:active {
+  box-shadow: var(--pf-bevel-sunken) !important;
+}
+html:not(.dark) .card [data-component-part="card-content-container"] {
+  padding: 16px !important;
+}
+html:not(.dark) .card [data-component-part="card-icon"] img[src*="/icons/"] {
+  color: var(--pf-amber-text);
+}
+html:not(.dark) .card [data-component-part="card-title"],
+html:not(.dark) #content .card h2 {
+  font-family: var(--pf-sans);
+  font-size: 15px !important;
+  font-weight: 700;
+  color: var(--pf-deep) !important;
+}
+html:not(.dark) .card [data-component-part="card-content"] {
+  font-family: var(--pf-inter);
+  color: rgba(42, 17, 36, 0.6) !important;
+}
+
+/* Steps, tabs, code */
+html:not(.dark) [data-component-part="step-indicator"] {
+  border: 0 !important;
+  background-color: var(--pf-silver) !important;
+  box-shadow: var(--pf-bevel-sunken-sm);
+  color: var(--pf-deep) !important;
+  font-family: var(--pf-mono);
+}
+html:not(.dark) [data-component-part="tabs-list"] {
+  align-items: flex-end;
+  column-gap: 0 !important;
+  margin-bottom: -2px;
+  padding-left: 8px;
+  border-bottom: 0 !important;
+}
+html:not(.dark) [data-component-part="tab-button"] {
+  height: 28px;
+  margin: 0 !important;
+  padding: 0 14px !important;
+  border: 0 !important;
+  background-color: var(--pf-silver);
+  box-shadow: var(--pf-bevel-tab-light);
+  color: rgba(42, 17, 36, 0.55) !important;
+  font-family: var(--pf-inter);
+  font-size: 11px;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+html:not(.dark) [data-component-part="tab-button"]:hover {
+  color: var(--pf-deep) !important;
+}
+html:not(.dark) [data-component-part="tab-button"][data-active="true"] {
+  position: relative;
+  z-index: 2;
+  height: 32px;
+  background-color: var(--pf-secondary);
+  color: var(--pf-deep) !important;
+}
+html:not(.dark) [data-component-part="tab-button"] > div.absolute {
+  display: none !important;
+}
+html:not(.dark) [data-component-part="tab-content"] {
+  margin-top: 0 !important;
+  margin-left: 0 !important;
+  padding: 16px 20px 4px;
+  background-color: var(--pf-secondary);
+  box-shadow: var(--pf-bevel);
+}
+html:not(.dark) [data-component-part="code-block-root"].code-block-background {
+  border: 0 !important;
+  box-shadow: var(--pf-bevel-sunken);
+}
+html:not(.dark) [data-testid="copy-code-button"] {
+  width: 24px;
+  height: 24px;
+  background-color: var(--pf-silver) !important;
+  box-shadow: var(--pf-bevel);
+  color: var(--pf-deep) !important;
+  opacity: 1 !important;
+}
+html:not(.dark) [data-testid="copy-code-button"] * {
+  color: var(--pf-deep) !important;
+}
+html:not(.dark) [data-testid="copy-code-button"] svg[style*="mask"] {
+  background-color: var(--pf-deep) !important;
+}
+html:not(.dark) [data-testid="copy-code-button"]:hover {
+  box-shadow: var(--pf-bevel-hover);
+}
+html:not(.dark) div:has(> div > .tryit-button) {
+  padding: 8px !important;
+  border: 0 !important;
+  background-color: var(--pf-secondary) !important;
+  box-shadow: var(--pf-bevel-strong);
+}
+html:not(.dark) div:has(> .tryit-button) > div:has(> .method-pill) {
+  border: 0 !important;
+  background-color: #fff !important;
+  box-shadow: var(--pf-bevel-sunken-sm);
+}
+html:not(.dark) .tryit-button {
+  border: 0 !important;
+  background: var(--pf-amber) !important;
+  box-shadow: var(--pf-bevel-strong);
+  color: var(--pf-bg) !important;
+  font-family: var(--pf-sans);
+  font-weight: 700 !important;
+  text-transform: uppercase;
+}
+html:not(.dark) .tryit-button:hover {
+  box-shadow: var(--pf-bevel-strong-hover);
+}
+html:not(.dark) .method-pill,
+html:not(.dark) .method-nav-pill > span {
+  border: 0 !important;
+  box-shadow: var(--pf-bevel-sm-light);
+  font-family: var(--pf-mono) !important;
+  font-weight: 600 !important;
+}
+
+/* TOC and footer */
+html:not(.dark) nav:has(#table-of-contents-content) > h2 button {
+  color: rgba(42, 17, 36, 0.6) !important;
+  font-family: var(--pf-sans);
+  font-size: 10px;
+  font-weight: 400 !important;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+html:not(.dark) nav:has(#table-of-contents-content) > h2 svg {
+  width: 12px;
+  height: 12px;
+}
+html:not(.dark) .toc-item > a {
+  font-family: var(--pf-sans);
+  text-shadow: none !important;
+  color: rgba(42, 17, 36, 0.6) !important;
+}
+html:not(.dark) .toc-item > a:hover {
+  color: var(--pf-deep) !important;
+}
+html:not(.dark) .toc-item[data-active] > a {
+  color: var(--pf-amber-text) !important;
+}
+html:not(.dark) #footer p[class*="font-semibold"] {
+  color: rgba(42, 17, 36, 0.6) !important;
+  font-family: var(--pf-sans);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ── Pixel icon masks (generated by scripts/build-icon-css.py) ────── */
+/* @icons:start */
+img[src$="/icons/algorithm.svg"] { -webkit-mask-image: url(/icons/algorithm.svg); mask-image: url(/icons/algorithm.svg); }
+img[src$="/icons/arrows-horizontal.svg"] { -webkit-mask-image: url(/icons/arrows-horizontal.svg); mask-image: url(/icons/arrows-horizontal.svg); }
+img[src$="/icons/article.svg"] { -webkit-mask-image: url(/icons/article.svg); mask-image: url(/icons/article.svg); }
+img[src$="/icons/bell.svg"] { -webkit-mask-image: url(/icons/bell.svg); mask-image: url(/icons/bell.svg); }
+img[src$="/icons/blocks.svg"] { -webkit-mask-image: url(/icons/blocks.svg); mask-image: url(/icons/blocks.svg); }
+img[src$="/icons/book-open.svg"] { -webkit-mask-image: url(/icons/book-open.svg); mask-image: url(/icons/book-open.svg); }
+img[src$="/icons/box.svg"] { -webkit-mask-image: url(/icons/box.svg); mask-image: url(/icons/box.svg); }
+img[src$="/icons/bug.svg"] { -webkit-mask-image: url(/icons/bug.svg); mask-image: url(/icons/bug.svg); }
+img[src$="/icons/bulletlist.svg"] { -webkit-mask-image: url(/icons/bulletlist.svg); mask-image: url(/icons/bulletlist.svg); }
+img[src$="/icons/calendar.svg"] { -webkit-mask-image: url(/icons/calendar.svg); mask-image: url(/icons/calendar.svg); }
+img[src$="/icons/camera.svg"] { -webkit-mask-image: url(/icons/camera.svg); mask-image: url(/icons/camera.svg); }
+img[src$="/icons/cancel.svg"] { -webkit-mask-image: url(/icons/cancel.svg); mask-image: url(/icons/cancel.svg); }
+img[src$="/icons/chart-line.svg"] { -webkit-mask-image: url(/icons/chart-line.svg); mask-image: url(/icons/chart-line.svg); }
+img[src$="/icons/check.svg"] { -webkit-mask-image: url(/icons/check.svg); mask-image: url(/icons/check.svg); }
+img[src$="/icons/checkbox-on.svg"] { -webkit-mask-image: url(/icons/checkbox-on.svg); mask-image: url(/icons/checkbox-on.svg); }
+img[src$="/icons/circle-info.svg"] { -webkit-mask-image: url(/icons/circle-info.svg); mask-image: url(/icons/circle-info.svg); }
+img[src$="/icons/circle-question.svg"] { -webkit-mask-image: url(/icons/circle-question.svg); mask-image: url(/icons/circle-question.svg); }
+img[src$="/icons/circuit-board.svg"] { -webkit-mask-image: url(/icons/circuit-board.svg); mask-image: url(/icons/circuit-board.svg); }
+img[src$="/icons/clock.svg"] { -webkit-mask-image: url(/icons/clock.svg); mask-image: url(/icons/clock.svg); }
+img[src$="/icons/code.svg"] { -webkit-mask-image: url(/icons/code.svg); mask-image: url(/icons/code.svg); }
+img[src$="/icons/coins.svg"] { -webkit-mask-image: url(/icons/coins.svg); mask-image: url(/icons/coins.svg); }
+img[src$="/icons/collapse.svg"] { -webkit-mask-image: url(/icons/collapse.svg); mask-image: url(/icons/collapse.svg); }
+img[src$="/icons/colors-swatch.svg"] { -webkit-mask-image: url(/icons/colors-swatch.svg); mask-image: url(/icons/colors-swatch.svg); }
+img[src$="/icons/contact.svg"] { -webkit-mask-image: url(/icons/contact.svg); mask-image: url(/icons/contact.svg); }
+img[src$="/icons/copy.svg"] { -webkit-mask-image: url(/icons/copy.svg); mask-image: url(/icons/copy.svg); }
+img[src$="/icons/debug.svg"] { -webkit-mask-image: url(/icons/debug.svg); mask-image: url(/icons/debug.svg); }
+img[src$="/icons/directions.svg"] { -webkit-mask-image: url(/icons/directions.svg); mask-image: url(/icons/directions.svg); }
+img[src$="/icons/eye.svg"] { -webkit-mask-image: url(/icons/eye.svg); mask-image: url(/icons/eye.svg); }
+img[src$="/icons/file-text.svg"] { -webkit-mask-image: url(/icons/file-text.svg); mask-image: url(/icons/file-text.svg); }
+img[src$="/icons/files.svg"] { -webkit-mask-image: url(/icons/files.svg); mask-image: url(/icons/files.svg); }
+img[src$="/icons/fire.svg"] { -webkit-mask-image: url(/icons/fire.svg); mask-image: url(/icons/fire.svg); }
+img[src$="/icons/flag.svg"] { -webkit-mask-image: url(/icons/flag.svg); mask-image: url(/icons/flag.svg); }
+img[src$="/icons/git-merge.svg"] { -webkit-mask-image: url(/icons/git-merge.svg); mask-image: url(/icons/git-merge.svg); }
+img[src$="/icons/goal.svg"] { -webkit-mask-image: url(/icons/goal.svg); mask-image: url(/icons/goal.svg); }
+img[src$="/icons/grid-3x3.svg"] { -webkit-mask-image: url(/icons/grid-3x3.svg); mask-image: url(/icons/grid-3x3.svg); }
+img[src$="/icons/home.svg"] { -webkit-mask-image: url(/icons/home.svg); mask-image: url(/icons/home.svg); }
+img[src$="/icons/hourglass.svg"] { -webkit-mask-image: url(/icons/hourglass.svg); mask-image: url(/icons/hourglass.svg); }
+img[src$="/icons/image.svg"] { -webkit-mask-image: url(/icons/image.svg); mask-image: url(/icons/image.svg); }
+img[src$="/icons/key.svg"] { -webkit-mask-image: url(/icons/key.svg); mask-image: url(/icons/key.svg); }
+img[src$="/icons/label.svg"] { -webkit-mask-image: url(/icons/label.svg); mask-image: url(/icons/label.svg); }
+img[src$="/icons/lightbulb.svg"] { -webkit-mask-image: url(/icons/lightbulb.svg); mask-image: url(/icons/lightbulb.svg); }
+img[src$="/icons/mail.svg"] { -webkit-mask-image: url(/icons/mail.svg); mask-image: url(/icons/mail.svg); }
+img[src$="/icons/pause.svg"] { -webkit-mask-image: url(/icons/pause.svg); mask-image: url(/icons/pause.svg); }
+img[src$="/icons/pencil.svg"] { -webkit-mask-image: url(/icons/pencil.svg); mask-image: url(/icons/pencil.svg); }
+img[src$="/icons/play.svg"] { -webkit-mask-image: url(/icons/play.svg); mask-image: url(/icons/play.svg); }
+img[src$="/icons/plug.svg"] { -webkit-mask-image: url(/icons/plug.svg); mask-image: url(/icons/plug.svg); }
+img[src$="/icons/plus.svg"] { -webkit-mask-image: url(/icons/plus.svg); mask-image: url(/icons/plus.svg); }
+img[src$="/icons/receipt.svg"] { -webkit-mask-image: url(/icons/receipt.svg); mask-image: url(/icons/receipt.svg); }
+img[src$="/icons/reload.svg"] { -webkit-mask-image: url(/icons/reload.svg); mask-image: url(/icons/reload.svg); }
+img[src$="/icons/robot.svg"] { -webkit-mask-image: url(/icons/robot.svg); mask-image: url(/icons/robot.svg); }
+img[src$="/icons/scale.svg"] { -webkit-mask-image: url(/icons/scale.svg); mask-image: url(/icons/scale.svg); }
+img[src$="/icons/search.svg"] { -webkit-mask-image: url(/icons/search.svg); mask-image: url(/icons/search.svg); }
+img[src$="/icons/send.svg"] { -webkit-mask-image: url(/icons/send.svg); mask-image: url(/icons/send.svg); }
+img[src$="/icons/settings-cog.svg"] { -webkit-mask-image: url(/icons/settings-cog.svg); mask-image: url(/icons/settings-cog.svg); }
+img[src$="/icons/shapes.svg"] { -webkit-mask-image: url(/icons/shapes.svg); mask-image: url(/icons/shapes.svg); }
+img[src$="/icons/shield.svg"] { -webkit-mask-image: url(/icons/shield.svg); mask-image: url(/icons/shield.svg); }
+img[src$="/icons/speed-fast.svg"] { -webkit-mask-image: url(/icons/speed-fast.svg); mask-image: url(/icons/speed-fast.svg); }
+img[src$="/icons/target.svg"] { -webkit-mask-image: url(/icons/target.svg); mask-image: url(/icons/target.svg); }
+img[src$="/icons/terminal.svg"] { -webkit-mask-image: url(/icons/terminal.svg); mask-image: url(/icons/terminal.svg); }
+img[src$="/icons/tools.svg"] { -webkit-mask-image: url(/icons/tools.svg); mask-image: url(/icons/tools.svg); }
+img[src$="/icons/trash.svg"] { -webkit-mask-image: url(/icons/trash.svg); mask-image: url(/icons/trash.svg); }
+img[src$="/icons/university.svg"] { -webkit-mask-image: url(/icons/university.svg); mask-image: url(/icons/university.svg); }
+img[src$="/icons/user-plus.svg"] { -webkit-mask-image: url(/icons/user-plus.svg); mask-image: url(/icons/user-plus.svg); }
+img[src$="/icons/wand.svg"] { -webkit-mask-image: url(/icons/wand.svg); mask-image: url(/icons/wand.svg); }
+img[src$="/icons/warning-diamond.svg"] { -webkit-mask-image: url(/icons/warning-diamond.svg); mask-image: url(/icons/warning-diamond.svg); }
+img[src$="/icons/zap.svg"] { -webkit-mask-image: url(/icons/zap.svg); mask-image: url(/icons/zap.svg); }
+/* @icons:end */

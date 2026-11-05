@@ -1,7 +1,7 @@
 ---
 title: "MCP server"
 description: "Connect Claude, ChatGPT, Cursor or any MCP client to Prefetch, so your agent can scrape, crawl, enrich and monitor on its own."
-icon: "plug"
+icon: "/icons/plug.svg"
 ---
 
 Prefetch speaks the [Model Context Protocol](https://modelcontextprotocol.io), so an AI agent can call the API directly instead of you writing HTTP glue for it.
@@ -175,10 +175,10 @@ Truncation is always announced:
 To fit more signal into less space:
 
 <Columns cols={2}>
-  <Card title="Target the content" icon="crosshairs">
+  <Card title="Target the content" icon="/icons/target.svg">
     Pass `include_selectors` with the part of the page you want, like `["article"]`.
   </Card>
-  <Card title="Ask for a summary" icon="compress">
+  <Card title="Ask for a summary" icon="/icons/collapse.svg">
     Use `formats: ["summary"]` instead of `["markdown"]` when you only need the gist.
   </Card>
 </Columns>
@@ -229,16 +229,16 @@ Authentication is the exception, and fails at the HTTP layer. A `401` means no c
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Tool reference" icon="wrench" href="/mcp/tools">
+  <Card title="Tool reference" icon="/icons/tools.svg" href="/mcp/tools">
     Every tool, every parameter.
   </Card>
-  <Card title="Agent quickstart" icon="robot" href="/agent-quickstart">
+  <Card title="Agent quickstart" icon="/icons/robot.svg" href="/agent-quickstart">
     One prompt that sets Prefetch up in your project.
   </Card>
-  <Card title="Authentication" icon="key" href="/concepts/authentication">
+  <Card title="Authentication" icon="/icons/key.svg" href="/concepts/authentication">
     Keys, OAuth and error codes.
   </Card>
-  <Card title="REST API" icon="rectangle-terminal" href="/api-reference/introduction">
+  <Card title="REST API" icon="/icons/terminal.svg" href="/api-reference/introduction">
     The same capabilities over HTTP.
   </Card>
 </CardGroup>
