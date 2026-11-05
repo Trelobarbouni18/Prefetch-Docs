@@ -1,5 +1,6 @@
 ---
 title: "GET /monitor"
+sidebarTitle: "List monitors"
 description: "List the monitors your API key owns, newest first. Free."
 openapi: "GET /monitor"
 ---
@@ -81,10 +82,10 @@ for m in data["monitors"]:
 ## Related
 
 <CardGroup cols={2}>
-  <Card title="GET /monitor/{id}" icon="eye" href="/api-reference/endpoint/monitor-get">
+  <Card title="GET /monitor/{id}" icon="/icons/eye.svg" href="/api-reference/endpoint/monitor-get">
     One monitor in full.
   </Card>
-  <Card title="POST /monitor" icon="plus" href="/api-reference/endpoint/monitor">
+  <Card title="POST /monitor" icon="/icons/plus.svg" href="/api-reference/endpoint/monitor">
     Create a monitor.
   </Card>
 </CardGroup>

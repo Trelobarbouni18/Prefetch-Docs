@@ -1,0 +1,81 @@
+---
+title: "Build on-brand UI"
+description: "Read any site's design system with /styleguide and turn it into a Tailwind theme and CSS variables a coding agent can build with. 10 credits per site."
+icon: "/icons/wand.svg"
+---
+
+Building a demo, a landing page or an email template that should look like a customer's brand? [`/styleguide`](/company-data/styleguide) reads the site's real colors, type scale, spacing, radii, shadows and button styles, and hands them back as a Tailwind theme and CSS custom properties.
+
+**Cost:** 10 credits per site.
+
+## 1. Fetch the styleguide and save the exports
+
+<CodeGroup>
+
+```javascript Node.js
+import { writeFile } from "node:fs/promises";
+
+const site = process.argv[2] ?? "https://linear.app";
+const res = await fetch(`https://api.prefetch.io/styleguide?url=${encodeURIComponent(site)}`, {
+  headers: { "X-API-Key": process.env.PREFETCH_API_KEY },
+});
+const { success, data, error } = await res.json();
+if (!success) throw new Error(error);
+
+await writeFile("brand.css", data.exports.css);
+await writeFile("tailwind.brand.js", `export default ${JSON.stringify(data.exports.tailwind, null, 2)};\n`);
+await writeFile("styleguide.json", JSON.stringify(data.styleguide, null, 2));
+```
+
+```python Python
+import json, os, sys, requests
+
+site = sys.argv[1] if len(sys.argv) > 1 else "https://linear.app"
+body = requests.get(
+    "https://api.prefetch.io/styleguide",
+    params={"url": site},
+    headers={"X-API-Key": os.environ["PREFETCH_API_KEY"]},
+    timeout=60,
+).json()
+if not body["success"]:
+    raise SystemExit(body["error"])
+
+data = body["data"]
+open("brand.css", "w").write(data["exports"]["css"])
+json.dump(data["exports"]["tailwind"], open("tailwind.brand.json", "w"), indent=2)
+json.dump(data["styleguide"], open("styleguide.json", "w"), indent=2)
+```
+
+</CodeGroup>
+
+## 2. Use the theme
+
+Add the preset to your Tailwind config:
+
+```javascript tailwind.config.js
+import brand from "./tailwind.brand.js";
+
+export default {
+  presets: [brand],
+  content: ["./src/**/*.{js,ts,jsx,tsx}"],
+};
+```
+
+Or import `brand.css` and use the variables directly, like `var(--color-primary)`.
+
+## 3. Check what you got
+
+The styleguide is best effort: a value the page gives no reliable answer for is `null`. Before you build, check `colors.primary`, the `h1` and `body` styles, and `components.button_primary`. Fill gaps by hand, or from [`/brand`](/company-data/brand), which also returns logos.
+
+Sites with a dark theme can be read with `dark_mode=true`. `color_scheme` tells you which theme you got.
+
+## Prompt for your coding agent
+
+```text
+Make this page match the brand of <site> using the Prefetch API (docs: https://docs.prefetch.io/recipes/on-brand-ui).
+Call GET https://api.prefetch.io/styleguide?url=<site> with the X-API-Key header (key in PREFETCH_API_KEY).
+Save data.exports.css as brand.css and data.exports.tailwind as a Tailwind preset, then use them:
+colors by role (primary, background, text, heading, link, border), the type scale, spacing, radii, shadows,
+and the primary button's styles. Treat null values as gaps and choose sensible defaults.
+Get the logo from GET https://api.prefetch.io/brand?url=<site> (data.brand.logos.primary.url).
+```

@@ -1,0 +1,70 @@
+---
+title: "Alerts"
+description: "Get a monitor's changes by webhook, by email, or both."
+icon: "/icons/mail.svg"
+---
+
+A monitor can tell you about changes in two ways. You can use both on one monitor, or neither and read the checks yourself.
+
+## Webhooks
+
+With a `webhook`, two events are posted to you:
+
+| Event | When |
+|---|---|
+| [`monitor.page`](/api-reference/endpoint/monitor-webhook-page) | A page changed, appeared, was removed, or started failing, and, with a goal, the judge ruled it meaningful |
+| [`monitor.check.completed`](/api-reference/endpoint/monitor-webhook-check) | A check finished, with its summary counts |
+
+```json
+{
+  "webhook": {
+    "url": "https://you.example.org/hooks/prefetch",
+    "headers": { "Authorization": "Bearer your-token" },
+    "metadata": { "env": "production" },
+    "events": ["monitor.page"]
+  }
+}
+```
+
+The URL must use `https://`. Every request is signed with the monitor's `webhook.secret`. Answer `2xx` within 10 seconds. Failures are retried after 1, 5 and 15 minutes. See [Webhooks](/concepts/webhooks) for signature verification.
+
+A page that fails sends one `monitor.page` event, when it starts failing. Set `notify_errors_after` (1 to 10) to send it only once a page has failed that many checks in a row, so a site that blips once and recovers sends nothing.
+
+## Email
+
+Add `email` to have changes emailed to up to 5 addresses:
+
+```json
+{ "email": { "to": ["you@example.com", "teammate@example.com"] } }
+```
+
+Each check that finds changes sends **one email** to every active address. It lists the pages that changed, appeared or were removed, with the judge's reason and the changed lines or fields. Up to 20 pages are listed, and the rest are counted.
+
+The same rules as the `monitor.page` webhook decide what counts. The baseline is never emailed, and with a goal, changes ruled not meaningful are left out. A page that fails to load is counted in the email, not emailed on its own.
+
+Emails are free. They never cost credits.
+
+### Confirming addresses
+
+Each address has to agree to the emails before anything is sent:
+
+| Address | What happens |
+|---|---|
+| The email on your Prefetch account, or anyone's in your organization | `active` straight away |
+| Any other address | Gets one confirmation email, and stays `pending` until its owner selects **Confirm**. The link expires after 7 days. |
+
+Every email has an unsubscribe link, and supports one-click unsubscribe in mail clients that offer it. An address that unsubscribes shows as `unsubscribed` and gets nothing more from that monitor, even if you keep it in the list. To ask it again, remove the address and add it back.
+
+`email.recipients` in the response shows each address's status. If a pending address never got its confirmation, send it again with a `PATCH`:
+
+```json
+{ "email": { "to": ["teammate@example.com"], "resend_confirmation": true } }
+```
+
+<Note>
+An address can be asked to confirm at most 3 times a day, from any number of monitors, and one API key can send at most 20 confirmation emails a day. A request over either limit is refused with `429` and changes nothing.
+</Note>
+
+## Reading changes yourself
+
+Without a webhook or email, read each check with [`GET /monitor/{id}/checks/{checkId}`](/api-reference/endpoint/monitor-check), or list recent checks with [`GET /monitor/{id}/checks`](/api-reference/endpoint/monitor-checks). Over MCP, `prefetch_get_monitor_check` shows the latest check.

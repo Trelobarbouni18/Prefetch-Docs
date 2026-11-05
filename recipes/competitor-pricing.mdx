@@ -1,0 +1,71 @@
+---
+title: "Watch competitor pricing"
+description: "Get an email when a competitor changes a price or a plan, and nothing else. A daily check of one page costs about 30 credits a month."
+icon: "/icons/chart-line.svg"
+---
+
+Pricing pages change quietly. A [monitor](/monitors/overview) checks the page on a schedule, extracts each plan's price, and emails you only when one actually changes.
+
+**Cost:** about 1 credit a day for one page checked daily. A day when the page's text changes adds 3 for the price extraction and 1 for the judge.
+
+## 1. Create the monitor
+
+`json` mode tracks the facts you describe instead of the whole page, so a new testimonial or a rotating banner never triggers an alert. The `goal` filters what's left.
+
+```bash
+curl -X POST "https://api.prefetch.io/monitor" \
+  -H "X-API-Key: $PREFETCH_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Linear pricing",
+    "schedule": { "text": "daily at 9am", "timezone": "Europe/London" },
+    "goal": "Alert me when a plan is added or removed, or a plan price or its seat limit changes",
+    "targets": [
+      {
+        "type": "scrape",
+        "urls": ["https://linear.app/pricing"],
+        "change_tracking": { "modes": ["json"], "json_prompt": "Each plan: name, monthly price per seat, annual price per seat, seat limit" }
+      }
+    ],
+    "email": { "to": ["you@yourcompany.com"] }
+  }'
+```
+
+Your account's own email address is active straight away. Any other address gets a confirmation email first.
+
+## 2. Take the baseline now
+
+The first check records the page and announces nothing. Run it straight away instead of waiting for tomorrow:
+
+```bash
+curl -X POST "https://api.prefetch.io/monitor/$MONITOR_ID/run" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+## 3. What you'll get
+
+When a price moves, the email and the check say exactly what changed and why it matters:
+
+```
+CHANGED: https://linear.app/pricing
+Judge: meaningful (high). The Business plan went from $12 to $14 per seat a month.
+- plans[1].monthly_price: "$12" → "$14"
+```
+
+## Variations
+
+- **Several competitors:** put each pricing page in the same target's `urls`, up to 100.
+- **A whole section:** use a `crawl` target to watch a changelog or blog for new posts. See [Targets](/monitors/targets).
+- **Into Slack or your CRM:** add a `webhook` and post each `monitor.page` event where your team works. See [Alerts](/monitors/alerts).
+- **From chat:** with the [MCP server](/mcp/overview), ask "Watch linear.app/pricing every morning and tell me when a plan's price changes."
+
+## Prompt for your coding agent
+
+```text
+Set up a Prefetch monitor that watches our competitors' pricing pages (docs: https://docs.prefetch.io/recipes/competitor-pricing).
+Use POST https://api.prefetch.io/monitor with the X-API-Key header (key in PREFETCH_API_KEY).
+One scrape target with these URLs: <list>. Use change_tracking modes ["json"] with a json_prompt that extracts
+each plan's name, monthly price and key limits. Schedule it daily at 9am in our timezone, set a goal that only
+price and plan changes matter, and email <address>. Then call POST /monitor/{id}/run to take the baseline,
+and print the monitor's estimated_credits_per_month.
+```

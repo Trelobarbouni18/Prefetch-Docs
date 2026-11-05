@@ -1,0 +1,90 @@
+---
+title: "Build a merchant feed"
+description: "Turn raw card transaction descriptors into readable rows with merchant names, websites and logos. 3 credits per new line, 1 for a repeat."
+icon: "/icons/receipt.svg"
+---
+
+Card statements show `SQ *BLUE BOTTLE COFFE OAKLAND CA`, and your users want to see **Blue Bottle Coffee** with its logo. [`/transaction`](/company-data/transaction) reads the line, and the [logo CDN](/company-data/logo-cdn) draws the logo for free.
+
+**Cost:** 3 credits per new line, and 1 for a line seen in the last 7 days. Statements repeat the same merchants every month, so most lines soon cost 1, or nothing if you store the result.
+
+## 1. Look up each descriptor
+
+<CodeGroup>
+
+```javascript Node.js
+async function lookup(descriptor, country = "US") {
+  const res = await fetch("https://api.prefetch.io/transaction", {
+    method: "POST",
+    headers: { "X-API-Key": process.env.PREFETCH_API_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ descriptor, country }),
+  });
+  const body = await res.json();
+  return body.success ? body.data : null;
+}
+```
+
+```python Python
+import os, requests
+
+def lookup(descriptor, country="US"):
+    body = requests.post(
+        "https://api.prefetch.io/transaction",
+        headers={"X-API-Key": os.environ["PREFETCH_API_KEY"]},
+        json={"descriptor": descriptor, "country": country},
+        timeout=60,
+    ).json()
+    return body["data"] if body["success"] else None
+```
+
+</CodeGroup>
+
+Pass `mcc` too if your card data has the merchant category code. It helps with ambiguous lines.
+
+## 2. Turn the result into a row
+
+Not every line is a purchase. `kind` tells you what it is, so label it honestly:
+
+```javascript
+function toRow(descriptor, data) {
+  if (!data) return { label: descriptor, logo: null };                 // lookup failed: show the raw line
+  if (data.kind !== "merchant") return { label: labels[data.kind], logo: null };
+
+  const m = data.merchant;
+  return {
+    label: m.name,                                                     // present even without a website
+    website: m.confidence >= 0.8 ? m.domain : null,                    // only trust confident matches
+    logo: data.logo_url,                                               // null when no website was found
+    category: data.category,
+    location: data.location?.city ?? null,
+  };
+}
+
+const labels = { person: "Payment to a person", transfer: "Transfer", fee: "Bank fee", atm: "Cash withdrawal", refund: "Refund" };
+```
+
+## 3. Show the logo
+
+`logo_url` already carries your publishable logo token, so it's safe in the browser:
+
+```html
+<img src="https://logo.prefetch.io/bluebottlecoffee.com?token=pk_…&size=64" width="32" height="32" alt="" loading="lazy" />
+```
+
+Logo requests cost no credits. They count against your plan's monthly logo quota, and browsers cache each logo for a day.
+
+## 4. Store what you learn
+
+Key your stored result on the descriptor, country and MCC. Let users correct a merchant, and keep their correction when you look the line up again later.
+
+## Prompt for your coding agent
+
+```text
+Make our transactions list readable using the Prefetch API (docs: https://docs.prefetch.io/recipes/merchant-feed).
+For each new card transaction descriptor, call POST https://api.prefetch.io/transaction with
+{"descriptor", "country", "mcc"} and the X-API-Key header (key in PREFETCH_API_KEY).
+Store the result keyed by descriptor + country + mcc. Render merchant.name with data.logo_url in an <img>
+(it's safe in the browser), show the website only when merchant.confidence >= 0.8, and label
+non-purchase lines by data.kind (person, transfer, fee, atm, refund). If the lookup fails, show the raw line.
+Let users correct a merchant and never overwrite their correction.
+```

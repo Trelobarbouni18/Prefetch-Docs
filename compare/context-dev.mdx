@@ -1,0 +1,78 @@
+---
+title: "Prefetch vs Context.dev"
+description: "How Prefetch and Context.dev compare: two APIs that both combine web data with brand and company data."
+icon: "/icons/box.svg"
+---
+
+Context.dev is the closest product to Prefetch. Both offer scraping, map, crawl, search, sourced answers, brand profiles, styleguides, an embeddable logo URL, batches and monitors behind one key. They differ in depth: Context.dev adds browser actions, document parsing, people, company and news search, and official SDKs. Prefetch adds a dedicated company endpoint, the IAB industry taxonomy, screenshots, monitor email alerts and cron schedules.
+
+<Note>
+Compared with [Context.dev's public documentation](https://docs.context.dev) as of November 2026.
+</Note>
+
+## At a glance
+
+| | Prefetch | Context.dev |
+|---|---|---|
+| Scrape to markdown, HTML, images, JSON, screenshot | Yes, plus `summary`, `raw_html` and `links` | Yes, plus `product`, `highlights`, `parse` and `bytes` |
+| Prebuilt parsers for Google Maps, App Store, Instagram, TikTok, Reddit, G2, Yelp | No | Yes |
+| Browser actions and profiles | No | Yes |
+| Map, crawl, search | Yes | Yes |
+| Crawl | An async job, up to 500 pages | One request, up to 500 pages, or a batch for larger sites |
+| Sourced answers | `/answers`, `fast` or `ultra` | `/web/answers`, `fast` or `ultra` |
+| Document parsing and OCR | PDFs served from a URL | Parse, with OCR |
+| Brand profile | [`/brand`](/company-data/brand), [`/enrich`](/company-data/enrich) | Brand, by domain, name, email, ticker, transaction or URL |
+| Company details | [`/company`](/company-data/company): legal name, emails, addresses, key pages | Inside the brand profile |
+| Industry | IAB category and subcategory, from [`/classify`](/company-data/classify) | EIC industry and subindustry, in the brand profile |
+| Styleguide | Yes, with CSS and Tailwind exports | Yes |
+| Screenshots | [`/screenshot`](/web-data/screenshot), with 10 device presets | A scrape format |
+| Embeddable logos | [Logo CDN](/company-data/logo-cdn), with size, format and greyscale | Logo Link, with icon or wordmark |
+| People, company and news search | No | Yes |
+| Batches | Scrape or 6 endpoints, up to 500 URLs, charged as results complete | Scrape or crawl, up to 100,000 URLs, credits reserved up front |
+| Monitors | Scrape, crawl and search targets; goals; JSON field tracking | Page, sitemap, extract and search targets; semantic judging |
+| Monitor alerts | Webhook and email | Webhook, with delivery history and replay |
+| Monitor schedules | Phrases or cron in any timezone, down to every minute on Scale | Fixed intervals, from every 10 minutes |
+| SDKs | None. REST and [OpenAPI](/api-reference/openapi.json). | TypeScript, Python, Ruby, Go, PHP, plus a CLI and an agent skill |
+| MCP | Yes, with OAuth sign-in | Yes |
+| Zero data retention, access policies | No | Yes |
+| Compliance | Not covered in the docs. Ask [hi@prefetch.io](mailto:hi@prefetch.io). | SOC 2 Type II |
+
+## Credits for the same work
+
+Many prices match. A credit isn't the same price on each, so compare plans as well.
+
+| Work | Prefetch | Context.dev |
+|---|---|---|
+| Scrape a page | 1 | 1 |
+| JSON extraction from a page | +3 | +4 |
+| Map a site | 1 | 1, or 2 with `search` |
+| Crawl | 1 per page | 1 per successful page |
+| Search | 2 per 10 results | 1 per 10 results, +1 per result with markdown |
+| Answers | 10 `fast`, 100 `ultra` | 10 `fast`, 100 `ultra` |
+| Brand profile | 10 (`/brand`), or 12 with company and industry (`/enrich`) | 10 |
+| Styleguide | 10 | 10 |
+| Free plan | 1,000 credits a month | 1,000 credits a month |
+
+## Defaults that differ
+
+- **Caching:** Context.dev accepts scrapes cached up to 3 days by default. Prefetch fetches live unless you set `max_age`.
+- **Crawl regexes:** Context.dev matches the full URL, while Prefetch matches the path and query.
+- **Out of credits:** Context.dev returns `402`. Prefetch returns `403` with `CREDITS_EXHAUSTED`.
+
+## When Context.dev is the better fit
+
+- You need browser actions, logged-in profiles or social-platform parsers.
+- You need people, company or news search, or document OCR.
+- You batch more than 500 URLs in one job.
+- You want an official SDK, zero data retention, or a SOC 2 report today.
+
+## When Prefetch is the better fit
+
+- You need IAB industry categories, or company details as their own call.
+- You want monitor alerts by email, or schedules in cron with a timezone and gaps under 10 minutes.
+- You want screenshots with device presets as a first-class endpoint.
+- You want batches charged only for results that come back.
+
+<Card title="Migrate from Context.dev" icon="/icons/arrows-horizontal.svg" href="/migrate/context-dev">
+  Endpoint and parameter mapping, and the behaviors that change.
+</Card>

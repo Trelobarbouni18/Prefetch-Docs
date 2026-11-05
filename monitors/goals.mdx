@@ -1,0 +1,50 @@
+---
+title: "Goals and judging"
+description: "Describe in one sentence what you want to hear about, and every change is judged against it before you're alerted."
+icon: "/icons/goal.svg"
+---
+
+Add a `goal`, one plain sentence about what you want to be told, and every changed, new or removed page is judged against it:
+
+```json
+{ "goal": "Alert me when a plan price or its included features change" }
+```
+
+Each judged page gets `is_meaningful` and a `judgment` with a `reason`. Pages ruled **not meaningful** are still recorded on the check, but they don't send a webhook or an email.
+
+```json
+{
+  "is_meaningful": true,
+  "judgment": {
+    "meaningful": true,
+    "confidence": "high",
+    "reason": "The Starter plan's price went from $19 to $24 a month.",
+    "meaningful_changes": [
+      { "type": "changed", "before": "$19/mo", "after": "$24/mo", "reason": "A plan price changed." }
+    ]
+  }
+}
+```
+
+Judging is on whenever a goal is set. Pass `judge_enabled: false` to keep the goal without judging. The first check's baseline is never judged.
+
+## Writing a good goal
+
+- **Restate the scope:** "the Pro plan", "the top 10 results", "API changes".
+- **Name exclusions only when they matter:** "Ignore changes to customer logos."
+- **Ask for what you want, even if it's usually noise.** If the goal asks about a timestamp or a counter, it gets it. If it says to ignore something, that thing never counts.
+
+## How the judge works
+
+- Page content is treated as data, never as instructions. Text on a page can't talk the judge out of an alert.
+- On a long diff, the judge reads the parts most relevant to your goal, not just the first ones.
+- `meaningful_changes` quote the page exactly. A quote the judge wasn't shown is dropped.
+- A page that flips back to a version it has shown before isn't judged again. The earlier verdict is reused, for free.
+
+## Credits
+
+Each judged page costs 1 credit. Only changed, new and removed pages are judged, and only when the monitor has a goal. See [Limits and credits](/monitors/limits).
+
+## Changing the goal
+
+Send a new `goal` with [`PATCH /monitor/{id}`](/api-reference/endpoint/monitor-update), or `null` to stop judging and hear about every change. Try a new goal straight away with [`POST /monitor/{id}/run`](/api-reference/endpoint/monitor-run).

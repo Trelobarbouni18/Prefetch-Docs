@@ -1,0 +1,200 @@
+---
+title: "Monitors"
+sidebarTitle: "Overview"
+description: "Watch pages, sites and searches on a schedule, and get a webhook or an email with just what changed. Free to create; each check is billed per page."
+icon: "/icons/bell.svg"
+---
+
+A monitor checks pages on a schedule and compares each one with the previous check. Instead of polling a pricing page, a changelog or a policy page yourself, you get a webhook or an email with just the change.
+
+<Steps>
+  <Step title="Create">
+    `POST /monitor` with what to watch, how often, and optionally a goal that describes which changes matter.
+  </Step>
+  <Step title="Baseline">
+    The first check records every page. Nothing is announced, because every page is new.
+  </Step>
+  <Step title="Check">
+    Each scheduled check fetches every page again and marks it `same`, `new`, `changed`, `removed` or `error`, with a diff.
+  </Step>
+  <Step title="Get told">
+    Changes that match your goal are posted to your webhook and emailed to your addresses. You can also read any check with [`GET /monitor/{id}/checks/{checkId}`](/api-reference/endpoint/monitor-check).
+  </Step>
+</Steps>
+
+## Example request
+
+This monitor watches a competitor's pricing page for price changes and their changelog for new posts, every weekday morning:
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.prefetch.io/monitor" \
+  -H "X-API-Key: $PREFETCH_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Competitor pricing",
+    "schedule": { "text": "every weekday at 9am", "timezone": "Europe/Athens" },
+    "goal": "Alert me when a plan price or its included features change",
+    "targets": [
+      {
+        "type": "scrape",
+        "urls": ["https://example.com/pricing"],
+        "change_tracking": { "modes": ["json"], "json_prompt": "Each plan: name, monthly price, headline features" }
+      },
+      {
+        "type": "crawl",
+        "url": "https://example.com/changelog",
+        "crawl_options": { "limit": 25, "include_paths": ["^/changelog/"] }
+      }
+    ],
+    "webhook": { "url": "https://you.example.org/hooks/prefetch" },
+    "email": { "to": ["you@example.com"] }
+  }'
+```
+
+```javascript Node.js
+const res = await fetch("https://api.prefetch.io/monitor", {
+  method: "POST",
+  headers: { "X-API-Key": process.env.PREFETCH_API_KEY, "Content-Type": "application/json" },
+  body: JSON.stringify({
+    name: "Competitor pricing",
+    schedule: { text: "every weekday at 9am", timezone: "Europe/Athens" },
+    goal: "Alert me when a plan price or its included features change",
+    targets: [
+      {
+        type: "scrape",
+        urls: ["https://example.com/pricing"],
+        change_tracking: { modes: ["json"], json_prompt: "Each plan: name, monthly price, headline features" },
+      },
+      {
+        type: "crawl",
+        url: "https://example.com/changelog",
+        crawl_options: { limit: 25, include_paths: ["^/changelog/"] },
+      },
+    ],
+    webhook: { url: "https://you.example.org/hooks/prefetch" },
+    email: { to: ["you@example.com"] },
+  }),
+});
+
+const { data } = await res.json();
+console.log(data.id, data.schedule.cron, data.webhook.secret);
+```
+
+```python Python
+import os, requests
+
+r = requests.post(
+    "https://api.prefetch.io/monitor",
+    headers={"X-API-Key": os.environ["PREFETCH_API_KEY"]},
+    json={
+        "name": "Competitor pricing",
+        "schedule": {"text": "every weekday at 9am", "timezone": "Europe/Athens"},
+        "goal": "Alert me when a plan price or its included features change",
+        "targets": [
+            {
+                "type": "scrape",
+                "urls": ["https://example.com/pricing"],
+                "change_tracking": {"modes": ["json"], "json_prompt": "Each plan: name, monthly price, headline features"},
+            },
+            {
+                "type": "crawl",
+                "url": "https://example.com/changelog",
+                "crawl_options": {"limit": 25, "include_paths": ["^/changelog/"]},
+            },
+        ],
+        "webhook": {"url": "https://you.example.org/hooks/prefetch"},
+        "email": {"to": ["you@example.com"]},
+    },
+)
+monitor = r.json()["data"]
+print(monitor["id"], monitor["webhook"]["secret"])
+```
+
+</CodeGroup>
+
+## Example response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "mon_3f9a1c2b7d4e4f6a8b0c1d2e3f4a5b6c",
+    "name": "Competitor pricing",
+    "status": "active",
+    "schedule": { "cron": "0 9 * * 1-5", "timezone": "Europe/Athens", "text": "every weekday at 9am" },
+    "next_run_at": "2026-10-12T06:00:00.000Z",
+    "last_run_at": null,
+    "current_check_id": null,
+    "goal": "Alert me when a plan price or its included features change",
+    "judge_enabled": true,
+    "targets": [
+      { "id": "tgt_8d1e0f2a3b4c5d6e", "type": "scrape", "urls": ["https://example.com/pricing"], "...": "every option, with its effective value" },
+      { "id": "tgt_1a2b3c4d5e6f7a8b", "type": "crawl", "url": "https://example.com/changelog", "...": "..." }
+    ],
+    "webhook": {
+      "url": "https://you.example.org/hooks/prefetch",
+      "headers": {},
+      "metadata": {},
+      "events": ["monitor.page", "monitor.check.completed"],
+      "secret": "whsec_4f1c9e2a7b3d8e6f0a5c1b9d2e7f3a8c4b6d0e1f9a2c5b7d"
+    },
+    "email": {
+      "to": ["you@example.com"],
+      "recipients": [
+        { "address": "you@example.com", "status": "active", "confirmation_sent_at": null, "confirmed_at": "2026-10-09T10:00:00.000Z", "unsubscribed_at": null }
+      ]
+    },
+    "retention_days": 30,
+    "estimated_credits_per_check": 55,
+    "estimated_credits_per_month": 1155,
+    "last_check_summary": null,
+    "created_at": "2026-10-09T10:00:00.000Z",
+    "updated_at": "2026-10-09T10:00:00.000Z"
+  },
+  "meta": {
+    "requestId": "b8f1d2e3-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
+    "durationMs": 61
+  }
+}
+```
+
+The status is `201 Created`. Keep the `webhook.secret`: you need it to [verify each webhook](/concepts/webhooks#verify-signatures). You can read it again with [`GET /monitor/{id}`](/api-reference/endpoint/monitor-get).
+
+To take the baseline straight away instead of waiting for the schedule, call [`POST /monitor/{id}/run`](/api-reference/endpoint/monitor-run).
+
+## The parts of a monitor
+
+<CardGroup cols={2}>
+  <Card title="Targets" icon="/icons/target.svg" href="/monitors/targets">
+    Fixed pages, a whole site section, or a web search.
+  </Card>
+  <Card title="Schedules" icon="/icons/calendar.svg" href="/monitors/schedules">
+    Plain phrases or cron, in any timezone.
+  </Card>
+  <Card title="Detecting changes" icon="/icons/git-merge.svg" href="/monitors/change-detection">
+    Text diffs, tracked JSON fields, and how to cut noise.
+  </Card>
+  <Card title="Goals and judging" icon="/icons/goal.svg" href="/monitors/goals">
+    One sentence that decides which changes you hear about.
+  </Card>
+  <Card title="Alerts" icon="/icons/bell.svg" href="/monitors/alerts">
+    Webhooks and email.
+  </Card>
+  <Card title="Limits and credits" icon="/icons/speed-fast.svg" href="/monitors/limits">
+    What a check costs, and what each plan allows.
+  </Card>
+</CardGroup>
+
+## Credits
+
+Creating, reading and changing a monitor is free. **Each check** costs 1 credit per page fetched, plus extra for `json` extraction, search targets and judging. See [Limits and credits](/monitors/limits).
+
+<Warning>
+A monitor bills on every check for as long as it's active. A crawl target with `limit: 100` on a 5-minute schedule fetches 28,800 pages a day. Start small, and pause monitors you aren't using.
+</Warning>
+
+<Note>
+Monitors need a direct Prefetch API key. They aren't available through RapidAPI, which bills from a response header, and a scheduled check runs when there's no response to carry one.
+</Note>

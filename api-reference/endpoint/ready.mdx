@@ -1,47 +1,22 @@
 ---
 title: "GET /ready"
-description: "Readiness probe. Returns 200 if the server and Redis are healthy. No authentication required."
+sidebarTitle: "Readiness"
+description: "Check that the Prefetch API can accept requests and background jobs. No API key needed, and free."
 openapi: "GET /ready"
 ---
 
-## Overview
-
-`/ready` is a readiness probe that checks whether the server is ready to handle requests. Unlike `/health`, it verifies that Redis is reachable — since the job queue requires Redis to function.
-
-- Returns `200` when the server is ready
-- Returns `503` when Redis is unavailable
-
-No API key is required.
-
-## Example request
+Returns `200` when the API is ready to handle requests, including the queue that runs crawls, batches and monitor checks. It returns `503` when that queue is unavailable. It needs no API key and costs nothing.
 
 ```bash
 curl https://api.prefetch.io/ready
 ```
 
-## Example responses
-
-```json 200 - Ready
-{
-  "status": "ok"
-}
+```json 200 Ready
+{ "status": "ok" }
 ```
 
-```json 503 - Not ready
-{
-  "status": "error",
-  "message": "Redis connection failed"
-}
+```json 503 Not ready
+{ "status": "error", "message": "Redis connection failed" }
 ```
 
-## When to use `/ready`
-
-Use `/ready` as a readiness probe in your container orchestration system. When this endpoint returns a non-200 response:
-
-- **Kubernetes** — removes the pod from service endpoints until it recovers
-- **Load balancers** — stops routing traffic to the unhealthy instance
-- **Health checks** — triggers alerting for on-call engineers
-
-<Tip>
-Configure your readiness probe with a failure threshold of 2–3 before removing an instance from rotation. Brief Redis hiccups during deployments are normal.
-</Tip>
+To check only that the API is running, use [`GET /health`](/api-reference/endpoint/health).

@@ -1,0 +1,14 @@
+```json
+{
+  "success": false,
+  "error": "The target URL could not be resolved. Please check the domain name.",
+  "error_code": "DNS_RESOLUTION_FAILED",
+  "retryable": false,
+  "meta": {
+    "requestId": "b9e1a2f3-4c5d-6e7f-8a9b-0c1d2e3f4a5b",
+    "durationMs": 412
+  }
+}
+```
+
+Branch on `error_code`, not on the wording of `error`, which can change. `retryable` tells you whether the same request can succeed later.

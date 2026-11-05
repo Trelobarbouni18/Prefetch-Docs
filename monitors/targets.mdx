@@ -1,0 +1,63 @@
+---
+title: "Targets"
+description: "What a monitor watches: a fixed list of pages, a whole site section, or a web search."
+icon: "/icons/target.svg"
+---
+
+A monitor has up to 50 **targets**, of three kinds. You can mix them in one monitor.
+
+| Target | Watches | Each check |
+|---|---|---|
+| `scrape` | A fixed list of up to 100 URLs | Fetches each page the way [`/scrape`](/web-data/scrape) would, rendering JavaScript and getting past bot protection |
+| `crawl` | A site, or a section of one | Re-crawls it with the options [`/crawl`](/web-data/crawl) takes, so pages that appear or disappear are reported too |
+| `search` | Up to 5 web searches | Runs each search the way [`/search`](/web-data/search) would. A result the target hasn't seen before is `new`. |
+
+One check fetches at most **500 pages** across all targets: every scrape URL, every crawl's `limit`, and every search's result `limit`.
+
+## Scrape targets
+
+Use a scrape target when you know exactly which pages matter, such as a pricing page or a terms of service.
+
+```json
+{
+  "type": "scrape",
+  "urls": ["https://example.com/pricing", "https://example.com/terms"],
+  "scrape_options": { "exclude_selectors": [".cookie-bar"] }
+}
+```
+
+## Crawl targets
+
+Use a crawl target to watch a section that grows, such as a blog, a changelog or a jobs page. New pages are reported as `new`, and pages that disappear as `removed`.
+
+```json
+{
+  "type": "crawl",
+  "url": "https://example.com/changelog",
+  "crawl_options": { "limit": 25, "include_paths": ["^/changelog/"] }
+}
+```
+
+<Note>
+A crawl can report a page as `removed` only when it runs out of pages to visit. A crawl that stops at its `limit` can't tell a page that was taken down from one it never reached, so it reports no removals. Give a crawl target a `limit` comfortably above the section's size if removals matter to you.
+</Note>
+
+## Search targets
+
+A search target watches the web rather than one site, for example news about a company or new posts on a topic:
+
+```json
+{
+  "type": "search",
+  "queries": ["acme corp funding round", "acme corp acquires"],
+  "search_options": { "type": "news", "limit": 10, "time_range": "week" }
+}
+```
+
+With a [goal](/monitors/goals), each new result's page is read and judged, so only results that match it are announced. Pass `scrape_results: false` to judge on the search snippet alone. Without a goal, every new result is announced.
+
+Results are recognized by URL, ignoring tracking parameters. They're never reported `removed`: a page that drops out of the results hasn't gone anywhere.
+
+## Changing targets later
+
+[`PATCH /monitor/{id}`](/api-reference/endpoint/monitor-update#changing-targets) replaces the whole target list. A target you send with its existing `id`, or one that watches the same URLs as before, keeps its history. Any other target starts with a silent baseline.

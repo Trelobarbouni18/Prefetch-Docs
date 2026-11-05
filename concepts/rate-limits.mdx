@@ -1,81 +1,76 @@
 ---
 title: "Rate limits"
 description: "How many requests each Prefetch plan can run at once, and how to handle 429 responses."
-icon: "gauge-high"
+icon: "/icons/speed-fast.svg"
 ---
 
-## Overview
+import Plans from '/snippets/plans.mdx';
 
-Prefetch limits how many requests your API key can have **running at the same time**. Paid plans have no per-minute cap: as soon as one request finishes, the next can start.
+Prefetch limits how many requests your API key can have **running at the same time**. Paid plans have no per-minute cap: as soon as one request finishes, the next one can start.
 
-| Plan | Concurrent requests | Requests per minute |
-|---|---|---|
-| Free | 1 | 30 |
-| Starter | 10 | No limit |
-| Pro | 50 | No limit |
-| Growth | 150 | No limit |
-| Scale | 500 | No limit |
-| Enterprise | Custom | No limit |
+<Plans />
 
-Going over a limit returns HTTP `429 Too Many Requests`. A refused request costs no credits.
+Going over a limit returns `429 Too Many Requests`. A refused request costs no credits.
 
 ## Concurrency limit
 
-Each key can have a fixed number of requests in flight at once. A request that would go over it is refused straight away with `429`, rather than queued:
+Each key can have a fixed number of requests in flight. A request that would go over it is refused straight away with `429`. It isn't queued.
 
 ```json
 {
   "error": "Concurrency limit exceeded — too many requests in flight",
-  "limit": 50
+  "limit": 50,
+  "error_code": "CONCURRENCY_LIMITED",
+  "retryable": true
 }
 ```
 
 Every response that counts toward the limit carries two headers, so you can pace yourself:
 
-| Header | Description |
+| Header | Meaning |
 |---|---|
-| `X-Concurrency-Limit` | Maximum concurrent requests allowed for this key |
-| `X-Concurrency-Running` | Number of requests currently in flight, including this one |
+| `X-Concurrency-Limit` | How many requests this key can run at once |
+| `X-Concurrency-Running` | How many are running now, including this one |
 
-The simplest way to stay under it is a worker pool the size of your plan's limit. Each worker sends its next request when its last one finishes.
+The simplest way to stay under the limit is a worker pool the size of your plan's limit. Each worker sends its next request when its last one finishes.
+
+For hundreds of URLs, a [batch](/jobs/batches) is easier: one request, and Prefetch manages the concurrency for you.
 
 ## Per-minute limit
 
-The Free plan allows **30 requests per minute**, counted over a sliding 60-second window. Paid plans also carry a high per-minute safety ceiling that stops runaway loops; ordinary traffic does not reach it. Either one answers:
+The Free plan allows **30 requests a minute**, counted over a sliding 60-second window. Paid plans have a high safety ceiling that stops runaway loops, which ordinary traffic never reaches. Going over either one returns:
 
 ```json
 {
   "error": "Rate limit exceeded",
-  "retryAfterSeconds": 12
+  "retryAfterSeconds": 12,
+  "error_code": "RATE_LIMITED",
+  "retryable": true
 }
 ```
 
-with a `Retry-After` header in seconds. Responses also carry `X-RateLimit-Limit` and `X-RateLimit-Remaining`.
+The response has a `Retry-After` header in seconds, plus `X-RateLimit-Limit` and `X-RateLimit-Remaining`.
 
 ## Requests without an API key
 
-Requests that carry no API key or token are limited to 300 per minute per IP address. After 60 unknown API keys or invalid tokens from one IP address in a minute, that address is refused for the rest of the minute with `429` and a `Retry-After` header. Requests made with a valid key never count toward either limit.
+Requests with no API key or token are limited to 300 a minute per IP address. If one IP address sends 60 unknown API keys or invalid tokens in a minute, it's refused with `429` and a `Retry-After` header for the rest of that minute. Requests with a valid key never count toward either limit.
 
 ## Handling 429 responses
 
-When you receive a `429`, implement exponential backoff before retrying:
+Wait for `Retry-After` when it's there, and back off exponentially when it isn't:
 
 <CodeGroup>
 
 ```javascript Node.js
-async function fetchWithRetry(url, options, maxRetries = 3) {
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
+async function fetchWithRetry(url, options, maxRetries = 4) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
     const res = await fetch(url, options);
+    if (res.status !== 429 || attempt === maxRetries) return res;
 
-    if (res.status !== 429) {
-      return res;
-    }
-
-    const backoffMs = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
-    await new Promise((resolve) => setTimeout(resolve, backoffMs));
+    const retryAfter = Number(res.headers.get("Retry-After"));
+    const waitMs = retryAfter > 0 ? retryAfter * 1000 : 2 ** attempt * 1000; // 1s, 2s, 4s, 8s
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
   }
-
-  throw new Error("Max retries exceeded");
 }
 ```
 
@@ -83,24 +78,21 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
 import time
 import requests
 
-def fetch_with_retry(url, params, headers, max_retries=3):
-    for attempt in range(max_retries):
+def fetch_with_retry(url, params, headers, max_retries=4):
+    for attempt in range(max_retries + 1):
         r = requests.get(url, params=params, headers=headers)
-
-        if r.status_code != 429:
+        if r.status_code != 429 or attempt == max_retries:
             return r
 
-        backoff = 2 ** attempt  # 1s, 2s, 4s
-        time.sleep(backoff)
-
-    raise Exception("Max retries exceeded")
+        retry_after = r.headers.get("Retry-After")
+        time.sleep(int(retry_after) if retry_after else 2 ** attempt)  # 1s, 2s, 4s, 8s
 ```
 
 </CodeGroup>
 
-## Tips for staying within limits
+## Staying within limits
 
-- **Batch wisely** — use `/enrich` instead of separate `/brand` + `/company` + `/classify` calls to reduce request count
-- **Cache responses** — most brand/company data is stable; cache it for hours or days
-- **Deduplicate** — avoid re-fetching the same domain multiple times in a short window
-- **Match your concurrency** — for large jobs, run as many requests in parallel as your plan allows and no more; extra requests are refused, not queued
+- **Use `/enrich`** instead of separate `/brand`, `/company` and `/classify` calls. It's one request instead of three.
+- **Cache what doesn't change.** Brand and company data is stable for days. See [Caching](/concepts/caching).
+- **Don't fetch the same domain twice** in a short window.
+- **Match your plan's concurrency.** Run as many requests in parallel as your plan allows, and no more. Extra requests are refused, not queued.

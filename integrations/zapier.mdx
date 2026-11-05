@@ -1,7 +1,7 @@
 ---
 title: "Zapier"
 description: "Enrich new CRM companies and name the merchants on card transactions with Prefetch, using Webhooks by Zapier."
-icon: "bolt"
+icon: "/icons/zap.svg"
 ---
 
 Zapier reaches Prefetch through **Webhooks by Zapier**, which can call any API. (Webhooks by Zapier is available on Zapier's paid plans.)
@@ -31,11 +31,13 @@ Test the step. Zapier flattens the response, so the fields appear as, for exampl
 
 **Action:** your CRM's *Update Company*, mapping those fields onto your properties.
 
-12 credits per company. If your trigger only has a company **name**, add a step before it: *Webhooks by Zapier → GET* `https://api.prefetch.io/resolve` with `name` → the company name and `live` → `true`, and use `Data Results Domain` (the first result) when `Data Results Confidence` is at least 0.8 — a *Filter by Zapier* step can stop the Zap otherwise.
+12 credits per company.
+
+**Only have a company name?** Add a step before the enrich step: *Webhooks by Zapier → GET* `https://api.prefetch.io/resolve`, with query params `name` (the company name) and `live` (`true`). Use `Data Results Domain` from the first result. Add a *Filter by Zapier* step that continues only when `Data Results Confidence` is at least 0.8.
 
 ## Name the merchant on card transactions
 
-**Trigger:** wherever transactions arrive — a new row in Google Sheets or Airtable, a new transaction in your banking tool.
+**Trigger:** wherever transactions arrive: a new row in Google Sheets or Airtable, a new transaction in your banking tool.
 
 **Action:** *Webhooks by Zapier → GET*
 
@@ -66,4 +68,4 @@ Webhooks are not available through RapidAPI keys.
 
 ## Errors
 
-A failed step shows Prefetch's error body. `error_code` says what went wrong and `retryable` whether trying again can help — turn on Zapier's autoreplay for the retryable ones (`SERVICE_BUSY`, `CONCURRENCY_LIMITED`, `TARGET_TIMEOUT`). Failed requests are never charged.
+A failed step shows Prefetch's error body. `error_code` says what went wrong and `retryable` whether trying again can help: turn on Zapier's autoreplay for the retryable ones (`SERVICE_BUSY`, `CONCURRENCY_LIMITED`, `TARGET_TIMEOUT`). Failed requests are never charged.

@@ -1,41 +1,18 @@
 ---
 title: "GET /health"
-description: "Liveness probe. Returns 200 if the server process is running. No authentication required."
+sidebarTitle: "Health"
+description: "Check that the Prefetch API is up. No API key needed, and free."
 openapi: "GET /health"
 ---
 
-## Overview
-
-`/health` is a lightweight liveness probe. It returns HTTP `200` as long as the server process is alive, with no other checks performed.
-
-Use this endpoint to:
-- Verify the API server is up
-- Configure liveness probes in Kubernetes or other container orchestration systems
-- Check if a specific worker/instance is running
-
-No API key is required.
-
-## Example request
+Returns `200` with `{"status": "ok"}` while the API is running. It needs no API key and costs nothing, so you can point your own uptime monitoring at it.
 
 ```bash
 curl https://api.prefetch.io/health
 ```
 
-## Example response
-
 ```json
-{
-  "status": "ok"
-}
+{ "status": "ok" }
 ```
 
-## Liveness vs readiness
-
-| Endpoint | Checks | Use case |
-|---|---|---|
-| `/health` | Server process is alive | Liveness probe — restart if this fails |
-| `/ready` | Server + Redis connectivity | Readiness probe — remove from load balancer if this fails |
-
-<Tip>
-For production deployments, configure both `/health` (liveness) and `/ready` (readiness) probes so your orchestration system can make informed routing decisions.
-</Tip>
+For incidents and uptime history, see the [status page](https://prefetch.betteruptime.com/). For a check that also confirms Prefetch can accept background jobs, use [`GET /ready`](/api-reference/endpoint/ready).

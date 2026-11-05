@@ -1,12 +1,12 @@
 ---
 title: "MCP tools"
 description: "Every tool the Prefetch MCP server exposes, with its parameters and defaults."
-icon: "wrench"
+icon: "/icons/tools.svg"
 ---
 
-Twenty-five tools: one per API capability, plus the extra verbs crawls, batches and monitors need. Your agent reads these descriptions and picks the right one — you rarely need to name a tool yourself.
+Twenty-five tools: one per API capability, plus the extra verbs crawls, batches and monitors need. Your agent reads these descriptions and picks the right one, so you rarely need to name a tool yourself.
 
-All parameters are snake_case. Most tools require only `url` — or `name` for `prefetch_resolve`, `descriptor` for `prefetch_transaction`, `query` for `prefetch_search`, `task` for `prefetch_answer`, `urls` for the batch tools, `domains` for `prefetch_logo_urls`, `id` for the crawl and monitor tools that act on one, and `name` plus `schedule` to create a monitor.
+All parameters are snake_case. Most tools require only `url`. The exceptions: `name` for `prefetch_resolve`, `descriptor` for `prefetch_transaction`, `query` for `prefetch_search`, `task` for `prefetch_answer`, `urls` for the batch tools, `domains` for `prefetch_logo_urls`, `id` for the crawl and monitor tools that act on one, and `name` plus `schedule` to create a monitor.
 
 See [MCP server](/mcp/overview) for setup.
 
@@ -14,25 +14,25 @@ See [MCP server](/mcp/overview) for setup.
 
 ### `prefetch_resolve`
 
-Turns a company, brand or product name into the domain of its official website — "Stripe" → `stripe.com`. Every other tool takes a URL, so this is where a task that starts from a name begins: resolve the name, then call `prefetch_enrich`, `prefetch_brand` or `prefetch_company` with the domain.
+Turns a company, brand or product name into the domain of its official website: "Stripe" → `stripe.com`. Every other tool takes a URL, so this is where a task that starts from a name begins: resolve the name, then call `prefetch_enrich`, `prefetch_brand` or `prefetch_company` with the domain.
 
-Each result has a `confidence` from 0 to 1. Only the first can reach 0.8, and at or above it that result is the answer. Over MCP, names the index is unsure of are looked up live by default — a few seconds and 3 credits, versus 1 credit from the index.
+Each result has a `confidence` from 0 to 1. Only the first can reach 0.8, and at or above it that result is the answer. Over MCP, names the index is unsure of are looked up live by default. That takes a few seconds and costs 3 credits, versus 1 from the index.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `name` | string | — | **Required.** The name, like `"Delta Air Lines"` or `"Figma"`. 1–100 characters. |
+| `name` | string | none | **Required.** The name, like `"Delta Air Lines"` or `"Figma"`. 1–100 characters. |
 | `limit` | number | `5` | How many candidates to return. 1–10. |
 | `live` | boolean | `true` | Look the name up live when the index is unsure. `false` for an instant, index-only lookup (free when nothing matches). |
 
 ### `prefetch_transaction`
 
-Turns a card transaction descriptor — a bank statement line like `SQ *BLUE BOTTLE COFFE OAKLAND CA` — into the merchant behind it: its name, website, processor and location, and a `logo_url` ready to show. Lines that are payments to a person, transfers, fees or ATM withdrawals say so in `kind`. See [`GET /transaction`](/api-reference/endpoint/transaction).
+Turns a card transaction descriptor (a bank statement line like `SQ *BLUE BOTTLE COFFE OAKLAND CA`) into the merchant behind it: its name, website, processor and location, and a `logo_url` ready to show. Lines that are payments to a person, transfers, fees or ATM withdrawals say so in `kind`. See [`GET /transaction`](/company-data/transaction).
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `descriptor` | string | — | **Required.** The statement line. Up to 200 characters. |
-| `country` | string | — | Two-letter code of the country the card was used in. |
-| `mcc` | string | — | The four-digit merchant category code, if known. |
+| `descriptor` | string | none | **Required.** The statement line. Up to 200 characters. |
+| `country` | string | none | Two-letter code of the country the card was used in. |
+| `mcc` | string | none | The four-digit merchant category code, if known. |
 | `include_brand` | boolean | `false` | Also return the merchant's logos and colors, as `prefetch_brand` does. +10 credits. |
 
 3 credits per lookup, 1 for a line looked up in the last 7 days.
@@ -41,20 +41,20 @@ Turns a card transaction descriptor — a bank statement line like `SQ *BLUE BOT
 
 ### `prefetch_search`
 
-Search the web (Google results) and get each result's title, URL and snippet — optionally with every result page scraped into markdown in the same call. Use it to find pages; for a researched answer, use `prefetch_answer`. See [`GET /search`](/api-reference/endpoint/search).
+Search the web (Google results) and get each result's title, URL and snippet, optionally with every result page scraped into markdown in the same call. Use it to find pages. For a researched answer, use `prefetch_answer`. See [`GET /search`](/web-data/search).
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `query` | string | — | **Required.** What to search for. Search operators work: `"exact phrase"`, `-word`, `filetype:pdf`. |
+| `query` | string | none | **Required.** What to search for. Search operators work: `"exact phrase"`, `-word`, `filetype:pdf`. |
 | `limit` | number | `10` | Results to return. 1–50, or 1–10 with `scrape_results`. |
 | `type` | string | `web` | `web` or `news`. |
-| `time_range` | string | — | `hour`, `day`, `week`, `month` or `year`. |
-| `country`, `language` | string | — | Two-letter codes. |
-| `include_domains`, `exclude_domains` | string[] | — | Up to 10 each. |
-| `scrape_results` | boolean | `false` | Also fetch each result page. 1 credit per page. |
+| `time_range` | string | none | `hour`, `day`, `week`, `month` or `year`. |
+| `country`, `language` | string | none | Two-letter codes. |
+| `include_domains`, `exclude_domains` | string[] | none | Up to 10 each. |
+| `scrape_results` | boolean | `false` | Also fetch each result page. 1 credit per page, 4 with `summary` or `json`. |
 | `formats` | string[] | `["markdown"]` | With `scrape_results`: the page formats. |
 
-2 credits per 10 results, plus 1 per page scraped.
+2 credits per 10 results, plus 1 per page scraped (4 with `summary` or `json`).
 
 ### `prefetch_scrape`
 
@@ -64,27 +64,27 @@ Use it when you know which page you want. To find pages first, use `prefetch_map
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `url` | string | — | **Required.** `https://` is assumed if the scheme is omitted. |
+| `url` | string | none | **Required.** `https://` is assumed if the scheme is omitted. |
 | `formats` | string[] | `["markdown"]` | Any of `markdown`, `summary`, `html`, `raw_html`, `links`, `images`, `json`, `screenshot`. |
 | `only_main_content` | boolean | `true` | Strip navigation, sidebars, headers, and footers. |
 | `include_links` | boolean | `true` | Keep hyperlinks in the markdown. |
 | `include_images` | boolean | `true` | Keep images in the markdown. |
 | `include_base64_images` | boolean | `false` | Keep inline `data:` image URIs. These are very large. |
-| `include_selectors` | string[] | — | CSS selectors to keep, overriding main-content detection. |
-| `exclude_selectors` | string[] | — | CSS selectors to drop, like `[".cookie-bar", "#promo"]`. |
-| `json_prompt` | string | — | For `formats: ["json"]` — what to extract, in plain English. |
-| `json_schema` | object | — | For `formats: ["json"]` — a JSON Schema the result must match. |
+| `include_selectors` | string[] | none | CSS selectors to keep, overriding main-content detection. |
+| `exclude_selectors` | string[] | none | CSS selectors to drop, like `[".cookie-bar", "#promo"]`. |
+| `json_prompt` | string | none | For `formats: ["json"]`: what to extract, in plain English. |
+| `json_schema` | object | none | For `formats: ["json"]`: a JSON Schema the result must match. |
 | `summary_max_words` | number | `120` | Word budget for `formats: ["summary"]`. 20–400. |
-| `screenshot_full_page` | boolean | `false` | For `formats: ["screenshot"]` — capture the whole page rather than the first screen. |
-| `wait_for` | number | — | Milliseconds to wait after load for late content (up to 30,000). |
-| `wait_for_selector` | string | — | Wait up to 10 seconds for this CSS selector before reading. Best effort. |
+| `screenshot_full_page` | boolean | `false` | For `formats: ["screenshot"]`: capture the whole page rather than the first screen. |
+| `wait_for` | number | none | Milliseconds to wait after load for late content (up to 30,000). |
+| `wait_for_selector` | string | none | Wait up to 10 seconds for this CSS selector before reading. Best effort. |
 | `mobile` | boolean | `false` | Render the page as a phone. |
-| `max_age` | number | — | Accept a stored copy fetched at most this many milliseconds ago. Default: always fetch live. |
-| `headers` | object | — | Request headers to send to the site, like `{"Accept-Language": "de-DE"}`. Requests with headers are never cached. |
+| `max_age` | number | none | Accept a stored copy fetched at most this many milliseconds ago. Default: always fetch live. |
+| `headers` | object | none | Request headers to send to the site, like `{"Accept-Language": "de-DE"}`. Requests with headers are never cached. |
 | `check_prompt_injection` | boolean | `false` | Check the page for text aimed at AI models and put the verdict above the page. Adds the 3-credit AI surcharge. |
 
 <Tip>
-`include_selectors` is the best way to cut a large page down to what matters — it beats truncation, because you choose what survives.
+`include_selectors` is the best way to cut a large page down to what matters. It beats truncation, because you choose what survives.
 </Tip>
 
 `raw_html` is much larger than `markdown`. Only ask for it when you need the source.
@@ -93,12 +93,12 @@ Use it when you know which page you want. To find pages first, use `prefetch_map
 
 Discover the URLs on a site, from its sitemaps and on-page links, without fetching page content. Fast and cheap.
 
-Mapping first and then scraping the two or three pages you want is usually better — and much cheaper — than crawling.
+Mapping first and then scraping the two or three pages you want is usually better, and much cheaper, than crawling.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `url` | string | — | **Required.** |
-| `search` | string | — | Rank and filter results by this term, like `"pricing"`. |
+| `url` | string | none | **Required.** |
+| `search` | string | none | Rank and filter results by this term, like `"pricing"`. |
 | `limit` | number | `1000` | Maximum URLs to return. 1–5000. |
 | `sitemap` | string | `include` | `include` merges sitemap and link discovery, `only` trusts the sitemap alone, `skip` ignores it. |
 | `include_subdomains` | boolean | `true` | Include URLs on subdomains. |
@@ -106,24 +106,24 @@ Mapping first and then scraping the two or three pages you want is usually bette
 
 ### `prefetch_crawl`
 
-Crawl a site or a section of one, returning each page as markdown. Starts the crawl and waits for it — see [how crawling works](/mcp/overview#how-crawling-works).
+Crawl a site or a section of one, returning each page as markdown. Starts the crawl and waits for it. See [how crawling works](/mcp/overview#how-crawling-works).
 
 Crawls are billed per page. Scope them with `include_paths` and keep `limit` as low as will do.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `url` | string | — | **Required.** |
+| `url` | string | none | **Required.** |
 | `limit` | number | `25` | Maximum pages to crawl. 1–500. Each page is billed. |
 | `max_depth` | number | `2` | How many links deep to follow. 0–5. |
-| `include_paths` | string[] | — | Regex patterns; a URL must match at least one, like `["^/docs/"]`. |
-| `exclude_paths` | string[] | — | Regex patterns; a URL matching any is skipped. |
+| `include_paths` | string[] | none | Regex patterns; a URL must match at least one, like `["^/docs/"]`. |
+| `exclude_paths` | string[] | none | Regex patterns; a URL matching any is skipped. |
 | `allow_subdomains` | boolean | `false` | Follow links onto subdomains. |
 | `allow_external_links` | boolean | `false` | Follow links onto other sites. This can make a crawl very large. |
 | `ignore_query_params` | boolean | `true` | Treat URLs differing only by query string as one page. |
 | `use_sitemap` | boolean | `true` | Seed the crawl from the site's sitemap as well as from links. |
 | `concurrency` | number | `2` | Pages fetched in parallel. 1–5. |
 | `delay_ms` | number | `0` | Politeness delay between pages. |
-| `scrape_options` | object | — | How each page is rendered — the same options `prefetch_scrape` takes. |
+| `scrape_options` | object | none | How each page is rendered: the same options `prefetch_scrape` takes. |
 | `wait_seconds` | number | `60` | How long to wait before handing back a crawl id to poll. 0–120. |
 
 <Note>
@@ -136,7 +136,7 @@ Status and results for a crawl or batch. Returns one page of results at a time.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `id` | string | — | **Required.** The id from `prefetch_crawl`, `prefetch_batch_scrape` or `prefetch_batch`. |
+| `id` | string | none | **Required.** The id from `prefetch_crawl`, `prefetch_batch_scrape` or `prefetch_batch`. |
 | `skip` | number | `0` | Results to skip, for paging. |
 | `limit` | number | `25` | Results per page. 1–100. |
 
@@ -148,16 +148,16 @@ Stop a running crawl. Pages already fetched stay readable via `prefetch_check_cr
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `id` | string | — | **Required.** The crawl id from `prefetch_crawl`. |
+| `id` | string | none | **Required.** The crawl id from `prefetch_crawl`. |
 
 ### `prefetch_batch_scrape`
 
-Scrape many known URLs in one job and get each page as markdown. Starts the job and waits for it (`wait_seconds`, default 60), returning the pages if it finishes in time and an id for `prefetch_check_crawl_status` if not. See [`POST /batch/scrape`](/api-reference/endpoint/batch-scrape).
+Scrape many known URLs in one job and get each page as markdown. Starts the job and waits for it (`wait_seconds`, default 60), returning the pages if it finishes in time and an id for `prefetch_check_crawl_status` if not. See [`POST /batch/scrape`](/jobs/batches).
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `urls` | string[] | — | **Required.** 1–500 pages. |
-| `scrape_options` | object | — | How each page is rendered — the options `prefetch_scrape` takes. |
+| `urls` | string[] | none | **Required.** 1–500 pages. |
+| `scrape_options` | object | none | How each page is rendered: the options `prefetch_scrape` takes. |
 | `concurrency` | number | `2` | Pages fetched in parallel. 1–5. |
 | `ignore_invalid_urls` | boolean | `false` | Drop invalid URLs instead of failing the batch. |
 
@@ -165,13 +165,13 @@ Scrape many known URLs in one job and get each page as markdown. Starts the job 
 
 ### `prefetch_batch`
 
-Run `brand`, `enrich`, `company`, `classify`, `screenshot` or `styleguide` on a list of URLs or bare domains as one job, and get every result back — the same result each single tool returns. Waits like `prefetch_batch_scrape`. See [`POST /batch/{endpoint}`](/api-reference/endpoint/batch).
+Run `brand`, `enrich`, `company`, `classify`, `screenshot` or `styleguide` on a list of URLs or bare domains as one job, and get every result back: the same result each single tool returns. Waits like `prefetch_batch_scrape`. See [`POST /batch/{endpoint}`](/jobs/batches).
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `endpoint` | string | — | **Required.** Which tool to run on every URL. |
-| `urls` | string[] | — | **Required.** 1–500 URLs or domains, like `["stripe.com", "linear.app"]`. |
-| `options` | object | — | That tool's own options, applied to every URL — `{"design_tokens": true}` for brand, `{"device": "iphone_15"}` for screenshot. |
+| `endpoint` | string | none | **Required.** Which tool to run on every URL. |
+| `urls` | string[] | none | **Required.** 1–500 URLs or domains, like `["stripe.com", "linear.app"]`. |
+| `options` | object | none | That tool's own options, applied to every URL: `{"design_tokens": true}` for brand, `{"device": "iphone_15"}` for screenshot. |
 | `concurrency` | number | `2` | URLs run in parallel. 1–5. |
 | `ignore_invalid_urls` | boolean | `false` | Drop invalid URLs instead of failing the batch. |
 
@@ -189,11 +189,11 @@ Prefer this over calling `prefetch_brand`, `prefetch_company`, and `prefetch_cla
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `url` | string | — | **Required.** |
+| `url` | string | none | **Required.** |
 | `html` | boolean | `false` | Also extract colors from inline HTML style attributes. |
 | `css` | boolean | `false` | Also extract colors from stylesheets, grouped by CSS property. |
 | `javascript` | boolean | `false` | Also extract colors from inline JavaScript. |
-| `screenshot_colors` | number | — | Sample this many dominant colors from a rendered screenshot. 2–12. |
+| `screenshot_colors` | number | none | Sample this many dominant colors from a rendered screenshot. 2–12. |
 | `screenshot_width` | number | `1440` | Screenshot viewport width. |
 | `screenshot_height` | number | `900` | Screenshot viewport height. |
 | `screenshot_full_page` | boolean | `false` | Capture the whole scrollable page. |
@@ -210,21 +210,21 @@ Takes the same parameters as `prefetch_enrich`. Use `prefetch_enrich` instead if
 
 ### `prefetch_company`
 
-Company name, contact emails, postal addresses, and social profiles for the organisation behind a URL.
+Company name, contact emails, postal addresses, and social profiles for the organization behind a URL.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `url` | string | — | **Required.** |
+| `url` | string | none | **Required.** |
 
 ### `prefetch_classify`
 
-IAB content category and subcategory, with a description and — for public companies — stock tickers and ISINs.
+IAB content category and subcategory, with a description and, for public companies, stock tickers and ISINs.
 
 The cheapest way to answer "what kind of business is this".
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `url` | string | — | **Required.** |
+| `url` | string | none | **Required.** |
 
 ### `prefetch_screenshot`
 
@@ -232,16 +232,16 @@ Render a page and return a hosted image URL.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `url` | string | — | **Required.** |
+| `url` | string | none | **Required.** |
 | `width` | number | `1440` | Viewport width. 320–2560. Ignored with `device`. |
 | `height` | number | `900` | Viewport height. 240–5000. Ignored with `device`. |
 | `format` | string | `jpeg` | `jpeg`, `png`, `webp`, or `pdf`. |
 | `full_page` | boolean | `false` | Capture the whole scrollable page. |
-| `device` | string | — | Render as a phone, tablet or retina desktop: `iphone_15`, `pixel_7`, `ipad`, `desktop_retina`… (see [`/screenshot`](/api-reference/endpoint/screenshot#devices)). |
+| `device` | string | none | Render as a phone, tablet or retina desktop: `iphone_15`, `pixel_7`, `ipad`, `desktop_retina`… (see [`/screenshot`](/web-data/screenshot#devices)). |
 | `dark_mode` | boolean | `false` | Ask the page for its dark theme. |
-| `selector` | string | — | Capture only the first element matching this CSS selector. |
+| `selector` | string | none | Capture only the first element matching this CSS selector. |
 | `wait_for` | number | `0` | Milliseconds to wait after load. Up to 30,000. |
-| `wait_for_selector` | string | — | Wait (up to 10 s) for this CSS selector before capturing. |
+| `wait_for_selector` | string | none | Wait (up to 10 s) for this CSS selector before capturing. |
 | `block_ads` | boolean | `false` | Block ad and tracker requests while the page loads. |
 | `quality` | number | `85` | JPEG and WebP quality. 1–100. |
 
@@ -251,22 +251,22 @@ This returns a link, not image bytes. Pass the URL on to the user, or to a tool 
 
 ### `prefetch_styleguide`
 
-A site's design system, read from the rendered page: colors by role, the type scale, spacing, radii, shadows, button, input, card and link styles, breakpoints and the site's own CSS variables — plus the same as CSS custom properties (`exports.css`) and a Tailwind theme (`exports.tailwind`). Use it to build UI that matches a site. See [`GET /styleguide`](/api-reference/endpoint/styleguide).
+A site's design system, read from the rendered page: colors by role, the type scale, spacing, radii, shadows, button, input, card and link styles, breakpoints and the site's own CSS variables, plus the same as CSS custom properties (`exports.css`) and a Tailwind theme (`exports.tailwind`). Use it to build UI that matches a site. See [`GET /styleguide`](/company-data/styleguide).
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `url` | string | — | **Required.** |
+| `url` | string | none | **Required.** |
 | `dark_mode` | boolean | `false` | Read the site's dark theme instead of its default one. |
 
 10 credits.
 
 ### `prefetch_logo_urls`
 
-Ready-to-embed logo image URLs for up to 50 domains, from the [logo CDN](/api-reference/endpoint/logo-cdn) — put them straight in `<img>` tags or markdown. A domain without a known logo shows a letter mark.
+Ready-to-embed logo image URLs for up to 50 domains, from the [logo CDN](/company-data/logo-cdn). Put them straight in `<img>` tags or markdown. A domain without a known logo shows a letter mark.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `domains` | string[] | — | **Required.** 1–50 domains or URLs. |
+| `domains` | string[] | none | **Required.** 1–50 domains or URLs. |
 | `size` | number | `128` | Pixels, square. 16–512. |
 | `format` | string | `png` | `png`, `webp` or `jpeg`. |
 
@@ -282,11 +282,11 @@ Use it when the answer needs searching or several sources. When you already know
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `task` | string | — | **Required.** The research question. Name a domain or URL to focus it — named pages are read first. Up to 2,000 characters. |
+| `task` | string | none | **Required.** The research question. Name a domain or URL to focus it: named pages are read first. Up to 2,000 characters. |
 | `mode` | string | `fast` | `fast`: up to 30 s, 10 credits. `ultra`: deeper research across several sources, up to 50 s, 100 credits. |
-| `json_format` | object | `{"result": ""}` | An example of the answer object, not a JSON Schema — like `{"ceo": "", "founded_year": 0}`. Keys and value types are kept; unknowns come back `null`. |
-| `timeout_opts` | object | — | `{ milliseconds, behavior }`. Shortens the mode's deadline (1,000–300,000 ms). With `behavior: "return-partial"`, what was found so far is returned with `partial: true`. |
-| `tags` | string[] | — | Labels stored on the request log, for filtering usage. Up to 20. |
+| `json_format` | object | `{"result": ""}` | An example of the answer object, not a JSON Schema, like `{"ceo": "", "founded_year": 0}`. Keys and value types are kept; unknowns come back `null`. |
+| `timeout_opts` | object | none | `{ milliseconds, behavior }`. Shortens the mode's deadline (1,000–300,000 ms). With `behavior: "return-partial"`, what was found so far is returned with `partial: true`. |
+| `tags` | string[] | none | Labels stored on the request log, for filtering usage. Up to 20. |
 
 <Note>
 Over MCP the default mode is `fast`; over REST it is `ultra`. Failures and timeouts are never charged.
@@ -294,33 +294,33 @@ Over MCP the default mode is `fast`; over REST it is `ultra`. Failures and timeo
 
 ## Monitoring
 
-A monitor re-checks pages on a schedule and records what changed — see [`POST /monitor`](/api-reference/endpoint/monitor) for how changes are detected and judged. The tools take a flatter shape than the REST body: `urls` for specific pages and `crawl_url` for a site, instead of a list of targets.
+A monitor re-checks pages on a schedule and records what changed. See [Monitors](/monitors/overview) for how changes are detected and judged. The tools take a flatter shape than the REST body: `urls` for specific pages and `crawl_url` for a site, instead of a list of targets.
 
-An agent rarely has a webhook to receive changes at, so it reads them back — or passes `email` to have each check that finds changes emailed to a person: `prefetch_run_monitor` runs a check and waits for it, and `prefetch_get_monitor_check` shows the latest check by default. Both list only the pages that changed, appeared, disappeared or failed — the judge's verdict first, then any field changes, then the diff — and count the unchanged ones.
+An agent rarely has a webhook to receive changes at, so it reads them back, or passes `email` to have each check that finds changes emailed to a person: `prefetch_run_monitor` runs a check and waits for it, and `prefetch_get_monitor_check` shows the latest check by default. Both list only the pages that changed, appeared, disappeared or failed, the judge's verdict first, then any field changes, then the diff, and count the unchanged ones.
 
 ### `prefetch_create_monitor`
 
 Start watching pages. Pass `urls`, `crawl_url`, or both.
 
-A monitor bills on every check for as long as it is active — 1 credit per page fetched (4 when tracking JSON), plus 1 per change judged — so prefer few pages and a modest schedule.
+A monitor bills on every check for as long as it's active: 1 credit per page fetched, +3 when a JSON extraction runs, and +1 per change judged. So prefer few pages and a modest schedule.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `name` | string | — | **Required.** A label, like `"Acme pricing"`. |
-| `schedule` | string | — | **Required.** A phrase — `"every 30 minutes"`, `"hourly"`, `"daily at 9am"`, `"every weekday at 17:00"`, `"weekly"` — or five-field cron. As often as the plan allows: hourly on Free, every 5 minutes on Starter and Pro, 2 on Growth, 1 on Scale. |
+| `name` | string | none | **Required.** A label, like `"Acme pricing"`. |
+| `schedule` | string | none | **Required.** A phrase: `"every 30 minutes"`, `"hourly"`, `"daily at 9am"`, `"every weekday at 17:00"`, `"weekly"`, or five-field cron. As often as the plan allows: hourly on Free, every 5 minutes on Starter and Pro, 2 on Growth, 1 on Scale. |
 | `timezone` | string | `UTC` | IANA timezone for the schedule, like `"America/New_York"`. |
-| `goal` | string | — | What you want to be told about, in one sentence. Each change is judged against it, so noise is filtered out. |
-| `urls` | string[] | — | Pages to watch. 1–100. |
-| `crawl_url` | string | — | A site or section to re-crawl on every check, so new and removed pages are reported too. |
+| `goal` | string | none | What you want to be told about, in one sentence. Each change is judged against it, so noise is filtered out. |
+| `urls` | string[] | none | Pages to watch. 1–100. |
+| `crawl_url` | string | none | A site or section to re-crawl on every check, so new and removed pages are reported too. |
 | `crawl_limit` | number | `25` | Most pages each crawl visits. 1–500. Every page is billed on every check. |
-| `include_paths` | string[] | — | For `crawl_url`: regex patterns a page must match, like `["^/blog/"]`. |
-| `exclude_paths` | string[] | — | For `crawl_url`: regex patterns to skip. |
-| `track_fields` | string | — | Compare these facts instead of the page text, like `"each plan's monthly price"`. A page then counts as changed only when one of them changes. |
-| `include_selectors` | string[] | — | CSS selectors to compare instead of the whole main content. |
-| `exclude_selectors` | string[] | — | CSS selectors to ignore — timestamps, rotating banners. |
-| `webhook_url` | string | — | An HTTPS endpoint to POST changes to. |
-| `email` | string[] | — | Up to 5 addresses to email when a check finds changes. Your account's own address works at once; any other address confirms from an email first. |
-| `run_now` | boolean | `false` | Take the first check immediately. It records a baseline — every page is new — so changes show from the second check on. |
+| `include_paths` | string[] | none | For `crawl_url`: regex patterns a page must match, like `["^/blog/"]`. |
+| `exclude_paths` | string[] | none | For `crawl_url`: regex patterns to skip. |
+| `track_fields` | string | none | Compare these facts instead of the page text, like `"each plan's monthly price"`. A page then counts as changed only when one of them changes. |
+| `include_selectors` | string[] | none | CSS selectors to compare instead of the whole main content. |
+| `exclude_selectors` | string[] | none | CSS selectors to ignore: timestamps, rotating banners. |
+| `webhook_url` | string | none | An HTTPS endpoint to POST changes to. |
+| `email` | string[] | none | Up to 5 addresses to email when a check finds changes. Your account's own address works at once; any other address confirms from an email first. |
+| `run_now` | boolean | `false` | Take the first check immediately. It records a baseline (every page is new), so changes show from the second check on. |
 
 ### `prefetch_run_monitor`
 
@@ -328,7 +328,7 @@ Run a check now, wait for it, and return what changed since the previous check. 
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `id` | string | — | **Required.** The monitor id. |
+| `id` | string | none | **Required.** The monitor id. |
 | `wait_seconds` | number | `60` | How long to wait before handing back the check id to read later. 0–120. |
 
 ### `prefetch_get_monitor_check`
@@ -337,9 +337,9 @@ What a check found. Leave `check_id` out for the most recent one. Free.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `monitor_id` | string | — | **Required.** |
+| `monitor_id` | string | none | **Required.** |
 | `check_id` | string | latest | A check id. |
-| `status` | string | — | Only pages with this status: `same`, `new`, `changed`, `removed` or `error`. Without it, unchanged pages are counted but not listed. |
+| `status` | string | none | Only pages with this status: `same`, `new`, `changed`, `removed` or `error`. Without it, unchanged pages are counted but not listed. |
 | `skip` | number | `0` | Pages to skip, for paging. |
 | `limit` | number | `25` | Pages per response. 1–100. |
 
@@ -358,7 +358,7 @@ One monitor's settings, next run, estimated cost, and its five most recent check
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `id` | string | — | **Required.** |
+| `id` | string | none | **Required.** |
 
 ### `prefetch_update_monitor`
 
@@ -366,14 +366,14 @@ Change a monitor. Fields you leave out stay as they are. Free.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `id` | string | — | **Required.** |
-| `name` | string | — | A new label. |
-| `schedule`, `timezone` | string | — | A new schedule. Pass `timezone` together with `schedule`. |
-| `goal` | string \| null | — | A new goal, or `null` to stop judging and report every change. |
-| `status` | string | — | `paused` stops the schedule and its charges; `active` resumes it. |
-| `urls`, `crawl_url`, … | | — | Replace what the monitor watches. Takes the same fields as `prefetch_create_monitor`. |
-| `webhook_url` | string \| null | — | A new webhook URL, or `null` to stop sending webhooks. |
-| `email` | string[] \| null | — | The full new list of addresses to email, replacing the old one. `null` or `[]` stops emailing. |
+| `id` | string | none | **Required.** |
+| `name` | string | none | A new label. |
+| `schedule`, `timezone` | string | none | A new schedule. Pass `timezone` together with `schedule`. |
+| `goal` | string \| null | none | A new goal, or `null` to stop judging and report every change. |
+| `status` | string | none | `paused` stops the schedule and its charges; `active` resumes it. |
+| `urls`, `crawl_url`, … | | none | Replace what the monitor watches. Takes the same fields as `prefetch_create_monitor`. |
+| `webhook_url` | string \| null | none | A new webhook URL, or `null` to stop sending webhooks. |
+| `email` | string[] \| null | none | The full new list of addresses to email, replacing the old one. `null` or `[]` stops emailing. |
 
 ### `prefetch_delete_monitor`
 
@@ -381,7 +381,7 @@ Delete a monitor and its history, stopping all future checks. To stop it for a w
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `id` | string | — | **Required.** |
+| `id` | string | none | **Required.** |
 
 ## Choosing a tool
 

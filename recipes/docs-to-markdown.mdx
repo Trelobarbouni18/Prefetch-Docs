@@ -1,0 +1,129 @@
+---
+title: "Turn a docs site into markdown"
+description: "Collect a whole documentation site as clean markdown for search, RAG or an LLM's context. Map it for 1 credit, then pay 1 credit per page."
+icon: "/icons/article.svg"
+---
+
+To answer questions about a library or a product, an LLM needs its docs as clean text. Prefetch can collect a docs site two ways:
+
+- **Map, then batch scrape:** list every URL for 1 credit, keep the ones you want, and scrape only those. Best when you want control.
+- **Crawl:** follow links from a start page and collect everything under it. Best when the site has no useful sitemap.
+
+**Cost:** 1 credit for the map, plus 1 per page scraped. A 200-page docs site costs about 201 credits.
+
+## Option A: map, then batch scrape
+
+<CodeGroup>
+
+```javascript Node.js
+import { writeFile, mkdir } from "node:fs/promises";
+
+const base = "https://api.prefetch.io";
+const headers = { "X-API-Key": process.env.PREFETCH_API_KEY, "Content-Type": "application/json" };
+
+// 1. List the docs URLs
+const map = await (await fetch(`${base}/map?url=https://docs.example.com&limit=5000`, { headers })).json();
+const urls = map.data.links.map((l) => l.url).filter((u) => !u.includes("/changelog/")).slice(0, 500);
+
+// 2. Scrape them as one job
+const { data: job } = await (await fetch(`${base}/batch/scrape`, {
+  method: "POST",
+  headers,
+  body: JSON.stringify({ urls, scrape_options: { formats: ["markdown"], only_main_content: true } }),
+})).json();
+
+// 3. Wait, then read every page of results
+let status;
+do {
+  await new Promise((r) => setTimeout(r, 5000));
+  ({ data: status } = await (await fetch(`${base}/batch/scrape/${job.id}`, { headers })).json());
+} while (status.status === "pending" || status.status === "running");
+
+const pages = [...status.data];
+for (let next = status.next; next; ) {
+  const { data } = await (await fetch(base + next, { headers })).json();
+  pages.push(...data.data);
+  next = data.next;
+}
+
+// 4. Save one markdown file per page
+await mkdir("docs", { recursive: true });
+for (const p of pages.filter((p) => p.ok)) {
+  const name = new URL(p.url).pathname.replace(/^\/|\/$/g, "").replaceAll("/", "__") || "index";
+  await writeFile(`docs/${name}.md`, `<!-- ${p.url} -->\n${p.markdown.content}`);
+}
+```
+
+```python Python
+import os, pathlib, time, requests
+from urllib.parse import urlparse
+
+base = "https://api.prefetch.io"
+headers = {"X-API-Key": os.environ["PREFETCH_API_KEY"]}
+
+links = requests.get(f"{base}/map", params={"url": "https://docs.example.com", "limit": 5000},
+                     headers=headers).json()["data"]["links"]
+urls = [l["url"] for l in links if "/changelog/" not in l["url"]][:500]
+
+job = requests.post(f"{base}/batch/scrape", headers=headers, json={
+    "urls": urls,
+    "scrape_options": {"formats": ["markdown"], "only_main_content": True},
+}).json()["data"]
+
+while True:
+    time.sleep(5)
+    status = requests.get(f"{base}/batch/scrape/{job['id']}", headers=headers).json()["data"]
+    if status["status"] not in ("pending", "running"):
+        break
+
+pages, nxt = list(status["data"]), status["next"]
+while nxt:
+    page = requests.get(base + nxt, headers=headers).json()["data"]
+    pages.extend(page["data"])
+    nxt = page["next"]
+
+out = pathlib.Path("docs"); out.mkdir(exist_ok=True)
+for p in pages:
+    if p["ok"]:
+        name = urlparse(p["url"]).path.strip("/").replace("/", "__") or "index"
+        (out / f"{name}.md").write_text(f"<!-- {p['url']} -->\n{p['markdown']['content']}")
+```
+
+</CodeGroup>
+
+## Option B: crawl
+
+One request collects everything under a path:
+
+```bash
+curl -X POST "https://api.prefetch.io/crawl" \
+  -H "X-API-Key: $PREFETCH_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://docs.example.com/guides/",
+    "limit": 200,
+    "max_depth": 3,
+    "exclude_paths": ["^/guides/changelog/"],
+    "scrape_options": { "formats": ["markdown"], "only_main_content": true }
+  }'
+```
+
+Read the pages from `GET /crawl/{id}` the same way as the batch above. If fewer pages come back than you expected, [`GET /crawl/{id}/errors`](/api-reference/endpoint/crawl-errors) says why.
+
+## Tips
+
+- `only_main_content` strips the docs site's navigation and sidebar, so each file holds only the page.
+- Use `exclude_selectors` to drop on-page clutter such as version banners or "Was this helpful?" widgets.
+- Keep each page's URL next to its text, so answers can cite their source.
+- To keep the copy fresh, put the same URLs in a [monitor](/monitors/overview) and re-scrape only the pages that change.
+
+## Prompt for your coding agent
+
+```text
+Write a script that collects <docs site> as markdown using the Prefetch API (docs: https://docs.prefetch.io/recipes/docs-to-markdown).
+Use the X-API-Key header (key in PREFETCH_API_KEY). Call GET https://api.prefetch.io/map?url=<site>&limit=5000,
+filter the URLs to the docs pages, then submit them (up to 500 per job) to POST /batch/scrape with
+scrape_options {"formats": ["markdown"], "only_main_content": true}. Poll GET /batch/scrape/{id} until the
+status isn't pending or running, follow `next` to read every page, and save each ok page as a markdown file
+with its source URL at the top. Report pages that failed, with their error_code.
+```

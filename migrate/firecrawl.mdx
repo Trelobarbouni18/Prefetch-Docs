@@ -1,0 +1,138 @@
+---
+title: "Migrate from Firecrawl"
+description: "Move scrape, map, crawl, batch scrape, search and monitors from Firecrawl's v2 API to Prefetch: endpoint and parameter mapping, response differences and webhooks."
+icon: "/icons/arrows-horizontal.svg"
+---
+
+Prefetch's web data endpoints work much like Firecrawl's v2 API, so most migrations are a change of base URL, header and parameter spelling. This page maps one to the other.
+
+## The basics
+
+| | Firecrawl v2 | Prefetch |
+|---|---|---|
+| Base URL | `https://api.firecrawl.dev/v2` | `https://api.prefetch.io` |
+| Auth header | `Authorization: Bearer fc-…` | `X-API-Key: …` |
+| Parameter style | camelCase | snake_case |
+| Response envelope | `{ success, data }` | `{ success, data, meta }`, and errors add `error_code` and `retryable` |
+| Cached pages | Served up to 2 days old by default (`maxAge`) | Fetched live unless you set `max_age` |
+
+To keep Firecrawl's caching behavior, send `max_age=172800000` (2 days, in milliseconds).
+
+## Endpoints
+
+| Firecrawl v2 | Prefetch |
+|---|---|
+| `POST /v2/scrape` | [`GET` or `POST /scrape`](/web-data/scrape) |
+| `POST /v2/map` | [`GET /map`](/web-data/map) |
+| `POST /v2/crawl` | [`POST /crawl`](/web-data/crawl) |
+| `GET /v2/crawl/{id}` | `GET /crawl/{id}` |
+| `DELETE /v2/crawl/{id}` | `DELETE /crawl/{id}` |
+| `GET /v2/crawl/{id}/errors` | `GET /crawl/{id}/errors` |
+| `POST /v2/batch/scrape` | [`POST /batch/scrape`](/jobs/batches) |
+| `GET /v2/batch/scrape/{id}` | `GET /batch/scrape/{id}` |
+| `POST /v2/search` | [`GET` or `POST /search`](/web-data/search) |
+| `/v2/monitor` and its sub-paths | [`/monitor`](/monitors/overview) and the same sub-paths |
+
+Prefetch also has company data endpoints with no Firecrawl equivalent: [`/enrich`](/company-data/enrich), [`/brand`](/company-data/brand), [`/company`](/company-data/company), [`/classify`](/company-data/classify), [`/styleguide`](/company-data/styleguide), [`/resolve`](/company-data/resolve), [`/transaction`](/company-data/transaction) and the [logo CDN](/company-data/logo-cdn).
+
+## Scrape
+
+| Firecrawl | Prefetch | Notes |
+|---|---|---|
+| `url` | `url` | |
+| `formats: ["markdown", "html", "rawHtml", "links", "screenshot", "summary"]` | `formats: ["markdown", "html", "raw_html", "links", "screenshot", "summary"]` | Prefetch also has `images`. On `GET`, pass a comma-separated list. |
+| `formats: [{ "type": "json", "prompt": "…", "schema": {…} }]` | `formats: ["json"]` with `json_prompt` and `json_schema` | |
+| `onlyMainContent` | `only_main_content` | Both default to `true`. |
+| `includeTags`, `excludeTags` | `include_selectors`, `exclude_selectors` | CSS selectors. |
+| `waitFor` | `wait_for` | Milliseconds. Prefetch also has `wait_for_selector`. |
+| `maxAge` | `max_age` | Milliseconds. Prefetch defaults to a live fetch. |
+| `mobile` | `mobile` | |
+| `headers` | `headers` | Requests with headers are never cached on Prefetch. |
+| `removeBase64Images` (default `true`) | `include_base64_images` (default `false`) | Inverted name, same default behavior. |
+| `checkPromptInjection` | `check_prompt_injection` | |
+
+## Map
+
+| Firecrawl | Prefetch |
+|---|---|
+| `url`, `search`, `limit` | `url`, `search`, `limit` |
+| `sitemap: "include" \| "only" \| "skip"` | `sitemap: "include" \| "only" \| "skip"` |
+| `includeSubdomains` | `include_subdomains` |
+| `ignoreQueryParameters` | `ignore_query_params` |
+
+## Crawl
+
+| Firecrawl | Prefetch | Notes |
+|---|---|---|
+| `limit` | `limit` | Prefetch caps a crawl at 500 pages. |
+| `maxDiscoveryDepth` | `max_depth` | Sitemap pages are depth 0 on both. |
+| `includePaths`, `excludePaths` | `include_paths`, `exclude_paths` | Regular expressions, matched against the path and query on Prefetch. |
+| `allowSubdomains`, `allowExternalLinks`, `crawlEntireDomain` | `allow_subdomains`, `allow_external_links`, `crawl_entire_domain` | |
+| `sitemap: "include"` or `"skip"` | `use_sitemap: true` or `false` | For `"only"`, send `use_sitemap: true` with `max_depth: 0`. |
+| `ignoreRobotsTxt` | `respect_robots_txt: false` | |
+| `delay` (seconds) | `delay_ms` (milliseconds) | |
+| `maxConcurrency` | `concurrency` | 1 to 5 on Prefetch. |
+| `scrapeOptions` | `scrape_options` | Takes everything `/scrape` takes. |
+| `webhook` | `webhook` | See [Webhooks](#webhooks) below. |
+
+## Batch scrape
+
+Firecrawl takes scrape options at the top level of a batch. Prefetch nests them in `scrape_options`:
+
+```json
+{
+  "urls": ["https://example.com/a", "https://example.com/b"],
+  "scrape_options": { "formats": ["markdown"], "only_main_content": true },
+  "ignore_invalid_urls": true,
+  "concurrency": 3
+}
+```
+
+`ignoreInvalidURLs` becomes `ignore_invalid_urls`, and `maxConcurrency` becomes `concurrency`.
+
+## Search
+
+| Firecrawl | Prefetch |
+|---|---|
+| `query`, `limit`, `location`, `country` | `query`, `limit`, `location`, `country` |
+| `sources: ["web"]` or `["news"]` | `type: "web"` or `"news"` |
+| `tbs: "qdr:w"` | `time_range: "week"` (`hour`, `day`, `week`, `month`, `year`) |
+| `includeDomains`, `excludeDomains` | `include_domains`, `exclude_domains` |
+| `scrapeOptions` | `scrape_options` |
+
+## Reading responses
+
+| What | Firecrawl | Prefetch |
+|---|---|---|
+| Scraped markdown | `data.markdown` (a string) | `data.markdown.content` |
+| Source URL | `data.metadata.sourceURL` | `data.metadata.source_url` |
+| Status code | `data.metadata.statusCode` | `data.status_code` |
+| Search results | `data.web[]` | `data.results[]`, each with `scrape` when you asked for content |
+| Crawl pages | `data[]` on the status response | `data.data[]`, with `next` for the following page |
+
+Each Prefetch format is an object with counts and flags, such as `markdown.word_count` and `markdown.truncated`. See [Scrape](/web-data/scrape#example-response).
+
+## Errors
+
+Both return `success: false` with an `error` message. Prefetch adds a stable `error_code` and a `retryable` flag, so you can branch on them instead of parsing the message. See [Error handling](/concepts/errors).
+
+## Webhooks
+
+Crawl and batch event names carry over: `crawl.started`, `crawl.page`, `crawl.completed`, and `batch_scrape.*`. Signatures differ:
+
+| | Firecrawl | Prefetch |
+|---|---|---|
+| Header | `X-Firecrawl-Signature` | `X-Prefetch-Signature: t=<unix seconds>,v1=<hex>` |
+| What's signed | The raw body | `<t>.<raw body>`, so you can reject replays older than five minutes |
+| Secret | One per account, in your settings | One per job or monitor, returned when you create it |
+
+See [Verify signatures](/concepts/webhooks#verify-signatures) for code.
+
+## Checklist
+
+- [ ] Swap the base URL and the auth header.
+- [ ] Rename parameters to snake_case, and nest batch scrape options in `scrape_options`.
+- [ ] Read `data.markdown.content` instead of `data.markdown`.
+- [ ] Set `max_age` wherever you relied on Firecrawl's default caching.
+- [ ] Update your webhook signature check.
+- [ ] Branch on `error_code` and `retryable`.

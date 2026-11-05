@@ -1,30 +1,21 @@
 ---
 title: "Error handling"
-description: "How the Prefetch API reports errors: the error envelope, machine-readable error codes, and when to retry."
-icon: "circle-exclamation"
+description: "How the Prefetch API reports errors: the error envelope, stable error codes, and when to retry."
+icon: "/icons/warning-diamond.svg"
 ---
+
+import ErrorEnvelope from '/snippets/error-envelope.mdx';
 
 ## Error envelope
 
-Errors use the same envelope as successful responses, with `success: false`, a human-readable `error`, and two fields for code to branch on:
+Errors use the same envelope as successful responses. `success` is `false`, `error` is a message for people, and two fields are for your code:
 
-```json
-{
-  "success": false,
-  "error": "The target URL could not be resolved. Please check the domain name.",
-  "error_code": "DNS_RESOLUTION_FAILED",
-  "retryable": false,
-  "meta": {
-    "requestId": "uuid-v4",
-    "durationMs": 412
-  }
-}
-```
+<ErrorEnvelope />
 
-- **`error_code`** says what went wrong. Codes are stable: once published, a code keeps its meaning. The wording of `error` can change, so don't match on it.
-- **`retryable`** says whether the same request can succeed if you send it again after a short wait. It is `false` when the problem is the request or the target itself — a bad parameter, a domain that does not exist, a page that returns 404 — and `true` for capacity limits, timeouts, and transient failures.
+- **`error_code`** says what went wrong. Codes are stable: once published, a code keeps its meaning.
+- **`retryable`** is `true` for capacity limits, timeouts and transient failures. It's `false` when the problem is the request or the target itself: a bad parameter, a domain that doesn't exist, a page that returns 404.
 
-Authentication and rate-limit errors are answered before a request is processed, so they carry `error`, `error_code`, and `retryable` without `success` or `meta`:
+Authentication and rate-limit errors are answered before the request is processed. They carry `error`, `error_code` and `retryable`, but no `success` or `meta`:
 
 ```json
 {
@@ -37,21 +28,39 @@ Authentication and rate-limit errors are answered before a request is processed,
 
 ## Handling errors
 
-```javascript
+<CodeGroup>
+
+```javascript Node.js
 const res = await fetch(url, { headers: { "X-API-Key": process.env.PREFETCH_API_KEY } });
 const body = await res.json();
 
 if (res.ok) {
   // Use body.data
 } else if (body.retryable) {
-  // Wait (honour the Retry-After header when present), then send the same request again
+  // Wait (honor the Retry-After header when present), then send the same request again
 } else if (body.error_code === "CREDITS_EXHAUSTED") {
   // Top up, or wait for the monthly refill
 } else {
-  // Not worth retrying as-is: fix the request, or skip this URL
+  // Retrying won't help: fix the request, or skip this URL
   console.error(`${body.error_code}: ${body.error}`);
 }
 ```
+
+```python Python
+r = requests.get(url, params=params, headers={"X-API-Key": os.environ["PREFETCH_API_KEY"]})
+body = r.json()
+
+if r.ok:
+    data = body["data"]
+elif body.get("retryable"):
+    pass  # Wait (honor the Retry-After header when present), then send the same request again
+elif body.get("error_code") == "CREDITS_EXHAUSTED":
+    pass  # Top up, or wait for the monthly refill
+else:
+    print(f"{body['error_code']}: {body['error']}")  # Retrying won't help
+```
+
+</CodeGroup>
 
 ## Error codes
 
@@ -61,18 +70,18 @@ if (res.ok) {
 |---|---|---|---|
 | `INVALID_REQUEST` | 400 | No | A parameter is missing or invalid. The message names it. |
 | `PAYLOAD_TOO_LARGE` | 413 | No | The request body is over 1 MB. |
-| `NOT_FOUND` | 404 | No | No such crawl, batch, monitor, or check — or it has expired, or is not yours. |
+| `NOT_FOUND` | 404 | No | No such crawl, batch, monitor or check. It may have expired, or belong to another key. |
 | `CONFLICT` | 409 | Yes | A monitor check is already queued or running. Retry when it finishes. |
 
 ### Your account
 
 | Code | Status | Retryable | Meaning |
 |---|---|---|---|
-| `UNAUTHORIZED` | 401, 403 | No | No API key, or the key is unknown, revoked, expired, or not live. |
-| `CREDITS_EXHAUSTED` | 403 | No | The key has used its credits. Requests work again after a top-up or the [monthly refill](/concepts/credits#monthly-allowance). |
-| `FORBIDDEN` | 403 | No | The key cannot use this feature — for example, monitors need a direct Prefetch API key rather than a RapidAPI subscription. |
+| `UNAUTHORIZED` | 401, 403 | No | No API key, or the key is unknown, revoked, expired or not live. |
+| `CREDITS_EXHAUSTED` | 403 | No | The key has used its credits. Requests work again after a top-up or the [monthly refill](/concepts/credits#monthly-refills). |
+| `FORBIDDEN` | 403 | No | The key can't use this feature. For example, monitors need a direct Prefetch API key, not a RapidAPI subscription. |
 | `RATE_LIMITED` | 429 | Yes | Too many requests this minute. Wait `retryAfterSeconds`. See [Rate limits](/concepts/rate-limits). |
-| `CONCURRENCY_LIMITED` | 429 | Yes | Your key already has as many requests running as its plan allows (`limit`). Retry when one finishes. |
+| `CONCURRENCY_LIMITED` | 429 | Yes | The key already has as many requests running as its plan allows (`limit`). Retry when one finishes. |
 
 ### The target URL
 
@@ -80,35 +89,35 @@ if (res.ok) {
 |---|---|---|---|
 | `URL_BLOCKED` | 403 | No | The URL is on your key's blocklist. |
 | `URL_NOT_PERMITTED` | 403 | No | The URL, or a page it redirected to, points at a private or reserved address. |
-| `DNS_RESOLUTION_FAILED` | 422 | No | The domain does not resolve. Check the spelling. |
-| `TARGET_BLOCKED` | 403 | No | The site refused automated access, or redirected the request to a search engine or a consent page on another domain instead of serving it. |
+| `DNS_RESOLUTION_FAILED` | 422 | No | The domain doesn't resolve. Check the spelling. |
+| `TARGET_BLOCKED` | 403 | No | The site refused automated access, or redirected to a search engine or a consent page on another domain. |
 | `TARGET_CONNECTION_FAILED` | 502 | Yes | The site refused or dropped the connection. |
-| `TARGET_TIMEOUT` | 504 | Yes | The site did not respond in time. |
+| `TARGET_TIMEOUT` | 504 | Yes | The site didn't respond in time. |
 | `TARGET_SSL_ERROR` | 502 | No | The site's TLS certificate is invalid or expired. |
 | `TARGET_SERVER_ERROR` | 502 | Yes | The site answered with a 5xx error. |
 | `TARGET_CLIENT_ERROR` | 502 | No | The site answered with a 4xx error, such as 404. The message includes the status. |
 | `TARGET_NOT_A_PAGE` | 422 | No | The URL is a file download, not a web page. |
-| `NO_LINKS_FOUND` | 422 | No | `/map`: the page links to none of the site's pages and no sitemap lists any. Common on pages that build their links with JavaScript after user input. |
-| `TARGET_UNLOADABLE` | 502 | No | The site's response could not be loaded as a page. |
-| `TARGET_ELEMENT_NOT_FOUND` | 422 | No | `/screenshot` with `selector`: no element on the page matched it within 10 seconds. |
+| `NO_LINKS_FOUND` | 422 | No | `/map` found no links to the site's own pages, on the page or in a sitemap. Common on pages that build their links with JavaScript after user input. |
+| `TARGET_UNLOADABLE` | 502 | No | The site's response couldn't be loaded as a page. |
+| `TARGET_ELEMENT_NOT_FOUND` | 422 | No | `/screenshot` with `selector`: no element matched within 10 seconds. |
 
 ### This service
 
 | Code | Status | Retryable | Meaning |
 |---|---|---|---|
-| `TIMEOUT` | 504 | Yes | The request did not finish within its time limit (55 seconds for most endpoints). |
+| `TIMEOUT` | 504 | Yes | The request didn't finish within its time limit (55 seconds for most endpoints). |
 | `SERVICE_BUSY` | 503 | Yes | Prefetch is under heavy load. Retry after the `Retry-After` header. |
-| `SERVICE_UNAVAILABLE` | 503 | Yes | A component is temporarily unavailable. |
-| `RESEARCH_INCONCLUSIVE` | 500 | No | `/answers` could not find usable evidence for the task. Rephrase it, or name the site to research. |
-| `INTERNAL_ERROR` | 500 | Yes | Something failed on our side. Retry once; if it persists, contact support with the `requestId`. |
+| `SERVICE_UNAVAILABLE` | 503 | Yes | A component is briefly unavailable. The [status page](https://prefetch.betteruptime.com/) shows current incidents. |
+| `RESEARCH_INCONCLUSIVE` | 500 | No | [`/answers`](/web-data/answers) found no usable evidence. Rephrase the task, or name the site to research. |
+| `INTERNAL_ERROR` | 500 | Yes | Something failed on our side. Retry once. If it keeps happening, [contact support](mailto:hi@prefetch.io) with the `requestId`. |
 
 <Note>
-You are never charged credits for a failed request.
+You're never charged for a failed request.
 </Note>
 
 ## Errors on crawled pages
 
-A crawl or batch scrape does not fail when one page does. Each page in `GET /crawl/{id}` and in `crawl.page` webhooks carries `ok`, and a failed page carries an `error_code` from the same list:
+A crawl or batch doesn't fail when one page does. Each page in `GET /crawl/{id}`, and in `crawl.page` webhooks, carries `ok`. A failed page carries an `error_code` from the same list:
 
 ```json
 {
@@ -121,12 +130,14 @@ A crawl or batch scrape does not fail when one page does. Each page in `GET /cra
 }
 ```
 
-Use it to decide which pages to try again: `TARGET_SERVER_ERROR` and `TARGET_TIMEOUT` often succeed later, and `DNS_RESOLUTION_FAILED` never will.
+Use it to decide what to try again. `TARGET_SERVER_ERROR` and `TARGET_TIMEOUT` often succeed later. `DNS_RESOLUTION_FAILED` never will.
 
 ## Blocked URLs
 
 Some URLs are refused before any request is made:
 
-- **Private and reserved addresses** — `10.x.x.x`, `192.168.x.x`, `127.x.x.x`, `169.254.x.x`, and similar, including domains that resolve to them and redirects that lead to them (`URL_NOT_PERMITTED`)
-- **Bare IP addresses and reserved TLDs** — `.local`, `.internal`, `.localhost`, and similar (`INVALID_REQUEST`)
-- **Per-key blocklist** — URLs added to your key's blocklist (`URL_BLOCKED`)
+- **Private and reserved addresses**, such as `10.x.x.x`, `192.168.x.x`, `127.x.x.x` and `169.254.x.x`. This includes domains that resolve to them and redirects that lead to them (`URL_NOT_PERMITTED`).
+- **Bare IP addresses and reserved TLDs**, such as `.local`, `.internal` and `.localhost` (`INVALID_REQUEST`).
+- **Your key's blocklist** (`URL_BLOCKED`).
+
+Still stuck? See [Troubleshooting](/concepts/troubleshooting).

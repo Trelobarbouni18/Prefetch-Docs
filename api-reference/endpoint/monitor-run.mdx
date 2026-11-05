@@ -1,5 +1,6 @@
 ---
 title: "POST /monitor/{id}/run"
+sidebarTitle: "Run a check now"
 description: "Run a monitor's check now instead of waiting for its schedule. Billed like a scheduled check."
 openapi: "POST /monitor/{id}/run"
 ---
@@ -89,11 +90,11 @@ for page in check["pages"]:
 }
 ```
 
-The status is `202 Accepted` — the check has been queued, not run.
+The status is `202 Accepted`: the check has been queued, not run.
 
 ## One check at a time
 
-A monitor runs one check at a time. If one is already queued or running, this returns `409` and names it — wait for it to finish rather than retrying in a loop. The same rule applies to scheduled checks: one that comes due while the previous is still running is recorded as `skipped_overlap` instead of running alongside it.
+A monitor runs one check at a time. If one is already queued or running, this returns `409` and names it: wait for it to finish rather than retrying in a loop. The same rule applies to scheduled checks: one that comes due while the previous is still running is recorded as `skipped_overlap` instead of running alongside it.
 
 ## Credits
 
@@ -102,10 +103,10 @@ A manual check is billed exactly like a scheduled one: 1 credit per page fetched
 ## Related
 
 <CardGroup cols={2}>
-  <Card title="GET /monitor/{id}/checks/{checkId}" icon="code-compare" href="/api-reference/endpoint/monitor-check">
+  <Card title="GET /monitor/{id}/checks/{checkId}" icon="/icons/git-merge.svg" href="/api-reference/endpoint/monitor-check">
     Read the check's results.
   </Card>
-  <Card title="POST /monitor" icon="eye" href="/api-reference/endpoint/monitor">
+  <Card title="POST /monitor" icon="/icons/eye.svg" href="/monitors/overview">
     How monitors detect and report changes.
   </Card>
 </CardGroup>

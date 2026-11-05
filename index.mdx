@@ -1,88 +1,88 @@
 ---
 title: "Prefetch API"
-description: "Extract brand assets, company info, classifications, screenshots, and clean page content from any website."
-mode: "frame"
+icon: "/icons/home.svg"
+sidebarTitle: "Introduction"
+description: "One API for the company behind any website and the pages on it: brand, logos, industry, contacts, clean markdown, search, and alerts when pages change."
 ---
 
-<div className="pf-hero">
-  <h1 className="pf-hero-title">Prefetch API <span>documentation</span></h1>
-  <p className="pf-hero-subtitle">Extract brand assets, company info, classifications, screenshots, and clean page content from any website.</p>
-</div>
+Prefetch turns any website into data you can use:
+
+- **The company behind it:** brand colors and logos, legal name, contacts, industry and design system.
+- **The pages on it:** clean markdown, structured JSON, screenshots, every URL, or the whole site.
+- **What changes on it:** monitors that tell you, by webhook or email, when a page changes in a way you care about.
+
+One API key covers all of it, over REST or [MCP](/mcp/overview). Failed requests are never charged, and the [Free plan](/concepts/credits#plans) includes 1,000 credits a month.
+
+```bash
+curl "https://api.prefetch.io/enrich?url=stripe.com" \
+  -H "X-API-Key: $PREFETCH_API_KEY"
+```
+
+```json
+{
+  "success": true,
+  "data": {
+    "domain": "stripe.com",
+    "brand": { "colors": { "brand_colors": [{ "hex": "#635BFF", "name": "Medium Slate Blue" }] }, "logos": { "primary": { "url": "https://curated.prefetch.io/…/primary.svg" } } },
+    "company": { "name": "Stripe, Inc.", "foundedYear": 2010, "emails": ["support@stripe.com"] },
+    "classification": { "category": "Business", "subcategory": "Business Software" }
+  }
+}
+```
 
 <CardGroup cols={2}>
-  <Card
-    title="Quickstart"
-    icon="rocket"
-    href="/quickstart"
-  >
-    Make your first API call in under 5 minutes.
+  <Card title="Quickstart" icon="/icons/zap.svg" href="/quickstart">
+    Get a key and make your first call in under 5 minutes.
   </Card>
-  <Card
-    title="Connect an agent"
-    icon="plug"
-    href="/mcp/overview"
-  >
-    Give Claude or Cursor these tools over MCP. Nothing to install.
+  <Card title="Connect an agent" icon="/icons/plug.svg" href="/mcp/overview">
+    Give Claude, ChatGPT or Cursor these tools over MCP. Nothing to install.
   </Card>
 </CardGroup>
 
-<p className="pf-section-label">Endpoints</p>
+## Choose an endpoint
 
-<CardGroup cols={2}>
-  <Card
-    title="Brand extraction"
-    icon="palette"
-    href="/api-reference/endpoint/brand"
-  >
-    Colors, logos, fonts, and social links from any domain.
+| You have | You want | Use | Credits |
+|---|---|---|---|
+| A company name | Its website | [Resolve](/company-data/resolve) | 1 |
+| A card transaction line | The merchant, with its logo | [Card transactions](/company-data/transaction) | 3 |
+| A domain | Brand, company and industry in one call | [Enrich](/company-data/enrich) | 12 |
+| A domain | Colors, logos and fonts | [Brand](/company-data/brand) | 10 |
+| A domain | Legal name, emails and addresses | [Company](/company-data/company) | 5 |
+| A domain | Its IAB industry | [Classify](/company-data/classify) | 5 |
+| A domain | Its design system, as CSS and Tailwind | [Styleguide](/company-data/styleguide) | 10 |
+| A list of domains | Logos to show in your UI | [Logo CDN](/company-data/logo-cdn) | 0 |
+| A URL | The page as markdown or JSON | [Scrape](/web-data/scrape) | 1 |
+| A URL | A screenshot | [Screenshots](/web-data/screenshot) | 1 |
+| A search query | Ranked results, with their text | [Search](/web-data/search) | 2 per 10 |
+| A question | A sourced answer in your JSON shape | [Answers](/web-data/answers) | 10 |
+| A site | Every URL on it | [Map](/web-data/map) | 1 |
+| A site | Every page as markdown | [Crawl](/web-data/crawl) | 1 per page |
+| Hundreds of URLs | Scrape, enrich, brand, screenshot and more, as one job | [Batches](/jobs/batches) | Per URL |
+| Pages you care about | An alert when they change | [Monitors](/monitors/overview) | 1 per page checked |
+
+See [Credits](/concepts/credits) for the full price list.
+
+Coming from Firecrawl, Context.dev, Clearbit or Brandfetch? See how [Prefetch compares](/compare/overview), and the migration guides.
+
+## Build something
+
+<CardGroup cols={3}>
+  <Card title="Enrich signups" icon="/icons/user-plus.svg" href="/recipes/enrich-signups">
+    Prefill a profile from a work email.
   </Card>
-  <Card
-    title="Company data"
-    icon="building"
-    href="/api-reference/endpoint/company"
-  >
-    Legal name, contact emails, and physical addresses.
+  <Card title="Merchant feed" icon="/icons/receipt.svg" href="/recipes/merchant-feed">
+    Readable card transactions with logos.
   </Card>
-  <Card
-    title="Website classification"
-    icon="tags"
-    href="/api-reference/endpoint/classify"
-  >
-    IAB category taxonomy with a human-readable description.
+  <Card title="Competitor pricing" icon="/icons/chart-line.svg" href="/recipes/competitor-pricing">
+    Get told when a rival changes its prices.
   </Card>
-  <Card
-    title="Screenshots"
-    icon="camera"
-    href="/api-reference/endpoint/screenshot"
-  >
-    Full-page or viewport captures in JPEG, PNG, or WebP.
+  <Card title="On-brand UI" icon="/icons/wand.svg" href="/recipes/on-brand-ui">
+    Build UI that matches any site.
   </Card>
-  <Card
-    title="Page scraping"
-    icon="file-lines"
-    href="/api-reference/endpoint/scrape"
-  >
-    Any page as clean markdown, a summary, links, images, or your own JSON schema.
+  <Card title="Company directory" icon="/icons/contact.svg" href="/recipes/company-directory">
+    Hundreds of companies, with logos.
   </Card>
-  <Card
-    title="Site mapping"
-    icon="sitemap"
-    href="/api-reference/endpoint/map"
-  >
-    Every URL a site exposes, from its sitemaps and on-page links.
-  </Card>
-  <Card
-    title="Crawling"
-    icon="spider"
-    href="/api-reference/endpoint/crawl"
-  >
-    Walk a whole site to the depth you choose and get every page as markdown.
-  </Card>
-  <Card
-    title="Monitoring"
-    icon="eye"
-    href="/api-reference/endpoint/monitor"
-  >
-    Watch pages on a schedule and get a webhook or an email with just what changed.
+  <Card title="Docs to markdown" icon="/icons/article.svg" href="/recipes/docs-to-markdown">
+    Feed a whole docs site to an LLM.
   </Card>
 </CardGroup>

@@ -1,0 +1,228 @@
+---
+title: "Crawl a site"
+description: "Walk a whole site, or one section of it, and get every page back as clean markdown. Free to submit, then 1 credit per page returned."
+icon: "/icons/bug.svg"
+---
+
+`/crawl` walks a site breadth-first from a start URL and renders every page it finds, exactly the way [`/scrape`](/web-data/scrape) would.
+
+Crawls take minutes, so they run as an [async job](/concepts/async-jobs). You submit one, get an id straight away, then read progress and pages from `GET /crawl/{id}`, or get them pushed to your [webhook](/concepts/webhooks).
+
+<Steps>
+  <Step title="Submit">
+    `POST /crawl` returns `202` with a crawl id.
+  </Step>
+  <Step title="Poll">
+    [`GET /crawl/{id}`](/api-reference/endpoint/crawl-status) returns progress plus a page of results. Follow `next` until it's `null`.
+  </Step>
+  <Step title="Stop early (optional)">
+    [`DELETE /crawl/{id}`](/api-reference/endpoint/crawl-cancel) cancels a running crawl. Pages already fetched stay readable.
+  </Step>
+</Steps>
+
+<Tip>
+Mapping first is often cheaper. [`/map`](/web-data/map) lists a site's pages for 1 credit, and scraping the three you want costs far less than crawling fifty.
+</Tip>
+
+## Example request
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.prefetch.io/crawl" \
+  -H "X-API-Key: $PREFETCH_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://docs.stripe.com",
+    "limit": 50,
+    "max_depth": 2,
+    "include_paths": ["^/docs/"],
+    "exclude_paths": ["^/docs/changelog/"],
+    "scrape_options": { "formats": ["markdown"] }
+  }'
+```
+
+```javascript Node.js
+const res = await fetch("https://api.prefetch.io/crawl", {
+  method: "POST",
+  headers: {
+    "X-API-Key": process.env.PREFETCH_API_KEY,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    url: "https://docs.stripe.com",
+    limit: 50,
+    max_depth: 2,
+    include_paths: ["^/docs/"],
+    scrape_options: { formats: ["markdown"] },
+  }),
+});
+
+const { data } = await res.json();
+console.log(data.id); // crw_9f2c1a7b4e0d4c3a8b1e5f7d2c9a0b3e
+```
+
+```python Python
+import os, requests
+
+r = requests.post(
+    "https://api.prefetch.io/crawl",
+    headers={"X-API-Key": os.environ["PREFETCH_API_KEY"]},
+    json={
+        "url": "https://docs.stripe.com",
+        "limit": 50,
+        "max_depth": 2,
+        "include_paths": ["^/docs/"],
+        "scrape_options": {"formats": ["markdown"]},
+    },
+)
+crawl_id = r.json()["data"]["id"]
+```
+
+</CodeGroup>
+
+## Example response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "crw_9f2c1a7b4e0d4c3a8b1e5f7d2c9a0b3e",
+    "status": "pending",
+    "url": "https://docs.stripe.com",
+    "limit": 50,
+    "max_depth": 2,
+    "created_at": "2026-08-20T09:14:03.221Z",
+    "expires_at": "2026-08-21T09:14:03.221Z"
+  },
+  "meta": {
+    "requestId": "c5f4e3d2-9b8c-4d5e-af3a-2b4c6d8e0f21",
+    "durationMs": 84
+  }
+}
+```
+
+The status is `202 Accepted`, not `200`. The crawl has been queued, not completed. To read the pages, see [Async jobs](/concepts/async-jobs#pagination).
+
+## Scope
+
+A crawl stays inside the boundary you draw. By default that's the site you pointed it at, two links deep, at most 25 pages.
+
+| Parameter | Default | What it does |
+|---|---|---|
+| `limit` | 25 | Most pages to fetch. Hard ceiling: 500. |
+| `max_depth` | 2 | How many links deep to follow. Hard ceiling: 5. |
+| `include_paths` | none | Regular expressions. A URL's path must match at least one. |
+| `exclude_paths` | none | Regular expressions. A matching URL is skipped. |
+| `allow_subdomains` | `false` | Follow links onto subdomains. |
+| `allow_external_links` | `false` | Follow links onto other sites. This can make a crawl very large. |
+| `crawl_entire_domain` | `false` | Follow links anywhere on the site, not only at or below the start URL's path. |
+
+A crawl stays at or below the path it starts from. One started at `https://docs.stripe.com/payments/` crawls the payments docs, not the whole site its navigation links to. A start URL that names a file, like `/docs/intro.html`, scopes to its folder. Set `crawl_entire_domain: true` to follow links anywhere on the site.
+
+Patterns match the **path and query**, not the whole URL. So `^/docs/` means the docs section, and a pattern that contains the hostname never matches. Exclusions win over inclusions. An invalid regular expression is rejected with a `400` when you submit, not ignored halfway through.
+
+```json
+{
+  "url": "https://docs.stripe.com",
+  "include_paths": ["^/docs/payments/"],
+  "exclude_paths": ["^/docs/payments/legacy/", "\\?locale="]
+}
+```
+
+### Duplicates
+
+`http://` and `https://`, `www.` and the bare domain, a trailing slash and `/index.html` all name the same page, so each page is fetched and billed once. A page that redirects onto one the crawl already has is dropped as a `duplicate`.
+
+## Sitemap seeding and depth
+
+With `use_sitemap` on (the default), the crawl starts from the site's sitemap as well as following links.
+
+Pages from the sitemap sit at **depth 0**: the site handed them over, rather than a link leading to them. That makes one combination especially useful:
+
+```json
+{ "url": "https://docs.stripe.com", "max_depth": 0, "use_sitemap": true, "limit": 200 }
+```
+
+This crawls exactly what the sitemap lists and follows nothing else.
+
+## Politeness
+
+Crawls obey `robots.txt` by default: both its `Disallow` rules and its `Crawl-delay`. Set `respect_robots_txt: false` to ignore the rules.
+
+<Note>
+`robots.txt` is always read, even with the rules turned off, because its `Sitemap:` entries seed the crawl. Use `use_sitemap: false` to skip seeding.
+</Note>
+
+`delay_ms` adds a pause between pages, and `concurrency` (1 to 5, default 2) sets how many pages are fetched in parallel. A `Crawl-delay` in `robots.txt` wins whenever it asks for a longer pause than `delay_ms`.
+
+## Rendering each page
+
+`scrape_options` takes the same options as [`/scrape`](/web-data/scrape), so a crawled page and a scraped page are the same object.
+
+```json
+{
+  "url": "https://docs.stripe.com",
+  "scrape_options": {
+    "formats": ["markdown", "links"],
+    "only_main_content": true,
+    "exclude_selectors": [".sidebar", ".version-banner"]
+  }
+}
+```
+
+<Warning>
+Formats are charged per page. Asking for `summary`, `json` or `check_prompt_injection` on a 500-page crawl means 500 language model calls. Try a small `limit` first and check the output before you scale up.
+</Warning>
+
+## When pages are missing
+
+[`GET /crawl/{id}/errors`](/api-reference/endpoint/crawl-errors) explains a crawl that came back smaller than expected, for free:
+
+- **`failed`:** pages that were fetched and failed, each with an [`error_code`](/concepts/errors#error-codes) that says whether trying again could help.
+- **`skipped`:** URLs the crawl found but didn't fetch, counted by reason with a few examples each: `limit`, `depth`, `out-of-scope`, `excluded`, `not-included`, `robots`, `off-site`, `file`, `invalid`, `blocklist` and `duplicate`.
+
+A large `limit` count means the crawl ran out of budget. A large `out-of-scope` count usually means it needed `crawl_entire_domain`.
+
+## Webhooks
+
+Pass `webhook` to have progress pushed to you instead of polling:
+
+```json
+{
+  "url": "https://docs.stripe.com",
+  "webhook": {
+    "url": "https://example.com/hooks/prefetch",
+    "events": ["page", "completed"],
+    "metadata": { "job": "docs-sync" }
+  }
+}
+```
+
+| Event | When |
+|---|---|
+| `crawl.started` | A worker picked the crawl up. |
+| `crawl.page` | A page was stored. It's the same object `GET /crawl/{id}` lists, failed pages included (`ok: false`). |
+| `crawl.completed` | The crawl finished or was cancelled. `data.status` says which. |
+| `crawl.failed` | The crawl stopped on an error. Pages already stored stay readable. |
+
+The `POST /crawl` response includes `webhook.secret`, and that's the only place it appears, so store it. See [Webhooks](/concepts/webhooks) for the payload, signatures and retries.
+
+## Restarts
+
+A crawl survives restarts on our side. If the worker running it stops mid-crawl, for a deploy or a crash, another worker resumes it from a checkpoint saved every few seconds. At most the last few seconds of pages are fetched again, and a page is never returned or billed twice.
+
+## Credits
+
+Submitting is free. You're charged **1 credit per page the crawl returns**, or **4** when `scrape_options` asks for `summary`, `json` or `check_prompt_injection`. You pay for pages fetched, never for `limit`, and failed pages are free. See [Credits](/concepts/credits#crawls-and-batches).
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="Turn docs into markdown" icon="/icons/article.svg" href="/recipes/docs-to-markdown">
+    A recipe for feeding a whole docs site to an LLM.
+  </Card>
+  <Card title="API reference" icon="/icons/code.svg" href="/api-reference/endpoint/crawl">
+    Every parameter, and a playground to try it.
+  </Card>
+</CardGroup>

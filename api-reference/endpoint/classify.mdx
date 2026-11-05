@@ -1,91 +1,14 @@
 ---
 title: "GET /classify"
-description: "Classify a website into an IAB content taxonomy category with descriptions, stock tickers, and ISIN codes. Costs 5 credits."
+sidebarTitle: "Classify"
+description: "Put a website into an IAB category, with descriptions, stock tickers and ISINs. 5 credits."
 openapi: "GET /classify"
 ---
 
-## Overview
+Returns the site's IAB category and subcategory under `data.classification`.
 
-`/classify` analyzes a website's content and assigns it an [IAB Content Taxonomy](https://www.iab.com/guidelines/content-taxonomy/) category. It returns:
+**5 credits.** Failed requests are never charged.
 
-- **IAB category** — parent category (e.g. "Technology & Computing")
-- **IAB subcategory** — more specific classification (e.g. "Software")
-- **Description** — a short summary of what the site does
-- **Tagline description** — one-line tagline
-- **Long description** — extended multi-sentence description
-- **Stock tickers** — associated ticker symbols if the company is publicly traded
-- **ISINs** — associated ISIN security codes
-
-Everything sits under `data.classification`, the same key `/enrich` uses — so `data.classification.category` reads identically from either endpoint.
-
-This endpoint uses a hybrid approach: it first attempts a fast static fetch, falling back to headless Chrome only if the page requires JavaScript to render meaningful content.
-
-## Example request
-
-<CodeGroup>
-
-```bash cURL
-curl "https://api.prefetch.io/classify?url=https://stripe.com" \
-  -H "X-API-Key: $PREFETCH_API_KEY"
-```
-
-```javascript Node.js
-const res = await fetch(
-  "https://api.prefetch.io/classify?url=https://stripe.com",
-  { headers: { "X-API-Key": process.env.PREFETCH_API_KEY } }
-);
-const { success, data } = await res.json();
-const { category, subcategory } = data.classification;
-console.log(`${category} > ${subcategory}`);
-// "Personal Finance > Financial Planning"
-```
-
-```python Python
-import requests, os
-
-r = requests.get(
-    "https://api.prefetch.io/classify",
-    params={"url": "https://stripe.com"},
-    headers={"X-API-Key": os.environ["PREFETCH_API_KEY"]},
-)
-classification = r.json()["data"]["classification"]
-print(f"{classification['category']} > {classification['subcategory']}")
-```
-
-</CodeGroup>
-
-## Example response
-
-```json
-{
-  "success": true,
-  "data": {
-    "url": "https://stripe.com",
-    "domain": "stripe.com",
-    "classification": {
-      "iab_id": "IAB13-11",
-      "iab_parent_id": "IAB13",
-      "category": "Personal Finance",
-      "subcategory": "Financial Planning",
-      "description": "Stripe provides payment processing infrastructure for internet businesses.",
-      "tagline_description": "Payment infrastructure for the internet.",
-      "long_description": "Stripe provides payment processing infrastructure for internet businesses, enabling companies to accept payments, manage subscriptions, and handle global commerce operations.",
-      "stock_tickers": [],
-      "isins": []
-    }
-  },
-  "meta": {
-    "requestId": "a3f2c1d4-7b6e-4f2a-9c1d-8e3f2a1b4c5d",
-    "durationMs": 1842
-  }
-}
-```
-
-## IAB taxonomy
-
-The `classification.iab_id` field follows the IAB Content Taxonomy 3.0 format:
-
-- `IAB13` — parent category ID
-- `IAB13-11` — subcategory ID (parent ID + hyphen + number)
-
-Common parent categories include `IAB19` (Technology & Computing), `IAB3` (Business), `IAB4` (Careers), and `IAB13` (Personal Finance).
+<Card title="Guide: Classify" icon="/icons/book-open.svg" href="/company-data/classify">
+  IAB IDs, the description fields and examples.
+</Card>

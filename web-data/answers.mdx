@@ -1,0 +1,122 @@
+---
+title: "Answers"
+description: "Research a question on the live web and get a sourced answer as JSON in the shape you describe. 10 credits in fast mode, 100 in ultra mode."
+icon: "/icons/book-open.svg"
+---
+
+`POST /answers` researches a question for you. It searches the web, reads pages and looks up company records as the task needs, then returns:
+
+- **`json_content`:** the answer, in the shape you described in `json_format`
+- **`sources`:** the URLs it read
+
+Facts it couldn't establish come back `null`, rather than guessed.
+
+Use it when the answer needs searching or several sources. When you already know the page, [`/scrape`](/web-data/scrape) with `formats=json` is cheaper. For a company's profile from its URL, use [`/enrich`](/company-data/enrich).
+
+## Example request
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.prefetch.io/answers" \
+  -H "X-API-Key: $PREFETCH_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task": "Who is the CEO of Stripe and in what year was Stripe founded?",
+    "json_format": { "ceo": "", "founded_year": 0 },
+    "mode": "fast"
+  }'
+```
+
+```javascript Node.js
+const res = await fetch("https://api.prefetch.io/answers", {
+  method: "POST",
+  headers: { "X-API-Key": process.env.PREFETCH_API_KEY, "Content-Type": "application/json" },
+  body: JSON.stringify({
+    task: "Who is the CEO of Stripe and in what year was Stripe founded?",
+    json_format: { ceo: "", founded_year: 0 },
+    mode: "fast",
+  }),
+});
+const { data } = await res.json();
+console.log(data.json_content); // { ceo: "Patrick Collison", founded_year: 2010 }
+console.log(data.sources);
+```
+
+```python Python
+import os, requests
+
+r = requests.post(
+    "https://api.prefetch.io/answers",
+    headers={"X-API-Key": os.environ["PREFETCH_API_KEY"]},
+    json={
+        "task": "Who is the CEO of Stripe and in what year was Stripe founded?",
+        "json_format": {"ceo": "", "founded_year": 0},
+        "mode": "fast",
+    },
+)
+data = r.json()["data"]
+print(data["json_content"], data["sources"])
+```
+
+</CodeGroup>
+
+## Example response
+
+```json
+{
+  "success": true,
+  "data": {
+    "json_content": { "ceo": "Patrick Collison", "founded_year": 2010 },
+    "sources": [
+      "https://stripe.com/",
+      "https://stripe.com/newsroom/information",
+      "https://stripe.com/newsroom/news/ceo-patrick-collisons-email-to-stripe-employees"
+    ],
+    "partial": false,
+    "key_metadata": { "credits_consumed": 10, "credits_remaining": 69572 }
+  },
+  "meta": { "requestId": "7c1e2d3f-4a5b-4c6d-8e9f-0a1b2c3d4e5f", "durationMs": 14820 }
+}
+```
+
+## Parameters
+
+| Parameter | Default | Description |
+|---|---|---|
+| `task` | required | The research question, up to 2,000 characters. Name a domain or URL to focus it: named pages are read first. |
+| `json_format` | `{"result": ""}` | An example of the answer object, not a JSON Schema, such as `{"ceo": "", "founded_year": 0}`. Keys and value types are kept, and unknowns come back `null`. |
+| `mode` | `ultra` | `fast`: up to 30 seconds, 10 credits. `ultra`: deeper research across several sources, up to 50 seconds, 100 credits. |
+| `timeout_opts` | none | `{ "milliseconds": 20000, "behavior": "return-partial" }`. Shortens the mode's deadline (1,000 to 300,000 ms). With `behavior: "return-partial"`, what was found so far comes back with `partial: true`. The other behavior is `fail`. |
+| `tags` | none | Up to 20 labels, 1 to 50 characters each, stored on the request log so you can filter usage. |
+
+<Note>
+Over REST the default mode is `ultra`, at 100 credits. Over MCP, `prefetch_answer` defaults to `fast`. Pass `mode` explicitly if cost matters.
+</Note>
+
+## Writing good tasks
+
+- **Say what you want, not how to find it.** "Who is the CEO of Stripe?" works better than "Search Google for Stripe's CEO."
+- **Name the site when you know it.** "On linear.app, what does the Business plan cost?" reads that site first.
+- **Keep `json_format` flat and typed.** Use `0` for numbers, `""` for strings, `false` for booleans and `[]` for lists.
+
+## Credits and errors
+
+| Outcome | Credits |
+|---|---|
+| `fast` answer | 10 |
+| `ultra` answer | 100 |
+| Failure or timeout | 0 |
+
+When no usable evidence turns up, the request fails with `RESEARCH_INCONCLUSIVE` and isn't charged. Rephrase the task, or name the site to research.
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="Search" icon="/icons/search.svg" href="/web-data/search">
+    Just need the pages? Search and scrape them in one call.
+  </Card>
+  <Card title="MCP tool" icon="/icons/plug.svg" href="/mcp/tools#prefetch_answer">
+    `prefetch_answer`, for agents.
+  </Card>
+</CardGroup>

@@ -1,5 +1,6 @@
 ---
 title: "GET /crawl/{id}"
+sidebarTitle: "Get crawl status"
 description: "Poll a crawl for progress and read its pages. Charges 1 credit for each page completed since your last call."
 openapi: "GET /crawl/{id}"
 ---
@@ -8,7 +9,7 @@ openapi: "GET /crawl/{id}"
 
 Returns where a crawl has got to, plus a page of results in completion order. Poll it until `status` is `completed`.
 
-Results are paginated. Each response carries a `next` link; follow it until `next` is `null` to read every page. Results stay readable for **24 hours** after a crawl finishes, then expire.
+Results are paginated. Each response carries a `next` link; follow it until `next` is `null` to read every page. Results stay readable until `expires_at`, **24 hours** after the crawl was created. See [Async jobs](/concepts/async-jobs).
 
 ## Example request
 
@@ -123,11 +124,11 @@ while nxt:
 | `pending` | Queued, not started. |
 | `running` | In progress. `data` already holds the pages finished so far. |
 | `completed` | Finished. |
-| `failed` | Stopped early — see `error`. Pages already stored are still readable. |
+| `failed` | Stopped early. See `error`. Pages already stored are still readable. |
 | `cancelled` | You called `DELETE /crawl/{id}`. |
 
 <Note>
-  `total` is the frontier size **as currently known**, not a final count. A crawl discovers pages as it goes, so this number rises until the frontier is exhausted or `limit` is reached. Do not treat `completed === total` as "finished" — check `status`.
+  `total` is the frontier size **as currently known**, not a final count. A crawl discovers pages as it goes, so this number rises until the frontier is exhausted or `limit` is reached. Do not treat `completed === total` as "finished": check `status`.
 </Note>
 
 ## Page objects
@@ -148,15 +149,15 @@ Failed pages are listed rather than silently dropped, so you can see what a craw
 
 This endpoint is where crawled pages are charged: each call bills for the pages that completed **since your previous call**, at 1 credit each (4 when the crawl asked for `summary` or `json`).
 
-That makes polling safe — calling it ten times while a crawl runs costs exactly the same as calling it once at the end. `credits_used` on the response shows the running total for the crawl.
+That makes polling safe: calling it ten times while a crawl runs costs exactly the same as calling it once at the end. `credits_used` on the response shows the running total for the crawl.
 
 ## Related
 
 <CardGroup cols={2}>
-  <Card title="POST /crawl" icon="spider" href="/api-reference/endpoint/crawl">
+  <Card title="POST /crawl" icon="/icons/bug.svg" href="/api-reference/endpoint/crawl">
     Start a crawl and configure its scope.
   </Card>
-  <Card title="DELETE /crawl/{id}" icon="ban" href="/api-reference/endpoint/crawl-cancel">
+  <Card title="DELETE /crawl/{id}" icon="/icons/cancel.svg" href="/api-reference/endpoint/crawl-cancel">
     Stop a running crawl. Free.
   </Card>
 </CardGroup>

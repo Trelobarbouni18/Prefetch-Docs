@@ -1,7 +1,7 @@
 ---
 title: "Clay"
 description: "Resolve, enrich and classify Clay rows with Prefetch HTTP API columns: domains from names, industry, logos, brand colors, emails and social profiles."
-icon: "table"
+icon: "/icons/grid-3x3.svg"
 ---
 
 Clay's **HTTP API** enrichment calls any API once per row and lets you map fields from the response into columns. Each recipe below is one HTTP API column.
@@ -13,7 +13,7 @@ In your table: **Add enrichment → HTTP API**. Then, for every recipe:
 1. **Method** and **Endpoint** as given below. Type `/` in the endpoint to insert a column's value.
 2. **Headers**: key `X-API-Key`, value your Prefetch API key.
 3. **Run on a few rows**, then choose **fields to return**: Clay lists the response's fields, and each one you pick becomes its own column.
-4. **Rate limit**: keep requests in flight within your plan's concurrency — on Free, 1 at a time (30 a minute); on Starter, up to 10 at a time. Rows that hit the limit fail with `CONCURRENCY_LIMITED` and can simply be re-run; failures are never charged.
+4. **Rate limit**: keep requests in flight within your plan's concurrency. That's 1 at a time on Free (30 a minute), and up to 10 at a time on Starter. Rows that hit the limit fail with `CONCURRENCY_LIMITED` and can simply be re-run; failures are never charged.
 
 ## Company name → domain
 
@@ -33,7 +33,7 @@ Treat a confidence of **0.8 or above** as the answer. Add a Clay condition to on
 
 ## Domain → full company profile
 
-One `/enrich` call gives brand, company and industry together — cheaper than three separate calls.
+One `/enrich` call gives brand, company and industry together: cheaper than three separate calls.
 
 | Setting | Value |
 |---|---|
@@ -65,7 +65,7 @@ When all you need is the segment, `/classify` costs less than half of `/enrich`.
 | Method | `GET` |
 | Endpoint | `https://api.prefetch.io/classify?url=` + `/Domain` |
 
-Map `data.classification.category` (IAB category, e.g. *Business and Finance*), `data.classification.subcategory` and `data.classification.iab_id`. 5 credits per row.
+Map `data.classification.category` (the IAB category, such as *Business*), `data.classification.subcategory` and `data.classification.iab_id`. 5 credits per row.
 
 ## Logos without an API call
 
@@ -81,8 +81,8 @@ Then add a **formula** column:
 "https://logo.prefetch.io/" + {{Domain}} + "?token=pk_YOUR_TOKEN&size=128"
 ```
 
-and set its type to **image**. Logos cost no credits — each plan includes a monthly quota of them — and a domain without a known logo shows a letter mark. See [Logo CDN](/api-reference/endpoint/logo-cdn).
+and set its type to **image**. Logos cost no credits (each plan includes a monthly quota of them), and a domain without a known logo shows a letter mark. See [Logo CDN](/company-data/logo-cdn).
 
 ## Thousands of rows
 
-Clay calls the API once per row, so a large table is many requests at your plan's concurrency. When you only need the data once, an alternative is one [batch](/api-reference/endpoint/batch): export the domains, send them to `POST /batch/enrich`, and import the results from `GET /batch/enrich/{id}`. Each domain costs the same 12 credits either way.
+Clay calls the API once per row, so a large table is many requests at your plan's concurrency. When you only need the data once, an alternative is one [batch](/jobs/batches): export the domains, send them to `POST /batch/enrich`, and import the results from `GET /batch/enrich/{id}`. Each domain costs the same 12 credits either way.

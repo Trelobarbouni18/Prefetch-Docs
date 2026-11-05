@@ -1,5 +1,6 @@
 ---
 title: "DELETE /crawl/{id}"
+sidebarTitle: "Cancel a crawl"
 description: "Stop a running crawl. Pages already fetched stay readable. Free."
 openapi: "DELETE /crawl/{id}"
 ---
@@ -8,7 +9,7 @@ openapi: "DELETE /crawl/{id}"
 
 Stops a crawl that is `pending` or `running`. The worker notices within a few pages and stops fetching.
 
-Nothing is thrown away: pages already crawled stay readable through [`GET /crawl/{id}`](/api-reference/endpoint/crawl-status) until the crawl expires, 24 hours after it stopped. They are billed on the next status call as usual, so you pay for what was fetched and nothing more.
+Nothing is thrown away: pages already crawled stay readable through [`GET /crawl/{id}`](/api-reference/endpoint/crawl-status) until the crawl expires, 24 hours after it was created. They are billed on the next status call as usual, so you pay for what was fetched and nothing more.
 
 Cancelling is free.
 
@@ -79,10 +80,10 @@ A crawl you do not own also returns `404` rather than `403`. Crawl ids are ungue
 ## Related
 
 <CardGroup cols={2}>
-  <Card title="POST /crawl" icon="spider" href="/api-reference/endpoint/crawl">
+  <Card title="POST /crawl" icon="/icons/bug.svg" href="/api-reference/endpoint/crawl">
     Start a crawl.
   </Card>
-  <Card title="GET /crawl/{id}" icon="list-check" href="/api-reference/endpoint/crawl-status">
+  <Card title="GET /crawl/{id}" icon="/icons/checkbox-on.svg" href="/api-reference/endpoint/crawl-status">
     Read progress and results.
   </Card>
 </CardGroup>

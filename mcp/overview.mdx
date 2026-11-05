@@ -1,22 +1,24 @@
 ---
 title: "MCP server"
-description: "Connect Claude, ChatGPT, Cursor, or any MCP client to the Prefetch API so your agent can scrape, map, crawl, and enrich on its own."
-icon: "plug"
+description: "Connect Claude, ChatGPT, Cursor or any MCP client to Prefetch, so your agent can scrape, crawl, enrich and monitor on its own."
+icon: "/icons/plug.svg"
 ---
 
 Prefetch speaks the [Model Context Protocol](https://modelcontextprotocol.io), so an AI agent can call the API directly instead of you writing HTTP glue for it.
 
-There is nothing to install. The MCP server *is* the API — one endpoint, `POST /mcp`. Apps sign you in with your Prefetch account, so there's no key to copy; clients you configure yourself can use the API key you already have.
+There's nothing to install. The MCP server *is* the API, at one endpoint:
 
 ```
 https://api.prefetch.io/mcp
 ```
 
+Apps sign you in with your Prefetch account, so there's no key to copy. Clients you configure yourself can use your API key instead.
+
 ## Connect
 
 <Tabs>
   <Tab title="Claude">
-    Prefetch is listed in the Claude directory. It works on claude.ai, Claude Desktop, and Claude mobile.
+    Prefetch is in the Claude directory. It works on claude.ai, Claude Desktop and Claude mobile.
 
     1. Open [Prefetch in the Claude directory](https://claude.ai/directory/prefetch) and select **Connect**.
     2. Sign in to Prefetch and select **Allow access**.
@@ -72,23 +74,23 @@ https://api.prefetch.io/mcp
     https://api.prefetch.io/mcp
     ```
 
-    Clients that support MCP authorization sign you in on their own. Otherwise, send your key as either an `X-API-Key` or an `Authorization: Bearer` header.
+    Clients that support MCP authorization sign you in on their own. Otherwise, send your key as an `X-API-Key` or an `Authorization: Bearer` header.
   </Tab>
 </Tabs>
 
-When you sign in, the consent screen shows which app is asking and where it will send you back. A connected app's calls use your account's credits, exactly like API requests. You can see and disconnect your apps under **Connected Apps** on the [dashboard](https://prefetch.io/dashboard); a disconnected app loses access on its next call.
+When you sign in, the consent screen shows which app is asking and where it will send you back. A connected app's calls use your account's credits, exactly like API requests. You can see and disconnect your apps under **Connected Apps** on the [dashboard](https://prefetch.io/dashboard). A disconnected app loses access on its next call.
 
 <Warning>
-If you use an API key, put it in your client's secret storage or an environment variable — never in the URL. URLs end up in logs, shell history, and shared config files.
+If you use an API key, keep it in your client's secret storage or an environment variable, never in the URL. URLs end up in logs, shell history and shared config files.
 </Warning>
 
 ## Try it
 
-Once connected, ask for what you want in plain language:
+Once you're connected, ask for what you want in plain language:
 
 > Get me the brand colors and industry category for stripe.com
 
-> Find every pricing page on vercel.com and summarise what changed
+> Find every pricing page on vercel.com and summarize what changed
 
 > Crawl the /docs section of fastapi.tiangolo.com and list the endpoints it documents
 
@@ -100,64 +102,69 @@ Your agent picks the right tool, calls it, and reads the result.
 
 | Tool | What it does | Credits |
 |---|---|---|
-| `prefetch_resolve` | A company, brand or product name → its domain | 1 (3 with a live lookup) |
-| `prefetch_scrape` | One page as markdown, summary, HTML, links, images, or extracted JSON | 1 (4 with summary or JSON) |
-| `prefetch_map` | Every URL a site exposes, without fetching page content | 1 |
-| `prefetch_crawl` | Many pages as markdown | 3 + 3/page |
-| `prefetch_check_crawl_status` | Status and results for a crawl | — |
-| `prefetch_cancel_crawl` | Stop a crawl early | — |
-| `prefetch_enrich` | Brand + company + classification in one call | 12 |
-| `prefetch_brand` | Colors, fonts, logos, favicon, OG images | 10 |
-| `prefetch_company` | Name, emails, addresses, social profiles | 5 |
-| `prefetch_classify` | IAB category, description, stock tickers | 5 |
-| `prefetch_screenshot` | Render a page, return a hosted image URL | 1 |
-| `prefetch_create_monitor` | Watch pages on a schedule, optionally against a goal | — (each check is billed) |
-| `prefetch_run_monitor` | Run a monitor's check now and see what changed | 3/page + 1/change judged |
-| `prefetch_get_monitor_check` | What a monitor's check found | — |
-| `prefetch_list_monitors`, `prefetch_get_monitor` | Your monitors and their recent checks | — |
-| `prefetch_update_monitor`, `prefetch_delete_monitor` | Change, pause, resume or delete a monitor | — |
+| `prefetch_resolve` | A company, brand or product name → its domain | 1, or 3 with a live lookup |
+| `prefetch_transaction` | A card transaction line → its merchant | 3, or 1 for a repeat |
+| `prefetch_search` | Web search results, optionally with each page's content | 2 per 10 results, + each page scraped |
+| `prefetch_scrape` | One page as markdown, summary, HTML, links, images or JSON | 1, or 4 with summary or JSON |
+| `prefetch_map` | Every URL a site exposes, without fetching the pages | 1 |
+| `prefetch_crawl` | Many pages of a site as markdown | 1 per page |
+| `prefetch_batch_scrape` | A list of known URLs as markdown | 1 per page |
+| `prefetch_batch` | Brand, enrich, company, classify, screenshot or styleguide on many URLs | Each URL's price |
+| `prefetch_check_crawl_status` | Status and results for a crawl or batch | Free |
+| `prefetch_cancel_crawl` | Stop a crawl early | Free |
+| `prefetch_enrich` | Brand, company and classification in one call | 12 |
+| `prefetch_brand` | Colors, fonts, logos, favicon and Open Graph images | 10 |
+| `prefetch_company` | Name, emails, addresses and social profiles | 5 |
+| `prefetch_classify` | IAB category, description and stock tickers | 5 |
+| `prefetch_styleguide` | A site's design system, with CSS and Tailwind exports | 10 |
+| `prefetch_screenshot` | Render a page and return a hosted image URL | 1 |
+| `prefetch_logo_urls` | Embeddable logo URLs for up to 50 domains | Free, from your logo quota |
+| `prefetch_answer` | A researched, sourced answer in the JSON shape you give | 10, or 100 in `ultra` mode |
+| `prefetch_create_monitor` | Watch pages on a schedule, optionally against a goal | Free. Each check is billed. |
+| `prefetch_run_monitor` | Run a monitor's check now and see what changed | 1 per page, +3 per JSON extraction, +1 per change judged |
+| `prefetch_get_monitor_check` | What a monitor's check found | Free |
+| `prefetch_list_monitors`, `prefetch_get_monitor` | Your monitors and their recent checks | Free |
+| `prefetch_update_monitor`, `prefetch_delete_monitor` | Change, pause, resume or delete a monitor | Free |
 
-See the [tool reference](/mcp/tools) for every parameter.
-
-Credits work exactly as they do over REST — same costs, same "only successful requests are charged" rule. See [Credits](/concepts/credits).
+See the [tool reference](/mcp/tools) for every parameter. Credits work exactly as they do over REST: same prices, and only successful calls are charged. See [Credits](/concepts/credits).
 
 ## How crawling works
 
-A crawl takes minutes, which is longer than an agent wants to sit on a tool call. So `prefetch_crawl` starts the crawl and waits for it, up to `wait_seconds` (60 by default).
+A crawl takes minutes, which is longer than an agent wants to wait on a tool call. So `prefetch_crawl` starts the crawl and waits for it, up to `wait_seconds` (60 by default).
 
-If the crawl finishes in time, you get the pages back immediately. If it does not, you get the crawl id and an instruction:
+If the crawl finishes in time, you get the pages straight away. If not, you get the crawl id and an instruction:
 
 ```
-Crawl crw_a1b2c3 is still running — 12 of 25 pages done.
+Crawl crw_a1b2c3 is still running: 12 of 25 pages done.
 
 Call prefetch_check_crawl_status with id="crw_a1b2c3" to collect the results.
 Call prefetch_cancel_crawl with the same id to stop it early.
 ```
 
-Two things worth knowing:
+- **Polling is free.** Pages are billed as they complete, so checking twice never charges twice.
+- **Disconnecting cancels the crawl.** If your client hangs up while `prefetch_crawl` is still waiting, the crawl stops rather than running on and billing pages nobody will read.
 
-- **Polling is free.** Pages are billed as they complete, claimed atomically, so checking twice never charges twice.
-- **Disconnecting cancels the crawl.** If your client hangs up while `prefetch_crawl` is still waiting, the crawl is stopped rather than left running and billing pages nobody will read.
+`prefetch_batch` and `prefetch_batch_scrape` wait the same way.
 
 ## How monitors work
 
 A monitor keeps checking after the conversation ends, so its results have to be read back. `prefetch_run_monitor` runs a check and waits for it, and `prefetch_get_monitor_check` shows the latest check at any time. Both answer with what changed, not with every page:
 
 ```
-Check chk_8e2d… — completed (manual). 12 pages: 1 changed, 11 unchanged. Credits charged: 37.
+Check chk_8e2d… completed (manual). 12 pages: 1 changed, 11 unchanged. Credits charged: 37.
 
-## CHANGED: Pricing — https://example.com/pricing
-Judge: MEANINGFUL (high confidence) — The Starter plan went from $19 to $24 a month.
+## CHANGED: Pricing (https://example.com/pricing)
+Judge: MEANINGFUL (high confidence). The Starter plan went from $19 to $24 a month.
 - plans[0].price: "$19/mo" → "$24/mo"
 ```
 
-The first check records a baseline, so changes show from the second check on — `run_now: true` on `prefetch_create_monitor` takes that first check straight away. Every check is billed for as long as the monitor is active, and the create tool says so to the agent. Pause or delete monitors you no longer need.
+The first check records a baseline, so changes show from the second check on. `run_now: true` on `prefetch_create_monitor` takes that first check straight away. Every check is billed for as long as the monitor is active, and the create tool tells the agent so. Pause or delete monitors you no longer need.
 
 ## Response size
 
-Tool results go straight into your agent's context window, so content is capped at **50,000 characters** per result — well below the 1 MB cap the REST API uses. A full Wikipedia article in `raw_html` is roughly 240,000 characters; one uncapped call like that would crowd out most of what the agent knows.
+Tool results go straight into your agent's context window, so content is capped at **50,000 characters** per result, well below the REST API's 1 MB cap. A full Wikipedia article in `raw_html` is about 240,000 characters, and one uncapped call like that would crowd out most of what the agent knows.
 
-Truncation is always announced, never silent:
+Truncation is always announced:
 
 ```
 ---
@@ -168,17 +175,17 @@ Truncation is always announced, never silent:
 To fit more signal into less space:
 
 <Columns cols={2}>
-  <Card title="Target the content" icon="crosshairs">
-    Pass `include_selectors` with the part of the page you actually want, like `["article"]`.
+  <Card title="Target the content" icon="/icons/target.svg">
+    Pass `include_selectors` with the part of the page you want, like `["article"]`.
   </Card>
-  <Card title="Ask for a summary" icon="compress">
+  <Card title="Ask for a summary" icon="/icons/collapse.svg">
     Use `formats: ["summary"]` instead of `["markdown"]` when you only need the gist.
   </Card>
 </Columns>
 
 ## Errors
 
-Failures come back as readable tool results rather than transport faults, so your agent can read the message and correct itself:
+Failures come back as readable tool results rather than transport errors, so your agent can read the message and correct itself:
 
 ```
 formats: unsupported value(s) pdf. Supported: markdown, summary, html, raw_html, links, images, json (HTTP 400)
@@ -186,52 +193,52 @@ The target URL could not be resolved. Please check the domain name. (HTTP 422)
 Private or reserved IP ranges are not allowed (HTTP 400)
 ```
 
-Authentication is the exception and fails at the HTTP layer. A `401` means no credentials, or an access token that expired or was disconnected; apps react by refreshing the token or asking you to sign in again. A `403` means an invalid key or an account out of credits, which signing in again won't fix. See [Authentication](/concepts/authentication) and [Error handling](/concepts/errors).
+Authentication is the exception, and fails at the HTTP layer. A `401` means no credentials, or an access token that expired or was disconnected, and apps react by refreshing the token or asking you to sign in again. A `403` means an invalid key or an account out of credits, which signing in again won't fix. See [Authentication](/concepts/authentication) and [Error handling](/concepts/errors).
 
 ## Good to know
 
 <AccordionGroup>
   <Accordion title="What a connected app can do">
-    A connected app can call every tool on this page as you, and its calls use your credits. It can't see your password, payment details, or API keys, and it can't change your plan.
+    A connected app can call every tool on this page as you, and its calls use your credits. It can't see your password, payment details or API keys, and it can't change your plan.
 
-    Each tool tells the app whether it only reads or changes something. Claude runs the read-only tools (scraping, mapping, brand and company lookups, reading monitors) without asking, and asks before anything that starts a crawl or creates, changes, runs, or deletes a monitor.
+    Each tool tells the app whether it only reads or changes something. Claude runs the read-only tools (scraping, mapping, brand and company lookups, reading monitors) without asking, and asks before anything that starts a crawl or creates, changes, runs or deletes a monitor.
   </Accordion>
 
   <Accordion title="MCP and REST are the same API">
-    Both run the identical pipeline, so credits, caching, rate limits, and the blocklist behave the same either way. An MCP scrape even hits the cache a REST scrape warmed, because both build the same cache key.
+    Both run the same pipeline, so credits, caching, rate limits and the blocklist behave the same either way. An MCP scrape can even be answered from the cache a REST scrape filled, because both build the same cache key.
   </Accordion>
 
   <Accordion title="The endpoint is stateless">
-    Every request is self-contained — there are no MCP sessions to manage. Every tool is one-shot request/response — long-running work like crawls and monitor checks is stored server-side and read back by id — so nothing is lost. `GET` and `DELETE` on `/mcp` return `405`; use `POST`.
+    Every request stands alone, so there are no MCP sessions to manage. Every tool is one request and one response. Long-running work like crawls and monitor checks is stored on our side and read back by id, so nothing is lost. `GET` and `DELETE` on `/mcp` return `405`. Use `POST`.
   </Accordion>
 
-  <Accordion title="RapidAPI subscriptions cannot use MCP">
-    RapidAPI meters usage from a response header that has to be set before the response body is written, and over MCP the cost of a call is not known until after the tool has run. Rather than under-bill silently, `/mcp` returns `400` for RapidAPI traffic.
+  <Accordion title="RapidAPI subscriptions can't use MCP">
+    RapidAPI meters usage from a response header that has to be set before the response body is written, and over MCP the cost of a call isn't known until the tool has run. Rather than under-bill silently, `/mcp` returns `400` for RapidAPI traffic.
 
-    Everything is available over REST through RapidAPI exactly as documented. MCP needs a Prefetch account: sign in when your app asks, or use a key from the [dashboard](https://prefetch.io/dashboard).
+    Everything is available over REST through RapidAPI as documented. MCP needs a Prefetch account: sign in when your app asks, or use a key from the [dashboard](https://prefetch.io/dashboard).
   </Accordion>
 
   <Accordion title="Which tool should my agent use?">
-    Each tool's description tells the agent when to reach for it and when to reach for something else, so this mostly takes care of itself. Two patterns are worth knowing:
+    Each tool's description tells the agent when to use it and when to use something else, so this mostly takes care of itself. Two patterns help:
 
-    - **`prefetch_enrich` beats three separate calls.** It is one page fetch instead of three, and costs less than `prefetch_brand` + `prefetch_company` + `prefetch_classify` combined.
-    - **Map then scrape usually beats crawling.** `prefetch_map` is cheap and tells you which pages exist; scraping the three you actually want costs far less than crawling fifty.
+    - **`prefetch_enrich` beats three separate calls.** It's one page fetch instead of three, and costs less than `prefetch_brand`, `prefetch_company` and `prefetch_classify` together.
+    - **Map, then scrape, usually beats crawling.** `prefetch_map` is cheap and tells you which pages exist. Scraping the three you want costs far less than crawling fifty.
   </Accordion>
 </AccordionGroup>
 
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Tool reference" icon="wrench" href="/mcp/tools">
+  <Card title="Tool reference" icon="/icons/tools.svg" href="/mcp/tools">
     Every tool, every parameter.
   </Card>
-  <Card title="Credits" icon="coins" href="/concepts/credits">
-    What each call costs.
+  <Card title="Agent quickstart" icon="/icons/robot.svg" href="/agent-quickstart">
+    One prompt that sets Prefetch up in your project.
   </Card>
-  <Card title="Authentication" icon="key" href="/concepts/authentication">
-    Keys, headers, and error codes.
+  <Card title="Authentication" icon="/icons/key.svg" href="/concepts/authentication">
+    Keys, OAuth and error codes.
   </Card>
-  <Card title="REST API" icon="rectangle-terminal" href="/api-reference/introduction">
+  <Card title="REST API" icon="/icons/terminal.svg" href="/api-reference/introduction">
     The same capabilities over HTTP.
   </Card>
 </CardGroup>

@@ -1,34 +1,30 @@
-> **Customize this file**: Tailor this template to your project by noting specific contribution types you're looking for, adding a Code of Conduct, or adjusting the writing guidelines to match your style.
+# Contributing to the Prefetch docs
 
-# Contribute to the documentation
+Thanks for helping. Small fixes are welcome as pull requests: a wrong field, a broken link, a confusing sentence.
 
-Thank you for your interest in contributing to our documentation! This guide will help you get started.
+## Before you open a pull request
 
-## How to contribute
+1. Run `mint dev` and read your page in both light and dark mode.
+2. Run `mint broken-links`.
+3. If you changed a price, a plan limit or the error envelope, change it in `snippets/`, not on the page.
+4. If you added a page, add it to `docs.json`.
 
-### Option 1: Edit directly on GitHub
+## How we write
 
-1. Navigate to the page you want to edit
-2. Click the "Edit this file" button (the pencil icon)
-3. Make your changes and submit a pull request
+- Second person and active voice: "You get a webhook", not "A webhook is sent".
+- One idea per sentence. Lead with the rule, then the exception.
+- Sentence case for headings and labels.
+- No em dashes. Use a period, a colon, a comma or parentheses.
+- Bold for UI elements: select **Settings**. Code formatting for endpoints, fields, parameters, files and commands.
+- US spelling: color, organization, summarize.
+- Examples use real responses where we can. Mark shortened JSON with `…`.
+- Every code example comes in cURL, Node.js and Python where it makes sense.
 
-### Option 2: Local development
+## Guides and reference
 
-1. Fork and clone this repository
-2. Install the Mintlify CLI: `npm i -g mint`
-3. Create a branch for your changes
-4. Make changes
-5. Navigate to the docs directory and run `mint dev`
-6. Preview your changes at `http://localhost:3000`
-7. Commit your changes and submit a pull request
+Each endpoint has two pages:
 
-For more details on local development, see our [development guide](development.mdx).
+- A **guide** (`company-data/`, `web-data/`, `jobs/`, `monitors/`) explains how it works, with examples.
+- A **reference page** (`api-reference/endpoint/`) is generated from the OpenAPI spec, with a short summary and a link to the guide.
 
-## Writing guidelines
-
-- **Use active voice**: "Run the command" not "The command should be run"
-- **Address the reader directly**: Use "you" instead of "the user"
-- **Keep sentences concise**: Aim for one idea per sentence
-- **Lead with the goal**: Start instructions with what the user wants to accomplish
-- **Use consistent terminology**: Don't alternate between synonyms for the same concept
-- **Include examples**: Show, don't just tell
+Put explanations in the guide. Keep reference pages short.

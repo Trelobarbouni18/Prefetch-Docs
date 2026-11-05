@@ -1,5 +1,6 @@
 ---
 title: "GET /crawl/{id}/errors"
+sidebarTitle: "Get crawl errors"
 description: "Why a crawl returned fewer pages than expected: failed pages with error codes, and skipped URLs by reason. Free."
 openapi: "GET /crawl/{id}/errors"
 ---
@@ -8,8 +9,8 @@ openapi: "GET /crawl/{id}/errors"
 
 Explains a crawl that came back smaller than you expected. It returns two things:
 
-- **`failed`** — pages that were fetched and failed, oldest first, each with an [`error_code`](/concepts/errors#error-codes). Paged with `skip` and `limit`; follow `next` until it is `null`.
-- **`skipped`** — every URL the crawl found but did not fetch, counted by reason, with a few example URLs for each.
+- **`failed`**: pages that were fetched and failed, oldest first, each with an [`error_code`](/concepts/errors#error-codes). Paged with `skip` and `limit`; follow `next` until it is `null`.
+- **`skipped`**: every URL the crawl found but did not fetch, counted by reason, with a few example URLs for each.
 
 | Reason | Meaning |
 |---|---|
@@ -20,7 +21,7 @@ Explains a crawl that came back smaller than you expected. It returns two things
 | `not-included` | Matched none of `include_paths`. |
 | `robots` | Disallowed by the site's `robots.txt`. |
 | `off-site` | On another site or a subdomain you did not allow. |
-| `file` | A file rather than a page — an image, an archive, a stylesheet. |
+| `file` | A file rather than a page: an image, an archive, a stylesheet. |
 | `invalid` | Not a URL the API will fetch, such as a private address. |
 | `blocklist` | On your key's blocklist. |
 | `duplicate` | A page the crawl already had, under another URL or through a redirect. |
@@ -37,10 +38,10 @@ curl "https://api.prefetch.io/crawl/crw_9f2c1a7b4e0d4c3a8b1e5f7d2c9a0b3e/errors"
 ## Related
 
 <CardGroup cols={2}>
-  <Card title="POST /crawl" icon="spider" href="/api-reference/endpoint/crawl">
+  <Card title="POST /crawl" icon="/icons/bug.svg" href="/api-reference/endpoint/crawl">
     Start a crawl.
   </Card>
-  <Card title="Error handling" icon="circle-exclamation" href="/concepts/errors">
+  <Card title="Error handling" icon="/icons/warning-diamond.svg" href="/concepts/errors">
     What each error code means, and which are worth retrying.
   </Card>
 </CardGroup>

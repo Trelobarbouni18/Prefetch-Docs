@@ -1,12 +1,13 @@
 ---
 title: "GET /monitor/{id}"
+sidebarTitle: "Get a monitor"
 description: "One monitor's settings, next run, credit estimate and last check. Free."
 openapi: "GET /monitor/{id}"
 ---
 
 ## Overview
 
-Returns the monitor exactly as it runs: every target with its effective options, the schedule as cron, the next run, the webhook — including its signing `secret` — and the summary of the most recent check.
+Returns the monitor exactly as it runs: every target with its effective options, the schedule as cron, the next run, the webhook, including its signing `secret`, and the summary of the most recent check.
 
 A monitor you do not own returns `404` rather than `403`. Monitor ids are unguessable, and confirming that some id exists is the only thing an enumeration attempt is after.
 
@@ -47,20 +48,21 @@ print(monitor["next_run_at"], monitor["estimated_credits_per_month"])
 | `next_run_at` | When the next check starts. `null` while the monitor is paused. |
 | `current_check_id` | The check running right now, if one is. |
 | `targets` | What it watches. Every target has an `id` and every option its effective value. |
-| `webhook.secret` | The key to [verify webhook signatures](/api-reference/endpoint/monitor-webhook-page#verify-the-signature) with. Treat it like a password. |
+| `webhook.secret` | The key to [verify webhook signatures](/concepts/webhooks#verify-signatures) with. Treat it like a password. |
 | `estimated_credits_per_check` | Upper bound: every page fetched, and judged if there is a goal. |
 | `estimated_credits_per_month` | The per-check estimate times the runs in an average month. |
 | `last_check_summary` | Page counts from the most recent check, with its id and status. |
+| `thumbnail_url` | A screenshot of the first page the monitor watches (JPEG, 640 pixels wide), or `null` until it's taken. |
 
 For a monitor's history, list its checks with [`GET /monitor/{id}/checks`](/api-reference/endpoint/monitor-checks).
 
 ## Related
 
 <CardGroup cols={2}>
-  <Card title="PATCH /monitor/{id}" icon="pen" href="/api-reference/endpoint/monitor-update">
+  <Card title="PATCH /monitor/{id}" icon="/icons/pencil.svg" href="/api-reference/endpoint/monitor-update">
     Change it, pause it or resume it.
   </Card>
-  <Card title="GET /monitor/{id}/checks" icon="list" href="/api-reference/endpoint/monitor-checks">
+  <Card title="GET /monitor/{id}/checks" icon="/icons/bulletlist.svg" href="/api-reference/endpoint/monitor-checks">
     Its check history.
   </Card>
 </CardGroup>

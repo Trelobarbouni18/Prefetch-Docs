@@ -1,12 +1,13 @@
 ---
 title: "GET /monitor/{id}/checks"
+sidebarTitle: "List checks"
 description: "A monitor's check history, newest first. Free."
 openapi: "GET /monitor/{id}/checks"
 ---
 
 ## Overview
 
-Lists the monitor's checks, newest first, with each one's status, page counts and credits. Pass `status` to filter — `status=skipped_no_credits`, say, to see when a key ran dry. Open any check with [`GET /monitor/{id}/checks/{checkId}`](/api-reference/endpoint/monitor-check) to see its pages.
+Lists the monitor's checks, newest first, with each one's status, page counts and credits. Pass `status` to filter: `status=skipped_no_credits`, say, to see when a key ran dry. Open any check with [`GET /monitor/{id}/checks/{checkId}`](/api-reference/endpoint/monitor-check) to see its pages.
 
 Checks are kept for the monitor's `retention_days` (30 by default) and deleted after that.
 
@@ -82,15 +83,15 @@ for c in data["checks"]:
 
 Monitors keep no failure counter. To find out how long something has been going on, count the leading run of a status: the list is newest first, so the checks at the top that share a status are the current streak, and the first check with a different status ends it.
 
-`actual_credits` is what each check was charged — 24 here: 18 pages fetched at 1 credit, plus the 3-credit surcharge on the one page tracking `json`, plus 3 pages judged at 1. Skipped checks are never charged.
+`actual_credits` is what each check was charged. Here it's 24: 18 pages fetched at 1 credit, plus the 3-credit surcharge on the one page tracking `json`, plus 3 pages judged at 1. Skipped checks are never charged.
 
 ## Related
 
 <CardGroup cols={2}>
-  <Card title="GET /monitor/{id}/checks/{checkId}" icon="code-compare" href="/api-reference/endpoint/monitor-check">
+  <Card title="GET /monitor/{id}/checks/{checkId}" icon="/icons/git-merge.svg" href="/api-reference/endpoint/monitor-check">
     What one check found, page by page.
   </Card>
-  <Card title="POST /monitor/{id}/run" icon="play" href="/api-reference/endpoint/monitor-run">
+  <Card title="POST /monitor/{id}/run" icon="/icons/play.svg" href="/api-reference/endpoint/monitor-run">
     Run a check now.
   </Card>
 </CardGroup>
