@@ -81,7 +81,7 @@ else:
 | `CREDITS_EXHAUSTED` | 403 | No | The key has used its credits. Requests work again after a top-up or the [monthly refill](/concepts/credits#monthly-refills). |
 | `FORBIDDEN` | 403 | No | The key can't use this feature. For example, monitors need a direct Prefetch API key, not a RapidAPI subscription. |
 | `RATE_LIMITED` | 429 | Yes | Too many requests this minute. Wait `retryAfterSeconds`. See [Rate limits](/concepts/rate-limits). |
-| `CONCURRENCY_LIMITED` | 429 | Yes | The key already has as many requests running as its plan allows (`limit`). Retry when one finishes. |
+| `CONCURRENCY_LIMITED` | 429 | Yes | The key already has as many requests running as its plan allows (`limit`). Retry when one finishes. Crawls and batches beyond the limit aren't refused: they wait their turn (`queue_position`), and this code means the key already has as many waiting as it can (5 for each job its plan runs at once, up to 50; Free: 5). |
 
 ### The target URL
 

@@ -657,6 +657,11 @@
           },
           "brand": {
             "$ref": "#/components/schemas/BrandBlock"
+          },
+          "warnings": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Non-fatal notes, e.g. a `url` that is an image rather than a page: its palette is then the image's own, and logos, fonts and links are empty."
           }
         },
         "required": [
@@ -1600,7 +1605,7 @@
           "results": { "type": "array", "items": { "$ref": "#/components/schemas/ResolveResultItem" }, "description": "Best match first; one entry per domain. Empty when nothing matched." },
           "count": { "type": "integer" },
           "live_used": { "type": "boolean", "description": "Whether the live lookup ran — and so whether the request was billed 3 credits." },
-          "warnings": { "type": "array", "items": { "type": "string" }, "description": "Non-fatal notes, e.g. a live lookup skipped because the service was busy." }
+          "warnings": { "type": "array", "items": { "type": "string" }, "description": "Non-fatal notes, e.g. a live lookup skipped because the service was busy, or an empty index-only answer that `live=true` might improve on." }
         },
         "required": ["query", "results", "count", "live_used", "warnings"]
       },
@@ -1861,7 +1866,7 @@
           "crawl_entire_domain": {
             "type": "boolean",
             "default": false,
-            "description": "Follow links anywhere on the site. By default a crawl stays at or below the path it starts from: one started at `/docs/` crawls `/docs/…` only. A crawl from the root covers the whole site either way."
+            "description": "Follow links anywhere on the site. By default a crawl stays at or below the path it starts from: one started at `/docs/` crawls `/docs/…` only. A crawl from the root covers the whole site either way. On shared platforms where each business has a path rather than a site (`amazon.com/stores/…`, `etsy.com/shop/…`, `facebook.com/…`, `linktr.ee/…`, `google.com`), a crawl keeps to its start path even with this set."
           },
           "webhook": {
             "description": "Where to send progress: an https URL, or an object. Events: `crawl.started`, `crawl.page` (one per page), `crawl.completed`, `crawl.failed`. Each delivery is signed — `X-Prefetch-Signature: t=<unix>,v1=<hex>`, HMAC-SHA256 of `<t>.<raw body>` with the `secret` returned when the crawl is created — the same scheme as monitor webhooks.",
@@ -1940,6 +1945,11 @@
               "failed",
               "cancelled"
             ]
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "Present while the job waits to start: for one of your key's slots (your plan runs a set number of crawls and batches at once, and a job submitted beyond that waits its turn instead of being refused), or at busy times for room on the crawl queue, where paid plans' jobs go first. 1 = next to start.",
+            "example": 1
           },
           "url": {
             "type": "string"
@@ -2039,7 +2049,7 @@
             "samples"
           ]
         },
-        "description": "URLs the crawl found but did not fetch, by reason: `limit`, `depth`, `out-of-scope`, `excluded`, `not-included`, `robots`, `off-site`, `file`, `invalid`, `blocklist`, `duplicate` (a redirect onto a page already crawled)."
+        "description": "URLs the crawl found but did not fetch, by reason: `limit`, `depth`, `out-of-scope`, `excluded`, `not-included`, `robots`, `off-site`, `file`, `invalid`, `blocklist`, `duplicate` (a redirect onto a page already crawled), `site-unavailable` (the site stopped serving the crawl, so the pages still queued were not fetched or charged)."
       },
       "CrawlErrorsData": {
         "type": "object",
@@ -2213,6 +2223,11 @@
               "cancelled"
             ]
           },
+          "queue_position": {
+            "type": "integer",
+            "description": "Present while the job waits to start: for one of your key's slots (your plan runs a set number of crawls and batches at once, and a job submitted beyond that waits its turn instead of being refused), or at busy times for room on the crawl queue, where paid plans' jobs go first. 1 = next to start.",
+            "example": 1
+          },
           "url_count": {
             "type": "integer",
             "description": "Pages queued, after removing duplicates (and invalid URLs, with ignore_invalid_urls)."
@@ -2276,6 +2291,11 @@
               "failed",
               "cancelled"
             ]
+          },
+          "queue_position": {
+            "type": "integer",
+            "description": "Present while the job waits to start: for one of your key's slots (your plan runs a set number of crawls and batches at once, and a job submitted beyond that waits its turn instead of being refused), or at busy times for room on the crawl queue, where paid plans' jobs go first. 1 = next to start.",
+            "example": 1
           },
           "url": {
             "type": "string"
@@ -2342,7 +2362,7 @@
           },
           "skipped": {
             "type": "object",
-            "description": "URLs the crawl found but did not fetch, by reason: `limit`, `depth`, `out-of-scope`, `excluded`, `not-included`, `robots`, `off-site`, `file`, `invalid`, `blocklist`, `duplicate` (a redirect onto a page already crawled). Present once anything was skipped.",
+            "description": "URLs the crawl found but did not fetch, by reason: `limit`, `depth`, `out-of-scope`, `excluded`, `not-included`, `robots`, `off-site`, `file`, `invalid`, `blocklist`, `duplicate` (a redirect onto a page already crawled), `site-unavailable` (the site stopped serving the crawl, so the pages still queued were not fetched or charged). Present once anything was skipped.",
             "additionalProperties": {
               "type": "object",
               "properties": {
@@ -5649,6 +5669,13 @@
                     "durationMs": 1842
                   }
                 }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Sent when the request has `Accept: text/event-stream`: the same response as Server-Sent Events. `stages` lists the stages first; each `progress` event carries `stage`, `label`, `status` (`started`, `completed` with `duration_ms`, `skipped`, `failed`, or `update` with a `detail`) and `elapsed_ms`; the last event is `result` (the JSON body above) or `error` (an error body plus `status`, and `retry_after` when retrying later may succeed). Requests refused before work starts are answered as JSON with their real status, as without streaming. Stages: `queued` → `connect` → `read` → `classify` → `compile`. Not available through RapidAPI.",
+                  "example": "event: stages\ndata: {\"stages\":[{\"id\":\"queued\",\"label\":\"Queued\"},{\"id\":\"connect\",\"label\":\"Connecting to site\"},{\"id\":\"read\",\"label\":\"Reading page content\"},{\"id\":\"classify\",\"label\":\"Classifying website\"},{\"id\":\"compile\",\"label\":\"Compiling results\"}]}\n\nevent: progress\ndata: {\"stage\":\"queued\",\"label\":\"Queued\",\"status\":\"started\",\"elapsed_ms\":2}\n\nevent: progress\ndata: {\"stage\":\"queued\",\"label\":\"Queued\",\"status\":\"completed\",\"elapsed_ms\":140,\"duration_ms\":138}\n\nevent: progress\ndata: {\"stage\":\"connect\",\"label\":\"Connecting to site\",\"status\":\"started\",\"elapsed_ms\":141}\n\nevent: result\ndata: {\"success\":true,\"data\":{…},\"meta\":{…}}"
+                }
               }
             }
           },
@@ -5700,6 +5727,13 @@
                     "requestId": "b9e1a2f3-4c5d-6e7f-8a9b-0c1d2e3f4a5b",
                     "durationMs": 3210
                   }
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Sent when the request has `Accept: text/event-stream`: the same response as Server-Sent Events. `stages` lists the stages first; each `progress` event carries `stage`, `label`, `status` (`started`, `completed` with `duration_ms`, `skipped`, `failed`, or `update` with a `detail`) and `elapsed_ms`; the last event is `result` (the JSON body above) or `error` (an error body plus `status`, and `retry_after` when retrying later may succeed). Requests refused before work starts are answered as JSON with their real status, as without streaming. Stages: `queued` → `connect` → `extract` → `compile`. Not available through RapidAPI.",
+                  "example": "event: stages\ndata: {\"stages\":[{\"id\":\"queued\",\"label\":\"Queued\"},{\"id\":\"connect\",\"label\":\"Connecting to site\"},{\"id\":\"extract\",\"label\":\"Extracting company data\"},{\"id\":\"compile\",\"label\":\"Compiling results\"}]}\n\nevent: progress\ndata: {\"stage\":\"queued\",\"label\":\"Queued\",\"status\":\"started\",\"elapsed_ms\":2}\n\nevent: progress\ndata: {\"stage\":\"queued\",\"label\":\"Queued\",\"status\":\"completed\",\"elapsed_ms\":140,\"duration_ms\":138}\n\nevent: progress\ndata: {\"stage\":\"connect\",\"label\":\"Connecting to site\",\"status\":\"started\",\"elapsed_ms\":141}\n\nevent: result\ndata: {\"success\":true,\"data\":{…},\"meta\":{…}}"
                 }
               }
             }
@@ -5845,6 +5879,13 @@
                     "durationMs": 2540
                   }
                 }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Sent when the request has `Accept: text/event-stream`: the same response as Server-Sent Events. `stages` lists the stages first; each `progress` event carries `stage`, `label`, `status` (`started`, `completed` with `duration_ms`, `skipped`, `failed`, or `update` with a `detail`) and `elapsed_ms`; the last event is `result` (the JSON body above) or `error` (an error body plus `status`, and `retry_after` when retrying later may succeed). Requests refused before work starts are answered as JSON with their real status, as without streaming. Stages: `queued` → `connect` → `render` → `capture` → `compile`. Not available through RapidAPI.",
+                  "example": "event: stages\ndata: {\"stages\":[{\"id\":\"queued\",\"label\":\"Queued\"},{\"id\":\"connect\",\"label\":\"Connecting to site\"},{\"id\":\"render\",\"label\":\"Loading page\"},{\"id\":\"capture\",\"label\":\"Capturing screenshot\"},{\"id\":\"compile\",\"label\":\"Compiling results\"}]}\n\nevent: progress\ndata: {\"stage\":\"queued\",\"label\":\"Queued\",\"status\":\"started\",\"elapsed_ms\":2}\n\nevent: progress\ndata: {\"stage\":\"queued\",\"label\":\"Queued\",\"status\":\"completed\",\"elapsed_ms\":140,\"duration_ms\":138}\n\nevent: progress\ndata: {\"stage\":\"connect\",\"label\":\"Connecting to site\",\"status\":\"started\",\"elapsed_ms\":141}\n\nevent: result\ndata: {\"success\":true,\"data\":{…},\"meta\":{…}}"
+                }
               }
             }
           },
@@ -5942,6 +5983,14 @@
             "required": false,
             "description": "Add `brand.design_tokens`: the site's colors by role (primary, background, text, heading, link), its heading and body type, and its button and input styles, read from the rendered page. Pass `true` to enable. Requests with this set are never answered from curated data.",
             "schema": { "type": "boolean", "default": false }
+          },
+          {
+            "name": "max_age",
+            "in": "query",
+            "required": false,
+            "description": "The oldest stored answer to accept for this exact request, in milliseconds. `0` always reads the site again. An answer that came back without a primary logo or without brand colors is reused for one minute at most, whatever this says. Reviewed (curated) brand data is served regardless.",
+            "schema": { "type": "integer", "minimum": 0, "maximum": 86400000, "default": 86400000 },
+            "example": 0
           }
         ],
         "responses": {
@@ -5957,6 +6006,13 @@
                     "meta": { "$ref": "#/components/schemas/Meta" }
                   },
                   "required": ["success", "data", "meta"]
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Sent when the request has `Accept: text/event-stream`: the same response as Server-Sent Events. `stages` lists the stages first; each `progress` event carries `stage`, `label`, `status` (`started`, `completed` with `duration_ms`, `skipped`, `failed`, or `update` with a `detail`) and `elapsed_ms`; the last event is `result` (the JSON body above) or `error` (an error body plus `status`, and `retry_after` when retrying later may succeed). Requests refused before work starts are answered as JSON with their real status, as without streaming. Stages: `queued` → `connect` → `render` → `extract` → `compile`. Not available through RapidAPI.",
+                  "example": "event: stages\ndata: {\"stages\":[{\"id\":\"queued\",\"label\":\"Queued\"},{\"id\":\"connect\",\"label\":\"Connecting to site\"},{\"id\":\"render\",\"label\":\"Loading page\"},{\"id\":\"extract\",\"label\":\"Extracting brand assets\"},{\"id\":\"compile\",\"label\":\"Compiling results\"}]}\n\nevent: progress\ndata: {\"stage\":\"queued\",\"label\":\"Queued\",\"status\":\"started\",\"elapsed_ms\":2}\n\nevent: progress\ndata: {\"stage\":\"queued\",\"label\":\"Queued\",\"status\":\"completed\",\"elapsed_ms\":140,\"duration_ms\":138}\n\nevent: progress\ndata: {\"stage\":\"connect\",\"label\":\"Connecting to site\",\"status\":\"started\",\"elapsed_ms\":141}\n\nevent: result\ndata: {\"success\":true,\"data\":{…},\"meta\":{…}}"
                 }
               }
             }
@@ -6055,6 +6111,14 @@
             "required": false,
             "description": "Add `brand.design_tokens`: the site's colors by role (primary, background, text, heading, link), its heading and body type, and its button and input styles, read from the rendered page. Pass `true` to enable. Requests with this set are never answered from curated data.",
             "schema": { "type": "boolean", "default": false }
+          },
+          {
+            "name": "max_age",
+            "in": "query",
+            "required": false,
+            "description": "The oldest stored answer to accept for this exact request, in milliseconds. `0` always reads the site again. An answer that came back without a primary logo or without brand colors is reused for one minute at most, whatever this says. Reviewed (curated) brand data is served regardless.",
+            "schema": { "type": "integer", "minimum": 0, "maximum": 86400000, "default": 86400000 },
+            "example": 0
           }
         ],
         "responses": {
@@ -6070,6 +6134,13 @@
                     "meta": { "$ref": "#/components/schemas/Meta" }
                   },
                   "required": ["success", "data", "meta"]
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Sent when the request has `Accept: text/event-stream`: the same response as Server-Sent Events. `stages` lists the stages first; each `progress` event carries `stage`, `label`, `status` (`started`, `completed` with `duration_ms`, `skipped`, `failed`, or `update` with a `detail`) and `elapsed_ms`; the last event is `result` (the JSON body above) or `error` (an error body plus `status`, and `retry_after` when retrying later may succeed). Requests refused before work starts are answered as JSON with their real status, as without streaming. Stages: `queued` → `connect` → `render` → `extract` → `compile`. Not available through RapidAPI.",
+                  "example": "event: stages\ndata: {\"stages\":[{\"id\":\"queued\",\"label\":\"Queued\"},{\"id\":\"connect\",\"label\":\"Connecting to site\"},{\"id\":\"render\",\"label\":\"Loading page\"},{\"id\":\"extract\",\"label\":\"Extracting brand and company data\"},{\"id\":\"compile\",\"label\":\"Compiling results\"}]}\n\nevent: progress\ndata: {\"stage\":\"queued\",\"label\":\"Queued\",\"status\":\"started\",\"elapsed_ms\":2}\n\nevent: progress\ndata: {\"stage\":\"queued\",\"label\":\"Queued\",\"status\":\"completed\",\"elapsed_ms\":140,\"duration_ms\":138}\n\nevent: progress\ndata: {\"stage\":\"connect\",\"label\":\"Connecting to site\",\"status\":\"started\",\"elapsed_ms\":141}\n\nevent: result\ndata: {\"success\":true,\"data\":{…},\"meta\":{…}}"
                 }
               }
             }
@@ -6088,14 +6159,14 @@
       "get": {
         "operationId": "resolveName",
         "summary": "Find a domain from a name",
-        "description": "Resolves a company, brand or product name to the domain of its official website — `Stripe` → `stripe.com` — ready to pass to every other endpoint. Results are ranked, one per domain, each with a confidence; at 0.8 or above, `results[0]` is the answer. **Credit cost: 1** from the index, **3** when a live lookup runs, **0** when an index-only lookup finds nothing.",
+        "description": "Resolves a company, brand or product name to the domain of its official website — `Stripe` → `stripe.com` — ready to pass to every other endpoint. Results are ranked, one per domain, each with a confidence; at 0.8 or above, `results[0]` is the answer, and matches below `min_confidence` (0.45 by default) are left out. **Credit cost: 1** from the index, **3** when a live lookup runs, **0** when an index-only lookup finds nothing at `min_confidence`.",
         "tags": ["Endpoints"],
         "parameters": [
           {
             "name": "name",
             "in": "query",
             "required": true,
-            "description": "The company, brand or product name (1–100 characters). Case, accents, punctuation and legal suffixes are ignored: \"The Coca-Cola Company\" and \"coca cola\" are the same query.",
+            "description": "The company, brand or product name (1–100 characters). Case, accents, punctuation and legal suffixes are ignored: \"The Coca-Cola Company\" and \"coca cola\" are the same query, and so are \"Acme Private Limited\" and \"Acme\". A note in brackets (\"Acme (formerly Widgets)\") is left out of the match. A name that is already a domain (\"10Web.io\") is checked as that domain, at the index price.",
             "schema": { "type": "string", "minLength": 1, "maxLength": 100 },
             "example": "Stripe"
           },
@@ -6110,8 +6181,23 @@
             "name": "live",
             "in": "query",
             "required": false,
-            "description": "When no answer reaches 0.8, look the name up live: candidate domains are verified against their own homepages. Takes a few seconds; billed 3 credits when the live lookup runs.",
+            "description": "When no answer reaches 0.8, look the name up live: candidate domains are verified against their own homepages, and index answers the check contradicts (no such domain, or a site under another name) are dropped. Takes a few seconds; billed 3 credits when the live lookup runs.",
             "schema": { "type": "boolean", "default": false }
+          },
+          {
+            "name": "min_confidence",
+            "in": "query",
+            "required": false,
+            "description": "Leave out results whose confidence is below this. Below the default, a match is nearly always a different organization with a similar name. Pass 0 to get every candidate (for typeahead, say). An answer that only had candidates below it is free when the live lookup did not run.",
+            "schema": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.45 }
+          },
+          {
+            "name": "context",
+            "in": "query",
+            "required": false,
+            "description": "What else you know about which organization is meant: an industry, a country, a product — \"pool equipment\" for Hayward, \"India\" for a company you only know by name. Used by the live lookup to choose between organizations with the same name.",
+            "schema": { "type": "string", "maxLength": 200 },
+            "example": "pool equipment"
           }
         ],
         "responses": {
@@ -6316,6 +6402,13 @@
                     "durationMs": 2140
                   }
                 }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Sent when the request has `Accept: text/event-stream`: the same response as Server-Sent Events. `stages` lists the stages first; each `progress` event carries `stage`, `label`, `status` (`started`, `completed` with `duration_ms`, `skipped`, `failed`, or `update` with a `detail`) and `elapsed_ms`; the last event is `result` (the JSON body above) or `error` (an error body plus `status`, and `retry_after` when retrying later may succeed). Requests refused before work starts are answered as JSON with their real status, as without streaming. Stages: `queued` → `connect` → `extract` → `compile`. Not available through RapidAPI.",
+                  "example": "event: stages\ndata: {\"stages\":[{\"id\":\"queued\",\"label\":\"Queued\"},{\"id\":\"connect\",\"label\":\"Fetching page\"},{\"id\":\"extract\",\"label\":\"Extracting content\"},{\"id\":\"compile\",\"label\":\"Compiling results\"}]}\n\nevent: progress\ndata: {\"stage\":\"queued\",\"label\":\"Queued\",\"status\":\"started\",\"elapsed_ms\":2}\n\nevent: progress\ndata: {\"stage\":\"queued\",\"label\":\"Queued\",\"status\":\"completed\",\"elapsed_ms\":140,\"duration_ms\":138}\n\nevent: progress\ndata: {\"stage\":\"connect\",\"label\":\"Fetching page\",\"status\":\"started\",\"elapsed_ms\":141}\n\nevent: result\ndata: {\"success\":true,\"data\":{…},\"meta\":{…}}"
+                }
               }
             }
           },
@@ -6482,6 +6575,13 @@
                     "requestId": "b4e3d2c1-8a7b-4c3d-9e2f-1a3b5c7d9e1f",
                     "durationMs": 1830
                   }
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Sent when the request has `Accept: text/event-stream`: the same response as Server-Sent Events. `stages` lists the stages first; each `progress` event carries `stage`, `label`, `status` (`started`, `completed` with `duration_ms`, `skipped`, `failed`, or `update` with a `detail`) and `elapsed_ms`; the last event is `result` (the JSON body above) or `error` (an error body plus `status`, and `retry_after` when retrying later may succeed). Requests refused before work starts are answered as JSON with their real status, as without streaming. Stages: `queued` → `discover` → `describe` → `compile`. Not available through RapidAPI.",
+                  "example": "event: stages\ndata: {\"stages\":[{\"id\":\"queued\",\"label\":\"Queued\"},{\"id\":\"discover\",\"label\":\"Discovering URLs\"},{\"id\":\"describe\",\"label\":\"Reading page titles\"},{\"id\":\"compile\",\"label\":\"Compiling results\"}]}\n\nevent: progress\ndata: {\"stage\":\"queued\",\"label\":\"Queued\",\"status\":\"started\",\"elapsed_ms\":2}\n\nevent: progress\ndata: {\"stage\":\"queued\",\"label\":\"Queued\",\"status\":\"completed\",\"elapsed_ms\":140,\"duration_ms\":138}\n\nevent: progress\ndata: {\"stage\":\"discover\",\"label\":\"Discovering URLs\",\"status\":\"started\",\"elapsed_ms\":141}\n\nevent: result\ndata: {\"success\":true,\"data\":{…},\"meta\":{…}}"
                 }
               }
             }
@@ -9287,7 +9387,7 @@
       "get": {
         "operationId": "searchWeb",
         "summary": "Search the web",
-        "description": "Searches the web (Google results) and returns each result's title, URL and snippet, best first. `type=news` returns recent articles with their publisher and date. Narrow it with `time_range`, `country`, `language`, `location`, `include_domains` and `exclude_domains`.\n\nAsk for page content and each result page is scraped in the same request — through `formats` on GET, or a `scrape_options` object on POST, taking the options /scrape takes — and returned in `scrape` on its result. A page that cannot be fetched in time gets a `scrape_error` instead and is not charged.\n\n**Credit cost: 2 per 10 results** (rounded up), plus 1 per result page scraped (4 for `summary` or `json`). Failed requests are never charged.",
+        "description": "Searches the web and returns each result's title, URL and snippet, best first. `type=news` returns recent articles with their publisher and date. Narrow it with `time_range`, `country`, `language`, `location`, `include_domains` and `exclude_domains`.\n\nAsk for page content and each result page is scraped in the same request — through `formats` on GET, or a `scrape_options` object on POST, taking the options /scrape takes — and returned in `scrape` on its result. A page that cannot be fetched in time gets a `scrape_error` instead and is not charged.\n\n**Credit cost: 2 per 10 results** (rounded up), plus 1 per result page scraped (4 for `summary` or `json`). Failed requests are never charged.",
         "tags": [
           "Endpoints"
         ],
@@ -9562,7 +9662,7 @@
       "post": {
         "operationId": "searchWebPost",
         "summary": "Search the web (JSON body)",
-        "description": "Searches the web (Google results) and returns each result's title, URL and snippet, best first. `type=news` returns recent articles with their publisher and date. Narrow it with `time_range`, `country`, `language`, `location`, `include_domains` and `exclude_domains`.\n\nAsk for page content and each result page is scraped in the same request — through `formats` on GET, or a `scrape_options` object on POST, taking the options /scrape takes — and returned in `scrape` on its result. A page that cannot be fetched in time gets a `scrape_error` instead and is not charged.\n\n**Credit cost: 2 per 10 results** (rounded up), plus 1 per result page scraped (4 for `summary` or `json`). Failed requests are never charged.\n\nThe same endpoint as `GET /search`, with its options as typed JSON — the way to send `scrape_options`.",
+        "description": "Searches the web and returns each result's title, URL and snippet, best first. `type=news` returns recent articles with their publisher and date. Narrow it with `time_range`, `country`, `language`, `location`, `include_domains` and `exclude_domains`.\n\nAsk for page content and each result page is scraped in the same request — through `formats` on GET, or a `scrape_options` object on POST, taking the options /scrape takes — and returned in `scrape` on its result. A page that cannot be fetched in time gets a `scrape_error` instead and is not charged.\n\n**Credit cost: 2 per 10 results** (rounded up), plus 1 per result page scraped (4 for `summary` or `json`). Failed requests are never charged.\n\nThe same endpoint as `GET /search`, with its options as typed JSON — the way to send `scrape_options`.",
         "tags": [
           "Endpoints"
         ],
@@ -9933,6 +10033,13 @@
                     "requestId": "6f1d2c3b-4a5e-4f60-8b7a-9c0d1e2f3a4b",
                     "durationMs": 1840
                   }
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Sent when the request has `Accept: text/event-stream`: the same response as Server-Sent Events. `stages` lists the stages first; each `progress` event carries `stage`, `label`, `status` (`started`, `completed` with `duration_ms`, `skipped`, `failed`, or `update` with a `detail`) and `elapsed_ms`; the last event is `result` (the JSON body above) or `error` (an error body plus `status`, and `retry_after` when retrying later may succeed). Requests refused before work starts are answered as JSON with their real status, as without streaming. Stages: `queued` → `connect` → `render` → `extract` → `compile`. Not available through RapidAPI.",
+                  "example": "event: stages\ndata: {\"stages\":[{\"id\":\"queued\",\"label\":\"Queued\"},{\"id\":\"connect\",\"label\":\"Connecting to site\"},{\"id\":\"render\",\"label\":\"Loading page\"},{\"id\":\"extract\",\"label\":\"Extracting design system\"},{\"id\":\"compile\",\"label\":\"Compiling results\"}]}\n\nevent: progress\ndata: {\"stage\":\"queued\",\"label\":\"Queued\",\"status\":\"started\",\"elapsed_ms\":2}\n\nevent: progress\ndata: {\"stage\":\"queued\",\"label\":\"Queued\",\"status\":\"completed\",\"elapsed_ms\":140,\"duration_ms\":138}\n\nevent: progress\ndata: {\"stage\":\"connect\",\"label\":\"Connecting to site\",\"status\":\"started\",\"elapsed_ms\":141}\n\nevent: result\ndata: {\"success\":true,\"data\":{…},\"meta\":{…}}"
                 }
               }
             }

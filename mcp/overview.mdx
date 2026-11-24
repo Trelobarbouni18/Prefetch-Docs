@@ -212,6 +212,10 @@ Authentication is the exception, and fails at the HTTP layer. A `401` means no c
     Every request stands alone, so there are no MCP sessions to manage. Every tool is one request and one response. Long-running work like crawls and monitor checks is stored on our side and read back by id, so nothing is lost. `GET` and `DELETE` on `/mcp` return `405`. Use `POST`.
   </Accordion>
 
+  <Accordion title="Progress while a tool runs">
+    A `tools/call` sent with a `progressToken` gets `notifications/progress` as the work moves through its stages: *Connecting to site*, *Loading page*, *Extracting brand assets*, and for `prefetch_answer` each page it reads. That response then arrives over SSE instead of plain JSON, so the client must accept `text/event-stream`, as the MCP spec requires. Calls without a token are answered as JSON, as before. The stages are listed in [Progress streaming](/concepts/progress-streaming).
+  </Accordion>
+
   <Accordion title="RapidAPI subscriptions can't use MCP">
     RapidAPI meters usage from a response header that has to be set before the response body is written, and over MCP the cost of a call isn't known until the tool has run. Rather than under-bill silently, `/mcp` returns `400` for RapidAPI traffic.
 

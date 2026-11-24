@@ -4,7 +4,7 @@ description: "Search the web and get each result's title, URL and snippet, optio
 icon: "/icons/search.svg"
 ---
 
-`/search` runs a web search (Google results) and returns the results best first: each one's `url`, `title` and `description` (the snippet the search engine shows). Set `type=news` for recent articles with their publisher and date.
+`/search` runs a web search and returns the results best first: each one's `url`, `title` and `description` (the snippet the search engine shows). Set `type=news` for recent articles with their publisher and date.
 
 Ask for page content, and every result page is scraped in the same request, exactly as [`/scrape`](/web-data/scrape) would scrape it, and returned in `scrape` on its result. One call answers "find pages about X and give me their text".
 

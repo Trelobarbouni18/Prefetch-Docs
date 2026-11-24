@@ -1,0 +1,161 @@
+---
+title: "Progress streaming"
+description: "Show users which stage a request is in, live, by asking for Server-Sent Events instead of waiting for the JSON response."
+icon: "/icons/bulletlist.svg"
+---
+
+## Overview
+
+A live request takes anywhere from one to thirty seconds: the page has to load in a browser before anything can be read from it. Send `Accept: text/event-stream` and Prefetch tells you each stage as it happens, then sends the same result you would have got as JSON.
+
+```bash
+curl -N "https://api.prefetch.io/brand?url=https://stripe.com" \
+  -H "X-API-Key: $PREFETCH_API_KEY" \
+  -H "Accept: text/event-stream"
+```
+
+```text
+event: stages
+data: {"stages":[{"id":"queued","label":"Queued"},{"id":"connect","label":"Connecting to site"},{"id":"render","label":"Loading page"},{"id":"extract","label":"Extracting brand assets"},{"id":"compile","label":"Compiling results"}]}
+
+event: progress
+data: {"stage":"queued","label":"Queued","status":"started","elapsed_ms":3}
+
+event: progress
+data: {"stage":"queued","label":"Queued","status":"completed","elapsed_ms":41,"duration_ms":38}
+
+event: progress
+data: {"stage":"connect","label":"Connecting to site","status":"started","elapsed_ms":41}
+
+event: progress
+data: {"stage":"connect","label":"Connecting to site","status":"completed","elapsed_ms":1183,"duration_ms":1142}
+
+…
+
+event: result
+data: {"success":true,"data":{"domain":"stripe.com", …},"meta":{"requestId":"…","durationMs":4210}}
+```
+
+Streaming works on `/brand`, `/enrich`, `/classify`, `/company`, `/screenshot`, `/styleguide`, `/scrape` (GET and POST), `/map` and `/answers`. It costs nothing extra: a streamed request is billed exactly like the same request as JSON.
+
+## Events
+
+| Event | When | Data |
+|---|---|---|
+| `stages` | First | `stages`: every stage this endpoint goes through, in order, as `{ id, label }`. Draw the whole list straight away. |
+| `progress` | Each time a stage changes | `stage`, `label`, `status`, `elapsed_ms` since the stream opened, plus `duration_ms` or `detail` (below). |
+| `result` | Last, on success | The response body, exactly as the JSON response carries it. |
+| `error` | Last, on failure | The error body, exactly as the JSON response carries it, plus `status` (the HTTP status the request would have had) and, when retrying later may succeed, `retry_after` in seconds. |
+
+A `progress` event's `status` is one of:
+
+| Status | Meaning |
+|---|---|
+| `started` | The stage has begun. |
+| `completed` | The stage is done. Carries `duration_ms`. |
+| `skipped` | The request never needed this stage, for example `/map`'s page titles on a site that turned the page fetch away. |
+| `failed` | The request failed during this stage. An `error` event follows. |
+| `update` | A long stage saying what it is doing now, in `detail`. Only `/answers` sends these, naming each search, page read and company lookup. |
+
+Lines starting with `:` are keep-alives sent every 15 seconds. Ignore them.
+
+## Stages by endpoint
+
+| Endpoint | Stages |
+|---|---|
+| `/brand` | `queued` → `connect` → `render` → `extract` → `compile` |
+| `/enrich` | `queued` → `connect` → `render` → `extract` → `compile` |
+| `/classify` | `queued` → `connect` → `read` → `classify` → `compile` |
+| `/company` | `queued` → `connect` → `extract` → `compile` |
+| `/screenshot` | `queued` → `connect` → `render` → `capture` → `compile` |
+| `/styleguide` | `queued` → `connect` → `render` → `extract` → `compile` |
+| `/scrape` | `queued` → `connect` → `extract` → `compile` |
+| `/map` | `queued` → `discover` → `describe` → `compile` |
+| `/answers` | `research` → `answer` → `compile` |
+
+Stage ids are stable; code against them. Labels are written for people and may be reworded, so show them rather than compare them.
+
+Stages only move forward. When Prefetch has to retry a site, the current stage stays current until the retry passes it, so a slow stage can mean a site that took some persuading.
+
+## What is and isn't a stream
+
+- **Refused before any work starts** (invalid parameters, a missing or bad key, no credits left, a [rate or concurrency limit](/concepts/rate-limits), a busy service): a plain JSON error with its real HTTP status, exactly as without streaming. Check the status before reading the stream.
+- **Every `200`** is a stream. A request answered from cache is a stream with only the `result` event.
+- **A failure after the stream has opened** arrives as an `error` event. The HTTP status is already `200` by then, so read `status` from the event.
+
+## Reading the stream
+
+The browser's `EventSource` cannot send the `X-API-Key` header, only makes GET requests, and reconnects by itself when a stream ends, which would run (and bill) the request again. Read the response body with `fetch` instead:
+
+<CodeGroup>
+
+```javascript JavaScript
+const res = await fetch("https://api.prefetch.io/brand?url=https://stripe.com", {
+  headers: { "X-API-Key": process.env.PREFETCH_API_KEY, Accept: "text/event-stream" },
+});
+
+// Refused before work started: a plain JSON error.
+if (!res.ok) throw new Error((await res.json()).error);
+
+const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+let buffer = "";
+for (;;) {
+  const { value, done } = await reader.read();
+  if (done) break;
+  buffer += value;
+  let end;
+  while ((end = buffer.indexOf("\n\n")) !== -1) {
+    const block = buffer.slice(0, end);
+    buffer = buffer.slice(end + 2);
+    const event = block.match(/^event: (.*)$/m)?.[1];
+    const data = block.match(/^data: (.*)$/m)?.[1];
+    if (!event || !data) continue; // keep-alive
+
+    const payload = JSON.parse(data);
+    if (event === "stages") console.log("Stages:", payload.stages.map((s) => s.label));
+    if (event === "progress") console.log(payload.label, payload.status, payload.detail ?? "");
+    if (event === "result") console.log("Done:", payload.data);
+    if (event === "error") throw new Error(`${payload.status}: ${payload.error}`);
+  }
+}
+```
+
+```python Python
+import json, os, requests
+
+res = requests.get(
+    "https://api.prefetch.io/brand",
+    params={"url": "https://stripe.com"},
+    headers={"X-API-Key": os.environ["PREFETCH_API_KEY"], "Accept": "text/event-stream"},
+    stream=True,
+)
+# Refused before work started: a plain JSON error.
+if res.status_code != 200:
+    raise RuntimeError(res.json()["error"])
+
+event = None
+for line in res.iter_lines(decode_unicode=True):
+    if line.startswith("event: "):
+        event = line[len("event: "):]
+    elif line.startswith("data: "):
+        payload = json.loads(line[len("data: "):])
+        if event == "progress":
+            print(payload["label"], payload["status"], payload.get("detail", ""))
+        elif event == "result":
+            print("Done:", payload["data"])
+        elif event == "error":
+            raise RuntimeError(f'{payload["status"]}: {payload["error"]}')
+```
+
+</CodeGroup>
+
+If the connection drops partway through, the request still finishes and is billed. Send it again only if you need the result; a repeat within the cache window is answered from cache.
+
+## Over MCP
+
+An MCP client that sends a `progressToken` with `tools/call` receives the same stages as `notifications/progress`. `message` is the stage's label, or the `detail` of an `/answers` update. `progress` counts the stages already passed, out of `total`. Most MCP clients show these on their own; nothing else is needed. See [MCP](/mcp/overview).
+
+## Good to know
+
+- Streaming is not available through RapidAPI: requests made there are answered as JSON whatever they ask for.
+- Through a proxy of your own, turn off response buffering for these requests, or the events arrive together at the end. Prefetch sends `X-Accel-Buffering: no` and `Cache-Control: no-cache, no-transform` for proxies that honour them.

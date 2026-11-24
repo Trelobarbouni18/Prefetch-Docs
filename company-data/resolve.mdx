@@ -1,19 +1,21 @@
 ---
 title: "Resolve a name"
-description: "Turn a company, brand or product name into the domain of its official website. 1 credit, 3 with a live lookup, 0 when nothing matches."
+description: "Turn a company, brand or product name into the domain of its official website. 1 credit, 3 with a live lookup, 0 when nothing matches well enough."
 icon: "/icons/directions.svg"
 ---
 
 Every other endpoint takes a URL. `/resolve` is how you get one when all you have is a name: `Stripe` → `stripe.com`, `Delta` → `delta.com`, `The Coca-Cola Company` → `coca-cola.com`.
 
-Results are ranked, one per domain, and each has a `confidence` from 0 to 1. Only the first result can reach **0.8**. When it does, that's the answer. Anything lower is a candidate to check.
+Results are ranked, one per domain, and each has a `confidence` from 0 to 1. Only the first result can reach **0.8**. When it does, that's the answer. Anything lower is a candidate to check. Matches below **0.45** are left out: below that, a match is nearly always a different organization with a similar name. Set `min_confidence` to change the cut-off (`0` returns every candidate).
 
-Case, accents, punctuation and legal suffixes don't matter. "The Coca-Cola Company", "coca-cola" and "Coca Cola" are the same query.
+Case, accents, punctuation and legal suffixes don't matter. "The Coca-Cola Company", "coca-cola" and "Coca Cola" are the same query, and so are "Acme Private Limited" and "Acme". A note in brackets, like "Acme (formerly Widgets)", is left out of the match.
 
 ## Where answers come from
 
-- **The name index:** about 550,000 brands, companies, websites, software products and publications, answered in milliseconds. Reviewed brand data always ranks first.
-- **A live lookup:** only with `live=true`, and only when the index has no answer at 0.8 or above. Candidate domains are proposed, and each one is checked against its own homepage: the site has to call itself by the name you asked for. Parked and for-sale domains never pass. It takes a few seconds, and the verified answer is added to the index, so the next lookup is instant.
+- **The name index:** about 550,000 brands, companies, websites, software products and publications, answered in milliseconds. Reviewed brand data always ranks first. Domains that no longer exist are taken out of it.
+- **A live lookup:** only with `live=true`, and only when the index has no answer at 0.8 or above. Candidate domains are proposed, and each one is checked against its own homepage: the site has to call itself by the name you asked for. Parked and for-sale domains never pass, and index answers the check contradicts (no such domain, or a site under another name) are dropped. It takes a few seconds, and the verified answer is added to the index, so the next lookup is instant.
+
+When several organizations share a name, say which one you mean in `context`, such as an industry, a country or a product: `name=Hayward&context=pool equipment`. The live lookup uses it to choose.
 
 ## Example requests
 
@@ -91,22 +93,26 @@ if results and results[0]["confidence"] >= 0.8:
 | `source` | `curated` (reviewed brand data), `index` (the name index), or `live` (verified against the site during this request). |
 | `domain` | A bare host, ready for the `url` parameter of `/enrich`, `/brand`, `/company` and the rest. |
 | `live_used` | Whether the live lookup ran, and so whether you were billed 3 credits. |
-| `warnings` | Notes that didn't stop the request. If the live lookup couldn't run, you get the index's answer at the index price, and a warning saying so. |
+| `warnings` | Notes that didn't stop the request. If the live lookup couldn't run, you get the index's answer at the index price, and a warning saying so. When only candidates below `min_confidence` matched, a warning gives the best one's confidence. |
 
 No match is still a `200`, with an empty `results` list.
+
+<Tip>
+Don't act on `results[0]` without reading its `confidence`. A script that enriches whatever comes back first pays for the wrong company each time a name is ambiguous or unknown.
+</Tip>
 
 ## Credits
 
 | Outcome | Credits |
 |---|---|
 | Answered from the index | 1 |
-| Nothing matched, without `live` | 0 |
+| Nothing matched at `min_confidence`, without `live` | 0 |
 | `live=true` and the live lookup ran | 3, whether or not it found anything |
 | `live=true`, but the index was already confident | 1 |
 
 ## Typeahead
 
-`/resolve` also completes partial names. `stri` returns Stripe first, so you can put it behind a search box. Completions always score below 0.8: they're suggestions, not answers. Leave `live` off for typeahead, and debounce keystrokes, because each request counts against your rate limit.
+`/resolve` also completes partial names. `stri` returns Stripe first, so you can put it behind a search box. Completions always score below 0.8: they're suggestions, not answers. Pass `min_confidence=0` so less-known completions aren't left out, leave `live` off, and debounce keystrokes, because each request counts against your rate limit.
 
 ## Next
 

@@ -126,7 +126,7 @@ By default you get the brand palette. Add options to pull colors from more place
 
 | Parameter | Adds | Lands in |
 |---|---|---|
-| *(default)* | The logo's and favicon's colors, and the brand colors the page sets itself (`theme-color`, the header, the primary buttons). Chromatic colors first, white, black and greys after. | `brand.colors.brand_colors` |
+| *(default)* | The logo's and favicon's colors, and the brand colors the page sets itself (`theme-color`, the header, the primary buttons, a tinted page background). When the page sets none and the logo is monochrome, the colors the page uses most stand in. Chromatic colors first, then black and greys, white last. | `brand.colors.brand_colors` |
 | *(default)* | The color each role uses on the page: `primary` and `secondary` button fills, `background`, `text` and `link` | `brand.colors.roles` |
 | `screenshotColors=6` | N dominant colors from a screenshot of the page (2–12) | `brand.colors.screenshot_colors` |
 | `css=true` | Colors defined in stylesheets | `brand.colors.code_colors` |

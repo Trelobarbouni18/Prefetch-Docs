@@ -107,6 +107,7 @@
               "concepts/authentication",
               "concepts/credits",
               "concepts/rate-limits",
+              "concepts/progress-streaming",
               "concepts/errors",
               "concepts/webhooks",
               "concepts/async-jobs",

@@ -120,6 +120,8 @@ A crawl stays inside the boundary you draw. By default that's the site you point
 
 A crawl stays at or below the path it starts from. One started at `https://docs.stripe.com/payments/` crawls the payments docs, not the whole site its navigation links to. A start URL that names a file, like `/docs/intro.html`, scopes to its folder. Set `crawl_entire_domain: true` to follow links anywhere on the site.
 
+On shared platforms, where each business has a path rather than a site of its own (`amazon.com/stores/…`, `etsy.com/shop/…`, `facebook.com/…`, `instagram.com/…`, `linktr.ee/…`, `yelp.com/biz/…`, any `google.com` host), a crawl keeps to its start path even with `crawl_entire_domain: true`. The entire domain there is the platform, not the business. The same goes for a business domain that forwards to such a page. The links it leaves out are counted as `out-of-scope`. Platforms that give each business its own subdomain (`myshopify.com`, `wixsite.com`) need no exception, because a crawl stays on its start host.
+
 Patterns match the **path and query**, not the whole URL. So `^/docs/` means the docs section, and a pattern that contains the hostname never matches. Exclusions win over inclusions. An invalid regular expression is rejected with a `400` when you submit, not ignored halfway through.
 
 ```json
@@ -146,6 +148,8 @@ Pages from the sitemap sit at **depth 0**: the site handed them over, rather tha
 
 This crawls exactly what the sitemap lists and follows nothing else.
 
+The start page's own links are crawled first, then the sitemap's pages, shallowest paths first. So a crawl cut short by `limit` keeps the pages nearest the top of the site (about, services, contact), not the first few hundred products a store's sitemap lists. To leave a store's catalogue out entirely, exclude it: `"exclude_paths": ["^/products/", "^/collections/"]`.
+
 ## Politeness
 
 Crawls obey `robots.txt` by default: both its `Disallow` rules and its `Crawl-delay`. Set `respect_robots_txt: false` to ignore the rules.
@@ -155,6 +159,8 @@ Crawls obey `robots.txt` by default: both its `Disallow` rules and its `Crawl-de
 </Note>
 
 `delay_ms` adds a pause between pages, and `concurrency` (1 to 5, default 2) sets how many pages are fetched in parallel. A `Crawl-delay` in `robots.txt` wins whenever it asks for a longer pause than `delay_ms`.
+
+The crawl also paces itself to the site. When a site that has been serving pages starts refusing them (HTTP 403 or 429) or failing under the load (502 to 504, or Cloudflare's 520 to 524), the crawl slows down and tries those pages again, then speeds back up once the site keeps up. After a refusal, though, it never goes faster than about two pages a second, because a site that refused the full-speed crawl refuses it again. If the site serves nothing at all for a minute, the remaining pages are reported under `skipped` as `site-unavailable`.
 
 ## Rendering each page
 
@@ -180,9 +186,9 @@ Formats are charged per page. Asking for `summary`, `json` or `check_prompt_inje
 [`GET /crawl/{id}/errors`](/api-reference/endpoint/crawl-errors) explains a crawl that came back smaller than expected, for free:
 
 - **`failed`:** pages that were fetched and failed, each with an [`error_code`](/concepts/errors#error-codes) that says whether trying again could help.
-- **`skipped`:** URLs the crawl found but didn't fetch, counted by reason with a few examples each: `limit`, `depth`, `out-of-scope`, `excluded`, `not-included`, `robots`, `off-site`, `file`, `invalid`, `blocklist` and `duplicate`.
+- **`skipped`:** URLs the crawl found but didn't fetch, counted by reason with a few examples each: `limit`, `depth`, `out-of-scope`, `excluded`, `not-included`, `robots`, `off-site`, `file`, `invalid`, `blocklist`, `duplicate` and `site-unavailable`.
 
-A large `limit` count means the crawl ran out of budget. A large `out-of-scope` count usually means it needed `crawl_entire_domain`.
+A large `limit` count means the crawl ran out of budget. A large `out-of-scope` count usually means it needed `crawl_entire_domain`. `site-unavailable` means the site stopped serving the crawl partway through: it refused or failed every request for a minute, even at a slower pace, so the pages still queued were left out rather than fetched one by one. They aren't charged. Crawl the site again later for them.
 
 ## Webhooks
 
